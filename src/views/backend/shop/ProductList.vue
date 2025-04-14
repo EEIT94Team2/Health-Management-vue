@@ -71,6 +71,11 @@
                                     :src="product.imageUrl || 'https://via.placeholder.com/300x300?text=No+Image'" 
                                     fit="cover" 
                                     class="product-image"
+                                    :preview-src-list="product.imageUrl ? [product.imageUrl] : []"
+                                    :initial-index="0"
+                                    :z-index="9999"
+                                    preview-teleported
+                                    @click.stop
                                 />
                             </div>
                             <div class="product-info">
@@ -97,6 +102,11 @@
                                 :src="row.imageUrl || 'https://via.placeholder.com/80x80?text=No+Image'" 
                                 fit="cover"
                                 class="table-product-image"
+                                :preview-src-list="row.imageUrl ? [row.imageUrl] : []"
+                                :initial-index="0"
+                                :z-index="9999"
+                                preview-teleported
+                                @click.stop
                             />
                         </template>
                     </el-table-column>
@@ -170,9 +180,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Search, ShoppingCart } from '@element-plus/icons-vue';
+import { Grid, List, Search, Plus, ShoppingCart } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
-import { getProducts, searchProducts, addToCart as addProductToCart } from '@/api/shop';
+import { getProducts, searchProducts, getProductsByPriceRange, addToCart } from '@/api/shop';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -346,30 +356,73 @@ const handleCurrentChange = (val) => {
 
 // 跳转到商品详情页
 const goToProductDetail = (productId) => {
-    router.push(`/backpage/shop/products/${productId}`);
+    router.push(`/shop/products/${productId}`);
 };
 
-// 快速加入购物车
+// 快速添加商品到购物车
 const quickAddToCart = async (product) => {
     if (!authStore.isAuthenticated) {
         ElMessage.warning('請先登入');
-        router.push('/backpage/member/login');
+        router.push('/member/login');
         return;
     }
     
+    loading.value = true;
     try {
-        loading.value = true;
+        const userId = authStore.userInfo?.id;
+        if (!userId) {
+            ElMessage.warning('無法獲取用戶ID，請重新登入');
+            return;
+        }
+        
+        // 只提交必要的信息
         const cartItem = {
             productId: product.id,
-            quantity: 1
+            quantity: 1,
+            userId: userId
         };
         
-        const userId = authStore.userInfo?.id;
-        await addProductToCart(cartItem, userId);
-        ElMessage.success('已加入購物車');
+        console.log('添加到购物车:', cartItem);
+        const response = await addToCart(cartItem, userId);
+        
+        // 更全面地處理各種可能的成功響應格式
+        if (response && response.status === 200) {
+            // 狀態碼200就視為成功
+            ElMessage.success('已添加到購物車');
+            return;
+        }
+        
+        // 檢查各種可能的成功響應數據結構
+        if (response && response.data) {
+            // 情況1: {success: true, ...}
+            if (response.data.success === true) {
+                ElMessage.success('已添加到購物車');
+                return;
+            }
+            
+            // 情況2: 直接返回data對象
+            if (response.data.id || 
+                response.data.productId || 
+                (response.data.data && (response.data.data.id || response.data.data.productId))) {
+                ElMessage.success('已添加到購物車');
+                return;
+            }
+            
+            // 情況3: 沒有明確錯誤信息
+            if (!response.data.message && !response.data.error) {
+                ElMessage.success('已添加到購物車');
+                return;
+            }
+            
+            // 有明確的錯誤信息
+            throw new Error(response.data.message || response.data.error || '添加失敗');
+        } else {
+            // 無法解析響應
+            throw new Error('無法處理服務器響應');
+        }
     } catch (error) {
-        console.error('加入購物車失敗:', error);
-        ElMessage.error('加入購物車失敗');
+        console.error('添加到購物車失敗:', error);
+        ElMessage.error(`添加失敗: ${error.message || '未知錯誤'}`);
     } finally {
         loading.value = false;
     }
