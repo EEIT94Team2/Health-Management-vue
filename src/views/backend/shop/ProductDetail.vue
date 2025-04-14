@@ -5,8 +5,8 @@
         <div class="detail-header">
           <h2>商品詳情</h2>
           <div class="header-actions">
-            <el-button @click="$router.push('/backpage/shop/products')">返回商品列表</el-button>
-            <el-button v-if="isAdmin" type="primary" @click="$router.push('/backpage/shop/product-admin')" class="admin-button">
+            <el-button @click="$router.push('/shop/products')">返回商品列表</el-button>
+            <el-button v-if="isAdmin" type="primary" @click="$router.push('/shop/product-admin')" class="admin-button">
               <i class="bi bi-arrow-right-square"></i>
               管理商品
             </el-button>
@@ -21,6 +21,10 @@
               :src="product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image'"
               fit="cover"
               class="product-image"
+              :preview-src-list="product.imageUrl ? [product.imageUrl] : []"
+              :initial-index="0"
+              :z-index="9999"
+              preview-teleported
             />
           </div>
         </el-col>
@@ -92,7 +96,7 @@ const fetchProductDetail = async () => {
 const addToCart = async () => {
   if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
-    router.push('/backpage/member/login');
+    router.push('/member/login');
     return;
   }
   

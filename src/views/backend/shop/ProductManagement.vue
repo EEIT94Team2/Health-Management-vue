@@ -48,7 +48,7 @@
                     sub-title="抱歉，只有管理員才能訪問此頁面"
                 >
                     <template #extra>
-                        <el-button type="primary" @click="$router.push('/backpage/shop/products')">返回商品列表</el-button>
+                        <el-button type="primary" @click="$router.push('/shop/products')">返回商品列表</el-button>
                     </template>
                 </el-result>
             </div>
@@ -61,10 +61,10 @@
                                 :src="row.imageUrl || 'https://via.placeholder.com/100x100?text=No+Image'" 
                                 fit="cover" 
                                 class="product-image"
-                                :preview-src-list="[row.imageUrl]"
+                                :preview-src-list="row.imageUrl ? [row.imageUrl] : []"
                                 :initial-index="0"
-                                :append-to-body="true"
-                                :z-index="3000"
+                                :z-index="9999"
+                                preview-teleported
                             />
                         </template>
                     </el-table-column>
@@ -114,7 +114,7 @@
                                         type="primary" 
                                         circle 
                                         size="large"
-                                        @click="$router.push(`/backpage/shop/products/${row.id}`)"
+                                        @click="$router.push(`/shop/products/${row.id}`)"
                                     >
                                         <el-icon class="action-icon"><View /></el-icon>
                                     </el-button>
@@ -239,7 +239,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { Plus, ArrowDown, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
+import { Edit, Delete, Plus, ArrowDown, Search, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
 import { 
@@ -248,6 +248,7 @@ import {
     updateProduct, 
     deleteProduct, 
     searchProducts,
+    getProductsByPriceRange,
     uploadImage as uploadImageApi
 } from "@/api/shop";
 
@@ -599,7 +600,7 @@ const resetForm = () => {
 onMounted(() => {
     if (!authStore.isLoggedIn) {
         ElMessage.warning('請先登入');
-        router.push('/backpage/member/login');
+        router.push('/member/login');
         return;
     }
     

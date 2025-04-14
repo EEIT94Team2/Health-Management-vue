@@ -5,7 +5,7 @@
         <div class="detail-header">
           <h2>訂單詳情</h2>
           <div class="header-actions">
-            <el-button @click="$router.push('/backpage/shop/orders')">返回訂單列表</el-button>
+            <el-button @click="$router.push('/shop/orders')">返回訂單列表</el-button>
           </div>
         </div>
       </template>
@@ -23,8 +23,10 @@
             <el-descriptions-item label="訂單編號">{{ order.id }}</el-descriptions-item>
             <el-descriptions-item label="下單時間">{{ formatDate(order.createdAt) }}</el-descriptions-item>
             <el-descriptions-item label="訂單金額">${{ order.totalAmount }}</el-descriptions-item>
-            <el-descriptions-item label="支付方式">{{ order.paymentMethod || '未支付' }}</el-descriptions-item>
-            <el-descriptions-item label="用戶" v-if="isAdmin">{{ order.userName }}</el-descriptions-item>
+            <el-descriptions-item label="支付方式">
+              {{ getPaymentMethod(order.status) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="用戶郵箱">{{ order.userName }}</el-descriptions-item>
             <el-descriptions-item label="聯繫方式" v-if="order.contactInfo">{{ order.contactInfo }}</el-descriptions-item>
             <el-descriptions-item label="備註" :span="2" v-if="order.note">{{ order.note }}</el-descriptions-item>
           </el-descriptions>
@@ -37,46 +39,60 @@
         
         <div class="order-items-card">
           <h3>訂單商品</h3>
-          <el-table :data="order.items || []" style="width: 100%">
+          <div v-if="!order.orderItems || order.orderItems.length === 0" class="no-items">
+            <el-empty description="暫無商品數據" />
+          </div>
+          <el-table v-else :data="order.orderItems" style="width: 100%">
             <el-table-column label="商品圖片" width="100">
               <template #default="{ row }">
                 <el-image 
-                  :src="row.product.imageUrl || 'https://via.placeholder.com/80x80?text=No+Image'" 
+                  v-if="row.productImageUrl"
+                  :src="row.productImageUrl" 
                   fit="cover"
                   class="product-image"
-                  @click="viewProduct(row.product.id)"
+                  @click="viewProduct(row.productId)"
+                />
+                <el-image
+                  v-else
+                  src="https://via.placeholder.com/80x80?text=No+Image"
+                  fit="cover"
+                  class="product-image"
                 />
               </template>
             </el-table-column>
             
-            <el-table-column prop="product.name" label="商品名稱" min-width="200">
+            <el-table-column label="商品名稱" min-width="200">
               <template #default="{ row }">
-                <div class="product-name" @click="viewProduct(row.product.id)">
-                  {{ row.product.name }}
+                <div class="product-name" @click="viewProduct(row.productId)">
+                  {{ row.productName }}
                 </div>
               </template>
             </el-table-column>
             
-            <el-table-column prop="price" label="單價" width="120">
+            <el-table-column label="單價" width="120">
               <template #default="{ row }">
-                ${{ row.price }}
+                ${{ row.productPrice || 0 }}
               </template>
             </el-table-column>
             
-            <el-table-column prop="quantity" label="數量" width="80" />
+            <el-table-column label="數量" width="80">
+              <template #default="{ row }">
+                {{ row.quantity || 0 }}
+              </template>
+            </el-table-column>
             
             <el-table-column label="小計" width="120">
               <template #default="{ row }">
-                ${{ (row.price * row.quantity).toFixed(2) }}
+                ${{ row.subtotal || (row.productPrice * row.quantity).toFixed(2) }}
               </template>
             </el-table-column>
           </el-table>
           
           <div class="order-summary">
             <div class="order-total">
-              <div>商品總額: <span>${{ order.totalAmount }}</span></div>
+              <div>商品總額: <span>${{ order.totalAmount || 0 }}</span></div>
               <div>運費: <span>$0.00</span></div>
-              <div class="final-total">實付金額: <span>${{ order.totalAmount }}</span></div>
+              <div class="final-total">實付金額: <span>${{ order.totalAmount || 0 }}</span></div>
             </div>
           </div>
         </div>
@@ -189,10 +205,10 @@ const formatDate = (dateString) => {
 };
 
 // 获取订单详情
-const fetchOrderDetail = async () => {
-  if (!authStore.isAuthenticated) {
-    ElMessage.warning('請先登入');
-    router.push('/backpage/member/login');
+const fetchOrder = async () => {
+  if (!orderId.value) {
+    ElMessage.error('訂單ID無效');
+    router.push('/shop/orders');
     return;
   }
   
@@ -200,20 +216,44 @@ const fetchOrderDetail = async () => {
   try {
     const response = await getOrderById(orderId.value);
     
-    // 检查权限
-    if (!isAdmin.value && response.data.userId !== authStore.userId) {
-      ElMessage.error('您無權查看該訂單');
-      router.push('/backpage/shop/orders');
-      return;
+    if (response && response.data) {
+      // 处理API返回的数据
+      order.value = response.data;
+      
+      // 确保显示用户名称
+      if (!order.value.userName || order.value.userName === '未知用戶') {
+        // 如果沒有用戶名稱顯示為用戶ID
+        order.value.userName = `用戶${order.value.userId}`;
+      }
+      
+      // 确保订单项目数据完整
+      if (order.value.orderItems) {
+        order.value.orderItems.forEach(item => {
+          // 如果没有提供数量，默认为1
+          if (!item.quantity || item.quantity <= 0) {
+            item.quantity = 1;
+          }
+          
+          // 添加基本的商品信息结构，如果不存在
+          if (!item.product) {
+            item.product = {
+              id: item.productId,
+              name: item.productName || `商品 #${item.productId}`,
+              price: item.productPrice
+            };
+          }
+        });
+      }
+      
+      console.log('订单数据:', order.value);
+    } else {
+      ElMessage.error('獲取訂單詳情失敗');
+      order.value = null;
     }
-    
-    order.value = {
-      ...response.data,
-      userName: response.data.user ? response.data.user.name : '未知用戶'
-    };
   } catch (error) {
-    console.error('獲取訂單詳情失敗:', error);
-    ElMessage.error('獲取訂單詳情失敗');
+    console.error('獲取訂單詳情時出錯:', error);
+    ElMessage.error(`獲取訂單詳情失敗: ${error.message || '未知錯誤'}`);
+    order.value = null;
   } finally {
     loading.value = false;
   }
@@ -221,7 +261,7 @@ const fetchOrderDetail = async () => {
 
 // 查看商品
 const viewProduct = (productId) => {
-  router.push(`/backpage/shop/products/${productId}`);
+  router.push(`/shop/products/${productId}`);
 };
 
 // 去支付
@@ -233,7 +273,7 @@ const goToPayment = () => {
   
   // 跳轉到支付頁面
   router.push({
-    path: '/backpage/shop/checkout',
+    path: '/shop/checkout',
     query: { orderId: order.value.id }
   });
 };
@@ -250,7 +290,7 @@ const cancelOrder = async () => {
     // 實現取消訂單的API調用
     // 這裡需要後端提供取消訂單的API
     ElMessage.success('訂單已取消');
-    fetchOrderDetail(); // 重新獲取訂單信息
+    fetchOrder(); // 重新獲取訂單信息
   } catch (error) {
     if (error !== 'cancel') {
       console.error('取消訂單失敗:', error);
@@ -259,13 +299,28 @@ const cancelOrder = async () => {
   }
 };
 
+// 根据订单状态获取支付方式
+const getPaymentMethod = (status) => {
+  switch (status) {
+    case 'COMPLETED':
+      return '已完成支付';
+    case 'PAID':
+      return '已支付';
+    case 'CANCELLED':
+      return '已取消';
+    case 'PENDING_PAYMENT':
+    default:
+      return '未支付';
+  }
+};
+
 onMounted(() => {
   if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
-    router.push('/backpage/member/login');
+    router.push('/member/login');
     return;
   }
-  fetchOrderDetail();
+  fetchOrder();
 });
 </script>
 
@@ -327,6 +382,20 @@ onMounted(() => {
 
 .product-name:hover {
   text-decoration: underline;
+}
+
+.text-muted {
+  color: #909399;
+  cursor: default;
+}
+
+.text-muted:hover {
+  text-decoration: none;
+}
+
+.no-items {
+  padding: 30px 0;
+  text-align: center;
 }
 
 .order-summary {

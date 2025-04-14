@@ -5,34 +5,44 @@
                 <div class="admin-header">
                     <h2>商品管理後台</h2>
                     <div class="search-actions">
-                        <el-input 
-                            v-model="searchKeyword" 
-                            placeholder="搜索商品" 
+                        <el-input
+                            v-model="searchKeyword"
+                            placeholder="搜索商品"
                             class="search-input"
-                            clearable 
+                            clearable
                             @keyup.enter="handleSearch"
                         >
                             <template #append>
                                 <el-button icon="Search" @click="handleSearch"></el-button>
                             </template>
                         </el-input>
-                        
+
                         <el-dropdown @command="handleFilterCommand" class="price-filter">
                             <el-button>
-                                價格篩選 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                                {{ currentFilterText }}
+                                <el-icon class="el-icon--right"><arrow-down /></el-icon>
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
                                     <el-dropdown-item command="all">全部商品</el-dropdown-item>
                                     <el-dropdown-item command="low">低價 (< $100)</el-dropdown-item>
-                                    <el-dropdown-item command="medium">中價 ($100 - $500)</el-dropdown-item>
-                                    <el-dropdown-item command="high">高價 (> $500)</el-dropdown-item>
+                                    <el-dropdown-item command="medium"
+                                        >中價 ($100 - $500)</el-dropdown-item
+                                    >
+                                    <el-dropdown-item command="high"
+                                        >高價 (> $500)</el-dropdown-item
+                                    >
                                     <el-dropdown-item command="custom">自定義價格</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
-                        
-                        <el-button type="success" size="large" @click="showAddDialog" class="add-product-btn">
+
+                        <el-button
+                            type="success"
+                            size="large"
+                            @click="showAddDialog"
+                            class="add-product-btn"
+                        >
                             <el-icon class="add-icon"><Plus /></el-icon>
                             <span class="bold-text">新增商品</span>
                         </el-button>
@@ -48,23 +58,30 @@
                     sub-title="抱歉，只有管理員才能訪問此頁面"
                 >
                     <template #extra>
-                        <el-button type="primary" @click="$router.push('/backpage/shop/products')">返回商品列表</el-button>
+                        <el-button type="primary" @click="$router.push('/shop/products')"
+                            >返回商品列表</el-button
+                        >
                     </template>
                 </el-result>
             </div>
 
             <div v-else>
                 <el-table v-loading="loading" :data="products" style="width: 100%">
+                    <el-table-column prop="id" label="ID" width="80" />
+
                     <el-table-column label="商品圖片" width="120">
                         <template #default="{ row }">
-                            <el-image 
-                                :src="row.imageUrl || 'https://via.placeholder.com/100x100?text=No+Image'" 
-                                fit="cover" 
+                            <el-image
+                                :src="
+                                    row.imageUrl ||
+                                    'https://via.placeholder.com/100x100?text=No+Image'
+                                "
+                                fit="cover"
                                 class="product-image"
-                                :preview-src-list="[row.imageUrl]"
+                                :preview-src-list="row.imageUrl ? [row.imageUrl] : []"
                                 :initial-index="0"
-                                :append-to-body="true"
-                                :z-index="3000"
+                                :z-index="9999"
+                                preview-teleported
                             />
                         </template>
                     </el-table-column>
@@ -78,10 +95,14 @@
                     <el-table-column prop="stockQuantity" label="庫存" width="120">
                         <template #default="{ row }">
                             <el-tooltip
-                                :content="row.stockQuantity < 50 ? '庫存不足，請及時補貨' : '庫存充足'"
+                                :content="
+                                    row.stockQuantity < 50 ? '庫存不足，請及時補貨' : '庫存充足'
+                                "
                                 placement="top"
                             >
-                                <span :class="{'low-stock': row.stockQuantity < 50}">{{ row.stockQuantity }}</span>
+                                <span :class="{ 'low-stock': row.stockQuantity < 50 }">{{
+                                    row.stockQuantity
+                                }}</span>
                             </el-tooltip>
                         </template>
                         <template #header>
@@ -91,12 +112,12 @@
                             </el-tooltip>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column label="描述" min-width="220">
                         <template #default="{ row }">
-                            <el-tooltip 
-                                :content="row.description" 
-                                placement="top" 
+                            <el-tooltip
+                                :content="row.description"
+                                placement="top"
                                 :show-after="500"
                                 effect="light"
                                 max-width="300"
@@ -109,36 +130,36 @@
                     <el-table-column label="操作" width="220" fixed="right">
                         <template #default="{ row }">
                             <div class="table-actions">
-                                <el-tooltip content="編輯" placement="top">
-                                    <el-button 
-                                        type="warning" 
-                                        circle 
-                                        size="large"
-                                        @click="showEditDialog(row)"
-                                    >
-                                        <el-icon class="action-icon"><Tools /></el-icon>
-                                    </el-button>
-                                </el-tooltip>
-                                
                                 <el-tooltip content="查看" placement="top">
-                                    <el-button 
-                                        type="primary" 
-                                        circle 
+                                    <el-button
+                                        type="primary"
+                                        circle
                                         size="large"
-                                        @click="viewProductDetail(row.id)"
+                                        @click="$router.push(`/backpage/shop/products/${row.id}`)"
                                     >
                                         <el-icon class="action-icon"><View /></el-icon>
                                     </el-button>
                                 </el-tooltip>
-                                
+
+                                <el-tooltip content="編輯" placement="top">
+                                    <el-button
+                                        type="warning"
+                                        circle
+                                        size="large"
+                                        @click="showEditDialog(row)"
+                                    >
+                                        <el-icon class="action-icon"><Edit /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+
                                 <el-tooltip content="刪除" placement="top">
-                                    <el-button 
-                                        type="danger" 
-                                        circle 
+                                    <el-button
+                                        type="danger"
+                                        circle
                                         size="large"
                                         @click="handleDelete(row)"
                                     >
-                                        <el-icon class="action-icon"><CircleClose /></el-icon>
+                                        <el-icon class="action-icon"><Delete /></el-icon>
                                     </el-button>
                                 </el-tooltip>
                             </div>
@@ -171,7 +192,8 @@
                     <el-input-number
                         v-model="form.price"
                         :min="0"
-                        :precision="2"
+                        :precision="0"
+                        :step="1"
                         style="width: 100%"
                     />
                 </el-form-item>
@@ -221,10 +243,20 @@
         <el-dialog v-model="priceRangeDialogVisible" title="自定義價格範圍" width="400px">
             <el-form :model="priceRangeForm">
                 <el-form-item label="最低價格">
-                    <el-input-number v-model="priceRangeForm.minPrice" :min="0" :precision="2" style="width: 100%" />
+                    <el-input-number
+                        v-model="priceRangeForm.minPrice"
+                        :min="0"
+                        :precision="2"
+                        style="width: 100%"
+                    />
                 </el-form-item>
                 <el-form-item label="最高價格">
-                    <el-input-number v-model="priceRangeForm.maxPrice" :min="0" :precision="2" style="width: 100%" />
+                    <el-input-number
+                        v-model="priceRangeForm.maxPrice"
+                        :min="0"
+                        :precision="2"
+                        style="width: 100%"
+                    />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -239,16 +271,29 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from 'vue-router';
-import { Plus, ArrowDown, Upload, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
+import { useRouter } from "vue-router";
+import {
+    Edit,
+    Delete,
+    Plus,
+    ArrowDown,
+    Search,
+    Upload,
+    View,
+    Tools,
+    CircleClose,
+    InfoFilled,
+} from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
-import { 
-    getProducts, 
-    createProduct, 
-    updateProduct, 
-    deleteProduct, 
-    searchProducts} from "@/api/shop";
+import {
+    getProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    searchProducts,
+    getProductsByPriceRange,
+} from "@/api/shop";
 import { uploadLocalImage } from "@/utils/imageUpload";
 
 const router = useRouter();
@@ -265,19 +310,19 @@ const searchKeyword = ref("");
 const priceRangeDialogVisible = ref(false);
 const priceRangeForm = ref({
     minPrice: 0,
-    maxPrice: 1000
+    maxPrice: 1000,
 });
 
 // 當前篩選條件
 const currentPriceFilter = ref({
     active: false,
     minPrice: 0,
-    maxPrice: 100000
+    maxPrice: 100000,
 });
 
 // 检查是否为管理员
 const isAdmin = computed(() => {
-  return authStore.userRole === 'admin';
+    return authStore.userRole === "admin";
 });
 
 const form = ref({
@@ -299,20 +344,20 @@ const rules = {
 // 獲取商品列表
 const fetchProducts = async () => {
     if (!isAdmin.value) return;
-    
+
     loading.value = true;
     try {
         const params = {
             page: currentPage.value,
-            size: pageSize.value
+            size: pageSize.value,
         };
-        
+
         const response = await getProducts(params);
-        
+
         // 假設API返回的是完整數據，前端根據分頁參數處理
         const allProducts = response.data || [];
         total.value = allProducts.length;
-        
+
         // 手動實現分頁邏輯
         const startIndex = (currentPage.value - 1) * pageSize.value;
         const endIndex = startIndex + pageSize.value;
@@ -328,11 +373,11 @@ const fetchProducts = async () => {
 // 處理搜索
 const handleSearch = async () => {
     if (!isAdmin.value) return;
-    
+
     loading.value = true;
     try {
         let filteredProducts = [];
-        
+
         // 根據搜索關鍵詞獲取商品
         if (searchKeyword.value.trim()) {
             const response = await searchProducts(searchKeyword.value);
@@ -341,15 +386,16 @@ const handleSearch = async () => {
             const response = await getProducts();
             filteredProducts = response.data;
         }
-        
+
         // 如果有價格篩選條件，再按價格篩選
         if (currentPriceFilter.value.active) {
-            filteredProducts = filteredProducts.filter(product => 
-                product.price >= currentPriceFilter.value.minPrice && 
-                product.price <= currentPriceFilter.value.maxPrice
+            filteredProducts = filteredProducts.filter(
+                (product) =>
+                    product.price >= currentPriceFilter.value.minPrice &&
+                    product.price <= currentPriceFilter.value.maxPrice
             );
         }
-        
+
         products.value = filteredProducts;
         total.value = filteredProducts.length;
     } catch (error) {
@@ -362,38 +408,38 @@ const handleSearch = async () => {
 
 // 處理價格篩選
 const handleFilterCommand = (command) => {
-    if (command === 'custom') {
+    if (command === "custom") {
         priceRangeDialogVisible.value = true;
         return;
     }
-    
-    switch(command) {
-        case 'all':
+
+    switch (command) {
+        case "all":
             currentPriceFilter.value.active = false;
             break;
-        case 'low':
+        case "low":
             currentPriceFilter.value = {
                 active: true,
                 minPrice: 0,
-                maxPrice: 100
+                maxPrice: 100,
             };
             break;
-        case 'medium':
+        case "medium":
             currentPriceFilter.value = {
                 active: true,
                 minPrice: 100,
-                maxPrice: 500
+                maxPrice: 500,
             };
             break;
-        case 'high':
+        case "high":
             currentPriceFilter.value = {
                 active: true,
                 minPrice: 500,
-                maxPrice: 100000
+                maxPrice: 100000,
             };
             break;
     }
-    
+
     // 應用搜索和價格篩選
     handleSearch();
 };
@@ -403,11 +449,11 @@ const handlePriceRangeFilter = () => {
     currentPriceFilter.value = {
         active: true,
         minPrice: priceRangeForm.value.minPrice,
-        maxPrice: priceRangeForm.value.maxPrice
+        maxPrice: priceRangeForm.value.maxPrice,
     };
-    
+
     priceRangeDialogVisible.value = false;
-    
+
     // 應用搜索和價格篩選
     handleSearch();
 };
@@ -426,7 +472,7 @@ const handleCurrentChange = (val) => {
 // 顯示新增對話框
 const showAddDialog = () => {
     if (!isAdmin.value) return;
-    
+
     isEdit.value = false;
     form.value = {
         name: "",
@@ -441,7 +487,7 @@ const showAddDialog = () => {
 // 顯示編輯對話框
 const showEditDialog = (row) => {
     if (!isAdmin.value) return;
-    
+
     isEdit.value = true;
     form.value = { ...row };
     dialogVisible.value = true;
@@ -449,13 +495,13 @@ const showEditDialog = (row) => {
 
 // 查看商品詳情
 const viewProductDetail = (id) => {
-    router.push(`/backpage/shop/products/${id}`);
+    router.push(`/shop/products/${id}`);
 };
 
 // 處理刪除
 const handleDelete = async (row) => {
     if (!isAdmin.value) return;
-    
+
     try {
         await ElMessageBox.confirm("確定要刪除此商品嗎？", "提示", {
             confirmButtonText: "確定",
@@ -509,19 +555,19 @@ const handleSubmit = async () => {
 // 上傳前驗證
 const beforeUpload = (file) => {
     // 檢查文件類型
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     if (!isImage) {
-        ElMessage.error('只能上傳圖片文件!');
+        ElMessage.error("只能上傳圖片文件!");
         return false;
     }
-    
+
     // 檢查文件大小（最大5MB）
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
-        ElMessage.error('圖片大小不能超過5MB!');
+        ElMessage.error("圖片大小不能超過5MB!");
         return false;
     }
-    
+
     // 處理上傳
     handleLocalImageUpload(file);
     return false; // 阻止默認上傳行為
@@ -533,9 +579,9 @@ const handleLocalImageUpload = async (file) => {
         loading.value = true;
         const result = await uploadLocalImage(file);
         form.value.imageUrl = result.imageUrl;
-        ElMessage.success('圖片上傳成功');
+        ElMessage.success("圖片上傳成功");
     } catch (error) {
-        console.error('圖片上傳失敗:', error);
+        console.error("圖片上傳失敗:", error);
         ElMessage.error(`圖片上傳失敗: ${error.message}`);
     } finally {
         loading.value = false;
@@ -548,18 +594,28 @@ const handleUploadSuccess = (response) => {
     // 在我們的模擬情況下，不會用到這個函數
 };
 
+const currentFilterText = computed(() => {
+    if (!currentPriceFilter.value.active) return "價格篩選";
+    if (currentPriceFilter.value.minPrice === 0 && currentPriceFilter.value.maxPrice === 100)
+        return "低價 (< $100)";
+    if (currentPriceFilter.value.minPrice === 100 && currentPriceFilter.value.maxPrice === 500)
+        return "中價 ($100 - $500)";
+    if (currentPriceFilter.value.minPrice === 500) return "高價 (> $500)";
+    return `價格 $${currentPriceFilter.value.minPrice} - $${currentPriceFilter.value.maxPrice}`;
+});
+
 onMounted(() => {
     if (!authStore.isAuthenticated) {
-        ElMessage.warning('請先登入');
-        router.push('/backpage/member/login');
+        ElMessage.warning("請先登入");
+        router.push("/member/login");
         return;
     }
-    
+
     if (!isAdmin.value) {
-        ElMessage.error('只有管理員才能訪問此頁面');
+        ElMessage.error("只有管理員才能訪問此頁面");
         return;
     }
-    
+
     fetchProducts();
 });
 </script>
@@ -698,4 +754,4 @@ onMounted(() => {
 .upload-info {
     margin-top: 10px;
 }
-</style> 
+</style>

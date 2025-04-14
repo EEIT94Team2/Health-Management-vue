@@ -16,7 +16,7 @@ import CourseForm from "@/views/backend/course/CourseForm.vue";
 
 // 會員中心
 import MemberLoginView from "@/views/backend/member/MemberLoginView.vue";
-import MemberRegisterView from "@/views/backend/member/MemberRegisterView.vue"
+import MemberRegisterView from "@/views/backend/member/MemberRegisterView.vue";
 import MemberProfileView from "@/views/backend/member/MemberProfileView.vue";
 import MemberManagement from "@/views/backend/member/MemberManagement.vue";
 
@@ -44,7 +44,6 @@ import ReportsAnalysis from "@/views/backend/fitness/back/ReportsAnalysis.vue";
 
 // 錯誤頁面
 import Forbidden403 from "@/views/403.vue";
-
 
 import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
@@ -293,8 +292,8 @@ router.beforeEach((to, from, next) => {
                 path: "/backpage/error/403",
                 query: {
                     message: "您沒有管理員權限，無法訪問此頁面",
-                    code: "ERR_BAD_REQUEST"
-                }
+                    code: "ERR_BAD_REQUEST",
+                },
             });
         }
 
@@ -304,8 +303,8 @@ router.beforeEach((to, from, next) => {
                 path: "/backpage/error/403",
                 query: {
                     message: "您沒有管理員權限，無法訪問此頁面",
-                    code: "ERR_BAD_REQUEST"
-                }
+                    code: "ERR_BAD_REQUEST",
+                },
             });
         }
 

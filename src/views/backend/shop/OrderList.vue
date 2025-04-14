@@ -46,7 +46,7 @@
       
       <div v-else-if="orders.length === 0" class="empty-orders">
         <el-empty description="暫無訂單">
-          <el-button type="primary" @click="$router.push('/backpage/shop/products')">去購物</el-button>
+          <el-button type="primary" @click="$router.push('/shop/products')">去購物</el-button>
         </el-empty>
       </div>
       
@@ -76,11 +76,11 @@
           
           <el-table-column label="商品數量" width="120">
             <template #default="{ row }">
-              {{ row.items ? row.items.length : 0 }}
+              {{ getItemsQuantity(row) }}
             </template>
           </el-table-column>
           
-          <el-table-column prop="userName" label="用戶名稱" min-width="120" v-if="isAdmin" />
+          <el-table-column prop="userName" label="用戶郵箱" min-width="120" v-if="isAdmin" />
           
           <el-table-column label="操作" width="160" fixed="right">
             <template #default="{ row }">
@@ -124,6 +124,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { Search } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { getOrders, getOrdersByUserId } from '@/api/shop';
 
@@ -195,16 +196,25 @@ const formatDate = (dateString) => {
 const fetchOrders = async () => {
   if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
-    router.push('/backpage/member/login');
+    router.push('/member/login');
     return;
   }
   
   loading.value = true;
   try {
     let response;
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value
+    };
+    
+    // 如果存在搜索關鍵詞，添加到請求參數中
+    if (searchQuery.value && searchQuery.value.trim() !== '') {
+      params.query = searchQuery.value.trim();
+    }
+    
     if (isAdmin.value) {
       // 管理员可以看到所有订单
-      const params = {};
       if (statusFilter.value) params.status = statusFilter.value;
       if (dateRange.value && dateRange.value.length === 2) {
         params.startDate = dateRange.value[0];
@@ -214,17 +224,54 @@ const fetchOrders = async () => {
       response = await getOrders(params);
     } else {
       // 普通用户只能看到自己的订单
-      response = await getOrdersByUserId(authStore.userId);
+      response = await getOrdersByUserId(authStore.userId, params);
     }
     
-    orders.value = response.data.map(order => ({
-      ...order,
-      userName: order.user ? order.user.name : '未知用戶'
-    }));
-    total.value = orders.value.length;
+    if (response && response.data) {
+      // 後端已實現分頁
+      if (response.data.content && Array.isArray(response.data.content)) {
+        orders.value = response.data.content;
+        total.value = response.data.totalElements || orders.value.length;
+      } 
+      // 後端未實現分頁，在前端進行處理
+      else if (Array.isArray(response.data)) {
+        // 先過濾搜索條件
+        let filteredOrders = response.data;
+        
+        // 根據搜索關鍵詞過濾
+        if (searchQuery.value && searchQuery.value.trim() !== '') {
+          const query = searchQuery.value.toLowerCase().trim();
+          filteredOrders = filteredOrders.filter(order => 
+            order.id.toString().includes(query) ||
+            (order.userName && order.userName.toLowerCase().includes(query))
+          );
+        }
+        
+        // 保存總數量
+        total.value = filteredOrders.length;
+        
+        // 根據分頁參數切片數據
+        const start = (currentPage.value - 1) * pageSize.value;
+        const end = start + pageSize.value;
+        orders.value = filteredOrders.slice(start, end);
+      } else {
+        // 無法處理的響應格式
+        orders.value = [];
+        total.value = 0;
+        ElMessage.error('獲取訂單列表失敗：無效響應格式');
+      }
+      
+      console.log('訂單數據:', orders.value, '總數:', total.value);
+    } else {
+      orders.value = [];
+      total.value = 0;
+      ElMessage.error('獲取訂單列表失敗：無效響應');
+    }
   } catch (error) {
     console.error('獲取訂單列表失敗:', error);
     ElMessage.error('獲取訂單列表失敗');
+    orders.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
@@ -237,12 +284,12 @@ const searchOrders = () => {
 
 // 查看订单详情
 const viewOrder = (orderId) => {
-  router.push(`/backpage/shop/orders/${orderId}`);
+  router.push(`/shop/orders/${orderId}`);
 };
 
 // 去支付
 const goToPayment = (order) => {
-  router.push(`/backpage/shop/checkout?orderId=${order.id}`);
+  router.push(`/shop/checkout?orderId=${order.id}`);
 };
 
 // 处理分页大小变化
@@ -257,10 +304,21 @@ const handleCurrentChange = (val) => {
   fetchOrders();
 };
 
+// 计算订单中的商品总数量
+const getItemsQuantity = (order) => {
+  if (!order.orderItems || order.orderItems.length === 0) {
+    return 0;
+  }
+  
+  return order.orderItems.reduce((total, item) => {
+    return total + (parseInt(item.quantity) || 0);
+  }, 0);
+};
+
 onMounted(() => {
   if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
-    router.push('/backpage/member/login');
+    router.push('/member/login');
     return;
   }
   fetchOrders();
