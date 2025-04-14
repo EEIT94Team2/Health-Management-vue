@@ -1,0 +1,51 @@
+// src/assets/styles/index.scss
+// 全局樣式
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  height: 100vh;
+}
+
+.health-platform {
+  /* 深色主題變數 */
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --highlight-color: #10b981;
+  --highlight-hover: #059669;
+  --border-color: #374151;
+  --card-bg: #1e293b;
+  --success-light: #ecfdf5;
+  --success-dark: #065f46;
+
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  width: 100%;
+}
+
+.text-highlight {
+  color: var(--highlight-color);
+  font-weight: 600;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  color: var(--text-primary);
+}
