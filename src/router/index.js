@@ -139,14 +139,16 @@ const routes = [
                 component: OrderDetail,
                 meta: { title: "訂單詳情", requiresAuth: true },
             },
-
             {
                 path: "shop/products",
                 name: "ProductList",
                 component: ProductList,
-                meta: { title: "商品管理", requiresAuth: true },
+                meta: { title: "商品列表", requiresAuth: true },
             },
-            { path: "shop/product-list", redirect: "shop/products" },
+            {
+                path: "shop/product-list",
+                redirect: "shop/products",
+            },
             {
                 path: "shop/products/:id",
                 name: "ProductDetail",
@@ -157,13 +159,13 @@ const routes = [
                 path: "shop/product-management",
                 name: "ProductManagement",
                 component: ProductManagement,
-                meta: { title: "商品管理", requiresAuth: true, requiresAdmin: true },
+                meta: { title: "商品管理", requiresAuth: true, isAdmin: true },
             },
             {
                 path: "shop/product-admin",
                 name: "ProductAdmin",
                 component: ProductAdmin,
-                meta: { title: "商品管理後台", requiresAuth: true, requiresAdmin: true },
+                meta: { title: "商品管理後台", requiresAuth: true, isAdmin: true },
             },
             {
                 path: "shop/cart",
@@ -171,12 +173,11 @@ const routes = [
                 component: CartManagement,
                 meta: { title: "購物車管理", requiresAuth: true },
             },
-
             {
                 path: "shop/checkout",
                 name: "PaymentSimulation",
                 component: PaymentSimulation,
-                meta: { title: "模擬支付", requiresAuth: true },
+                meta: { title: "模擬支付", requiresAuth: true, isAdmin: true },
             },
 
             // 論壇
@@ -286,19 +287,8 @@ router.beforeEach((to, from, next) => {
             });
         }
 
-        if (to.meta.requiresAdmin && userRole !== "admin") {
-            ElMessage.error("您沒有訪問此頁面的權限");
-            return next({
-                path: "/backpage/error/403",
-                query: {
-                    message: "您沒有管理員權限，無法訪問此頁面",
-                    code: "ERR_BAD_REQUEST",
-                },
-            });
-        }
-
         if (to.meta.isAdmin && userRole !== "admin") {
-            ElMessage.error("您沒有管理員權限");
+            ElMessage.error("您沒有訪問此頁面的權限");
             return next({
                 path: "/backpage/error/403",
                 query: {

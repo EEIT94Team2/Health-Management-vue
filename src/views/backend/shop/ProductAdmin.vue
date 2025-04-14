@@ -19,8 +19,7 @@
 
                         <el-dropdown @command="handleFilterCommand" class="price-filter">
                             <el-button>
-                                {{ currentFilterText }}
-                                <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                                價格篩選 <el-icon class="el-icon--right"><arrow-down /></el-icon>
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
@@ -67,8 +66,6 @@
 
             <div v-else>
                 <el-table v-loading="loading" :data="products" style="width: 100%">
-                    <el-table-column prop="id" label="ID" width="80" />
-
                     <el-table-column label="商品圖片" width="120">
                         <template #default="{ row }">
                             <el-image
@@ -130,17 +127,6 @@
                     <el-table-column label="操作" width="220" fixed="right">
                         <template #default="{ row }">
                             <div class="table-actions">
-                                <el-tooltip content="查看" placement="top">
-                                    <el-button
-                                        type="primary"
-                                        circle
-                                        size="large"
-                                        @click="$router.push(`/backpage/shop/products/${row.id}`)"
-                                    >
-                                        <el-icon class="action-icon"><View /></el-icon>
-                                    </el-button>
-                                </el-tooltip>
-
                                 <el-tooltip content="編輯" placement="top">
                                     <el-button
                                         type="warning"
@@ -148,7 +134,18 @@
                                         size="large"
                                         @click="showEditDialog(row)"
                                     >
-                                        <el-icon class="action-icon"><Edit /></el-icon>
+                                        <el-icon class="action-icon"><Tools /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+
+                                <el-tooltip content="查看" placement="top">
+                                    <el-button
+                                        type="primary"
+                                        circle
+                                        size="large"
+                                        @click="viewProductDetail(row.id)"
+                                    >
+                                        <el-icon class="action-icon"><View /></el-icon>
                                     </el-button>
                                 </el-tooltip>
 
@@ -159,7 +156,7 @@
                                         size="large"
                                         @click="handleDelete(row)"
                                     >
-                                        <el-icon class="action-icon"><Delete /></el-icon>
+                                        <el-icon class="action-icon"><CircleClose /></el-icon>
                                     </el-button>
                                 </el-tooltip>
                             </div>
@@ -192,8 +189,7 @@
                     <el-input-number
                         v-model="form.price"
                         :min="0"
-                        :precision="0"
-                        :step="1"
+                        :precision="2"
                         style="width: 100%"
                     />
                 </el-form-item>
@@ -495,7 +491,7 @@ const showEditDialog = (row) => {
 
 // 查看商品詳情
 const viewProductDetail = (id) => {
-    router.push(`/shop/products/${id}`);
+    router.push(`/backpage/shop/products/${id}`);
 };
 
 // 處理刪除
@@ -593,16 +589,6 @@ const handleUploadSuccess = (response) => {
     // 在實際項目中，這裡會使用後端返回的URL
     // 在我們的模擬情況下，不會用到這個函數
 };
-
-const currentFilterText = computed(() => {
-    if (!currentPriceFilter.value.active) return "價格篩選";
-    if (currentPriceFilter.value.minPrice === 0 && currentPriceFilter.value.maxPrice === 100)
-        return "低價 (< $100)";
-    if (currentPriceFilter.value.minPrice === 100 && currentPriceFilter.value.maxPrice === 500)
-        return "中價 ($100 - $500)";
-    if (currentPriceFilter.value.minPrice === 500) return "高價 (> $500)";
-    return `價格 $${currentPriceFilter.value.minPrice} - $${currentPriceFilter.value.maxPrice}`;
-});
 
 onMounted(() => {
     if (!authStore.isAuthenticated) {
