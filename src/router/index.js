@@ -124,7 +124,7 @@ const routes = [
                 path: "member/management",
                 name: "MemberManagement",
                 component: MemberManagement,
-                meta: { title: "會員總管", requiresAuth: true, requiresAdmin: true },
+                meta: { title: "會員總管", requiresAuth: true, isAdmin: true },
             },
             // 商城管理
             {

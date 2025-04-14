@@ -20,6 +20,7 @@
                         <el-select
                             v-model="statusFilter"
                             placeholder="訂單狀態"
+                            class="status-select"
                             @change="fetchOrders"
                         >
                             <el-option
@@ -34,11 +35,13 @@
                         <el-date-picker
                             v-model="dateRange"
                             type="daterange"
+                            class="date-picker"
                             range-separator="至"
                             start-placeholder="開始日期"
                             end-placeholder="結束日期"
                             format="YYYY-MM-DD"
                             value-format="YYYY-MM-DD"
+                            style="max-width: 280px"
                             @change="fetchOrders"
                         />
                     </div>
@@ -92,13 +95,40 @@
                         v-if="isAdmin"
                     >
                         <template #default="{ row }">
-                            <span>{{ row.userName || `用戶${row.userId}` }}</span>
+                            <div
+                                v-if="
+                                    row.userName &&
+                                    row.userName !== '未知用戶' &&
+                                    row.userName !== '未知用户'
+                                "
+                            >
+                                {{ row.userName }}
+                            </div>
+                            <div v-else>
+                                <el-tooltip
+                                    effect="dark"
+                                    content="正在獲取用戶信息..."
+                                    placement="top"
+                                    v-if="loadingUsers[row.id]"
+                                >
+                                    <span>加載中...</span>
+                                </el-tooltip>
+                                <span v-else @click="fetchUserEmail(row)" class="user-id-text">
+                                    用戶{{ row.userId }}
+                                    <i class="el-icon-refresh-right"></i>
+                                </span>
+                            </div>
                         </template>
                     </el-table-column>
 
                     <el-table-column label="操作" width="160" fixed="right">
                         <template #default="{ row }">
-                            <el-button type="primary" size="small" @click="viewOrder(row.id)">
+                            <el-button
+                                type="primary"
+                                size="small"
+                                @click="viewOrder(row.id)"
+                                class="view-btn"
+                            >
                                 查看詳情
                             </el-button>
 
@@ -137,6 +167,7 @@ import { ElMessage } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores/auth";
 import { getOrders, getOrdersByUserId } from "@/api/shop";
+import axios from "axios";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -148,6 +179,7 @@ const total = ref(0);
 const searchQuery = ref("");
 const statusFilter = ref("");
 const dateRange = ref([]);
+const loadingUsers = ref({});
 
 // 检查是否为管理员
 const isAdmin = computed(() => {
@@ -157,45 +189,54 @@ const isAdmin = computed(() => {
 // 订单状态选项
 const statusOptions = [
     { label: "全部", value: "" },
-    { label: "待支付", value: "pending" },
+    { label: "待處理", value: "pending" },
+    { label: "處理中", value: "processing" },
     { label: "已支付", value: "paid" },
-    { label: "已取消", value: "cancelled" },
     { label: "已完成", value: "completed" },
+    { label: "已取消", value: "cancelled" },
 ];
 
-// 根据状态获取标签类型
-const getStatusType = (status) => {
-    switch (status.toLowerCase()) {
-        case "pending_payment":
-        case "pending":
-            return "warning";
-        case "paid":
-            return "success";
-        case "cancelled":
-            return "info";
-        case "completed":
-            return "primary";
-        default:
-            return "";
-    }
-};
+// 獲取狀態顯示類型
+function getStatusType(status) {
+    if (!status) return "info";
 
-// 获取状态显示文本
-const getStatusLabel = (status) => {
-    switch (status.toLowerCase()) {
-        case "pending_payment":
-        case "pending":
-            return "待支付";
-        case "paid":
-            return "已支付";
-        case "cancelled":
-            return "已取消";
-        case "completed":
-            return "已完成";
-        default:
-            return status;
+    // 統一轉為小寫比較
+    const statusLower = status.toLowerCase();
+
+    if (statusLower.includes("pending") || statusLower === "pending_payment") {
+        return "warning";
+    } else if (statusLower.includes("process") || statusLower === "processing") {
+        return "primary";
+    } else if (statusLower.includes("complet") || statusLower === "completed") {
+        return "success";
+    } else if (statusLower.includes("cancel") || statusLower === "cancelled") {
+        return "danger";
+    } else if (statusLower.includes("paid") || statusLower === "paid") {
+        return "success";
     }
-};
+    return "info";
+}
+
+// 獲取用戶友好的狀態文本
+function getStatusLabel(status) {
+    if (!status) return "未知";
+
+    // 統一轉為小寫比較
+    const statusLower = status.toLowerCase();
+
+    if (statusLower.includes("pending")) {
+        return "待處理";
+    } else if (statusLower.includes("process")) {
+        return "處理中";
+    } else if (statusLower.includes("complet")) {
+        return "已完成";
+    } else if (statusLower.includes("cancel")) {
+        return "已取消";
+    } else if (statusLower.includes("paid")) {
+        return "已支付";
+    }
+    return status;
+}
 
 // 格式化日期
 const formatDate = (dateString) => {
@@ -218,75 +259,104 @@ const fetchOrders = async () => {
 
     loading.value = true;
     try {
-        let response;
-        const params = {
+        // 構建查詢參數
+        const queryParams = {
             page: currentPage.value,
             size: pageSize.value,
         };
 
         // 如果存在搜索關鍵詞，添加到請求參數中
         if (searchQuery.value && searchQuery.value.trim() !== "") {
-            params.query = searchQuery.value.trim();
+            queryParams.query = searchQuery.value.trim();
         }
 
+        // 添加狀態篩選，如果已選擇
+        if (statusFilter.value) {
+            queryParams.status = statusFilter.value;
+        }
+
+        // 添加日期範圍篩選，如果已選擇
+        if (dateRange.value && dateRange.value.length === 2) {
+            queryParams.startDate = dateRange.value[0];
+            queryParams.endDate = dateRange.value[1];
+        }
+
+        console.log("查詢訂單參數:", queryParams);
+
+        let response;
+        // 根據用戶角色選擇合適的API
         if (isAdmin.value) {
-            // 管理员可以看到所有订单
-            if (statusFilter.value) params.status = statusFilter.value;
-            if (dateRange.value && dateRange.value.length === 2) {
-                params.startDate = dateRange.value[0];
-                params.endDate = dateRange.value[1];
-            }
-
-            response = await getOrders(params);
+            response = await getOrders(queryParams);
         } else {
-            // 普通用户只能看到自己的订单
-            response = await getOrdersByUserId(authStore.userInfo?.id, params);
+            // 普通用戶只能查看自己的訂單
+            const userId = authStore.userInfo?.id;
+            if (!userId) {
+                ElMessage.error("獲取用戶ID失敗，請重新登錄");
+                loading.value = false;
+                return;
+            }
+            response = await getOrdersByUserId(userId, queryParams);
         }
 
+        console.log("獲取訂單響應:", response);
+
+        // 處理API返回的數據
         if (response && response.data) {
-            // 後端已實現分頁
-            if (response.data.content && Array.isArray(response.data.content)) {
-                orders.value = response.data.content;
-                total.value = response.data.totalElements || orders.value.length;
-            }
-            // 後端未實現分頁，在前端進行處理
-            else if (Array.isArray(response.data)) {
-                // 先過濾搜索條件
-                let filteredOrders = response.data;
+            let ordersData = [];
+            let totalCount = 0;
 
-                // 根據搜索關鍵詞過濾
-                if (searchQuery.value && searchQuery.value.trim() !== "") {
-                    const query = searchQuery.value.toLowerCase().trim();
-                    filteredOrders = filteredOrders.filter(
-                        (order) =>
-                            order.id.toString().includes(query) ||
-                            (order.userName && order.userName.toLowerCase().includes(query))
-                    );
+            // 檢查不同可能的數據結構
+            if (response.data.data) {
+                // 標準API響應格式: {success: true, data: {...}}
+                const data = response.data.data;
+
+                if (data.content) {
+                    // 分頁格式: {content: [], totalElements: 10}
+                    ordersData = data.content;
+                    totalCount = data.totalElements || 0;
+                } else if (Array.isArray(data)) {
+                    // 直接數組格式
+                    ordersData = data;
+                    totalCount = data.length;
+                } else {
+                    console.warn("未知的訂單數據格式", data);
                 }
-
-                // 保存總數量
-                total.value = filteredOrders.length;
-
-                // 根據分頁參數切片數據
-                const start = (currentPage.value - 1) * pageSize.value;
-                const end = start + pageSize.value;
-                orders.value = filteredOrders.slice(start, end);
+            } else if (response.data.content) {
+                // 直接分頁格式
+                ordersData = response.data.content;
+                totalCount = response.data.totalElements || 0;
+            } else if (Array.isArray(response.data)) {
+                // 直接數組
+                ordersData = response.data;
+                totalCount = response.data.length;
             } else {
-                // 無法處理的響應格式
-                orders.value = [];
-                total.value = 0;
-                ElMessage.error("獲取訂單列表失敗：無效響應格式");
+                console.warn("無法識別的訂單API響應格式", response.data);
             }
 
-            console.log("訂單數據:", orders.value, "總數:", total.value);
+            orders.value = ordersData;
+            total.value = totalCount;
+
+            // 如果是管理員，嘗試獲取用戶郵箱
+            if (isAdmin.value && orders.value.length > 0) {
+                orders.value.forEach((order) => {
+                    if (
+                        !order.userName ||
+                        order.userName === "未知用戶" ||
+                        order.userName === "未知用户"
+                    ) {
+                        fetchUserEmail(order);
+                    }
+                });
+            }
         } else {
+            console.error("獲取訂單列表失敗：無效響應", response);
+            ElMessage.error("獲取訂單列表失敗：無效響應");
             orders.value = [];
             total.value = 0;
-            ElMessage.error("獲取訂單列表失敗：無效響應");
         }
     } catch (error) {
         console.error("獲取訂單列表失敗:", error);
-        ElMessage.error("獲取訂單列表失敗");
+        ElMessage.error(error.message || "獲取訂單列表失敗");
         orders.value = [];
         total.value = 0;
     } finally {
@@ -301,7 +371,24 @@ const searchOrders = () => {
 
 // 查看订单详情
 const viewOrder = (orderId) => {
-    router.push(`/backpage/shop/orders/${orderId}`);
+    if (!orderId) {
+        console.error("無效的訂單ID:", orderId);
+        ElMessage.error("無效的訂單ID");
+        return;
+    }
+
+    console.log("正在打開訂單詳情，訂單ID:", orderId);
+    try {
+        const detailPath = `/backpage/shop/orders/${orderId}`;
+        console.log("跳轉到路徑:", detailPath);
+        router.push({
+            path: detailPath,
+            replace: false,
+        });
+    } catch (error) {
+        console.error("導航到訂單詳情頁面失敗:", error);
+        ElMessage.error("無法打開訂單詳情，請稍後再試");
+    }
 };
 
 // 去支付
@@ -332,6 +419,24 @@ const getItemsQuantity = (order) => {
     }, 0);
 };
 
+// 獲取用戶郵箱的方法
+async function fetchUserEmail(order) {
+    if (!order || !order.userId) return;
+
+    loadingUsers.value[order.id] = true;
+    try {
+        const response = await axios.get(`/api/users/${order.userId}`);
+        if (response.data.code === 200 && response.data.data) {
+            order.userName = response.data.data.email || `用戶${order.userId}`;
+        }
+    } catch (error) {
+        console.error("獲取用戶郵箱失敗:", error);
+        order.userName = `用戶${order.userId}`;
+    } finally {
+        loadingUsers.value[order.id] = false;
+    }
+}
+
 onMounted(() => {
     if (!authStore.isAuthenticated) {
         ElMessage.warning("請先登入");
@@ -356,16 +461,45 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .filter-container {
+    margin-bottom: 15px;
     display: flex;
-    gap: 15px;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 550px;
 }
 
 .search-input {
-    width: 250px;
+    width: 150px !important;
+}
+
+.status-select {
+    width: 100px !important;
+}
+
+.date-picker {
+    width: auto !important;
+    max-width: 260px !important;
+}
+
+:deep(.el-date-editor--daterange) {
+    max-width: 260px !important;
+}
+
+:deep(.el-range-editor.el-input__wrapper) {
+    width: auto !important;
+    max-width: 260px !important;
+}
+
+:deep(.el-date-editor .el-range-input) {
+    max-width: 80px !important;
+}
+
+:deep(.el-date-editor--daterange.el-input) {
+    max-width: 260px !important;
 }
 
 .loading-container {
@@ -380,6 +514,22 @@ onMounted(() => {
 .pagination {
     margin-top: 20px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
+}
+
+.user-id-text {
+    cursor: pointer;
+    color: #409eff;
+    text-decoration: underline;
+    display: flex;
+    align-items: center;
+}
+
+.user-id-text:hover {
+    opacity: 0.8;
+}
+
+.view-btn {
+    margin-bottom: 5px;
 }
 </style>
