@@ -116,7 +116,7 @@ export const calculateCartTotal = (userId) => {
 
 // 订单相关API
 export const createOrder = (orderData) => {
-    return axios.post("/api/order", orderData);
+    return axios.post("/api/orders", orderData);
 };
 
 export const createOrderFromCart = (userId) => {
@@ -128,7 +128,7 @@ export const createOrderFromCart = (userId) => {
     return new Promise((resolve, reject) => {
         const callApi = (retryCount = 0) => {
             axios
-                .post(`/api/order/cart?userId=${userId}`)
+                .post(`/api/orders/cart?userId=${userId}`)
                 .then((response) => {
                     console.log("訂單創建成功:", response);
                     resolve(response);
@@ -156,19 +156,47 @@ export const getOrders = async (params = {}) => {
     try {
         // 轉換參數為URL查詢字符串
         const queryParams = new URLSearchParams();
-        if (params.page) queryParams.append("page", params.page - 1); // 後端分頁從0開始
-        if (params.size) queryParams.append("size", params.size);
-        if (params.query) queryParams.append("query", params.query);
-        if (params.status) queryParams.append("status", params.status);
-        if (params.startDate) queryParams.append("startDate", params.startDate);
-        if (params.endDate) queryParams.append("endDate", params.endDate);
+
+        // 分頁參數處理 - 後端分頁從0開始，但前端從1開始
+        if (params.page !== undefined) {
+            const pageIndex = Math.max(0, (parseInt(params.page) || 1) - 1);
+            queryParams.append("page", pageIndex.toString());
+        }
+
+        if (params.size !== undefined) {
+            queryParams.append("size", params.size.toString());
+        }
+
+        // 搜索條件和過濾條件
+        if (params.query && params.query.trim()) {
+            queryParams.append("query", params.query.trim());
+        }
+
+        if (params.status && params.status.trim()) {
+            queryParams.append("status", params.status.trim());
+        }
+
+        // 日期範圍
+        if (params.startDate) {
+            queryParams.append("startDate", params.startDate);
+        }
+
+        if (params.endDate) {
+            queryParams.append("endDate", params.endDate);
+        }
+
+        // 用戶ID過濾
+        if (params.userId) {
+            queryParams.append("userId", params.userId.toString());
+        }
 
         const queryString = queryParams.toString();
-        const url = `/api/order${queryString ? `?${queryString}` : ""}`;
+        const url = `/api/orders${queryString ? `?${queryString}` : ""}`;
 
+        console.log("發送訂單查詢請求:", url);
         return await axios.get(url);
     } catch (error) {
-        console.error("獲取訂單列表失敗:", error);
+        console.error("獲取訂單列表失敗:", error, "參數:", params);
         throw error;
     }
 };
@@ -179,27 +207,29 @@ export const getOrdersByUserId = async (userId, params = {}) => {
     }
 
     try {
-        // 轉換參數為URL查詢字符串
-        const queryParams = new URLSearchParams();
-        if (params.page) queryParams.append("page", params.page - 1); // 後端分頁從0開始
-        if (params.size) queryParams.append("size", params.size);
-        if (params.query) queryParams.append("query", params.query);
-        if (params.status) queryParams.append("status", params.status);
-
-        queryParams.append("userId", userId);
-
-        const queryString = queryParams.toString();
-        const url = `/api/order?${queryString}`;
-
-        return await axios.get(url);
+        // 將userId添加到參數中，並調用getOrders函數
+        const queryParams = { ...params, userId };
+        return await getOrders(queryParams);
     } catch (error) {
         console.error(`獲取用戶${userId}的訂單失敗:`, error);
         throw error;
     }
 };
 
-export const getOrderById = (orderId) => {
-    return axios.get(`/api/order/${orderId}`);
+export const getOrderById = async (orderId) => {
+    if (!orderId) {
+        console.error("訂單ID不能為空");
+        return Promise.reject(new Error("訂單ID不能為空"));
+    }
+
+    try {
+        console.log(`正在獲取訂單詳情，ID: ${orderId}`);
+        const url = `/api/orders/${orderId}`;
+        return await axios.get(url);
+    } catch (error) {
+        console.error(`獲取訂單 ${orderId} 詳情失敗:`, error);
+        throw error;
+    }
 };
 
 // 支付相关API
@@ -207,21 +237,21 @@ export const createPayment = (orderId, paymentData) => {
     if (!orderId) {
         return Promise.reject(new Error("訂單ID不能為空"));
     }
-    return axios.post(`/api/order/${orderId}/payment`, paymentData);
+    return axios.post(`/api/orders/${orderId}/payment`, paymentData);
 };
 
 export const getPaymentStatus = (paymentId) => {
     if (!paymentId) {
         return Promise.reject(new Error("支付ID不能為空"));
     }
-    return axios.get(`/api/order/payment/${paymentId}/status`);
+    return axios.get(`/api/orders/payment/${paymentId}/status`);
 };
 
 export const mockPaymentCallback = (paymentId, status = "SUCCESS") => {
     if (!paymentId) {
         return Promise.reject(new Error("支付ID不能為空"));
     }
-    return axios.post(`/api/order/payment/${paymentId}/mock?status=${status}`);
+    return axios.post(`/api/orders/payment/${paymentId}/mock?status=${status}`);
 };
 
 // 圖片上傳API
