@@ -133,7 +133,11 @@
                             </el-button>
 
                             <el-button
-                                v-if="row.status === 'PENDING_PAYMENT'"
+                                v-if="
+                                    row.status &&
+                                    (row.status.toLowerCase().includes('pending') ||
+                                        row.status === 'PENDING_PAYMENT')
+                                "
                                 type="success"
                                 size="small"
                                 @click="goToPayment(row)"
@@ -391,9 +395,20 @@ const viewOrder = (orderId) => {
     }
 };
 
-// 去支付
+// 跳转到支付页面
 const goToPayment = (order) => {
-    router.push(`/backpage/shop/checkout?orderId=${order.id}`);
+    if (!order || !order.id) {
+        ElMessage.warning("訂單信息不完整，無法跳轉到支付頁面");
+        return;
+    }
+
+    // 跳轉到支付模擬頁面，並傳遞訂單ID
+    router.push({
+        path: "/backpage/shop/payment",
+        query: { orderId: order.id },
+    });
+
+    ElMessage.success("正在跳轉到支付頁面，請確認訂單支付");
 };
 
 // 处理分页大小变化

@@ -254,6 +254,28 @@ export const mockPaymentCallback = (paymentId, status = "SUCCESS") => {
     return axios.post(`/api/orders/payment/${paymentId}/mock?status=${status}`);
 };
 
+// 藍新金流相關API
+export const createNewebpayPayment = (orderId, paymentData) => {
+    if (!orderId) {
+        return Promise.reject(new Error("訂單ID不能為空"));
+    }
+    return axios.post(`/api/newebpay/orders/${orderId}/payment`, paymentData);
+};
+
+export const getNewebpayPaymentStatus = (orderId) => {
+    if (!orderId) {
+        return Promise.reject(new Error("訂單ID不能為空"));
+    }
+    return axios.get(`/api/newebpay/orders/${orderId}/payment/status`);
+};
+
+export const mockNewebpayCallback = (orderId, status = "SUCCESS") => {
+    if (!orderId) {
+        return Promise.reject(new Error("訂單ID不能為空"));
+    }
+    return axios.post(`/api/newebpay/orders/${orderId}/mock?status=${status}`);
+};
+
 // 圖片上傳API
 export const uploadImage = (formData) => {
     return axios.post("/api/images/upload", formData, {
