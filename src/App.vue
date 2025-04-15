@@ -1,17 +1,16 @@
 <template>
-  <router-view />
+    <router-view />
 </template>
 
 <script setup>
-</script>
+import { RouterView } from "vue-router";
+import { onMounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
 
-<style lang="scss">
-/* 全域樣式 */
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-</style>
+const authStore = useAuthStore();
+
+onMounted(() => {
+    // 應用啟動時檢查是否有token並恢復登錄狀態
+    authStore.autoLogin();
+});
+</script>

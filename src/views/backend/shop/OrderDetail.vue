@@ -121,13 +121,6 @@
                     <el-button type="primary" @click="router.push('/backpage/shop/orders')"
                         >返回訂單列表</el-button
                     >
-                    <el-button
-                        type="success"
-                        v-if="order.status && order.status.toLowerCase().includes('pending')"
-                        @click="goToPayment(order)"
-                    >
-                        去支付
-                    </el-button>
                 </div>
             </div>
         </el-card>
@@ -483,20 +476,18 @@ const viewProduct = (productId) => {
     router.push(`/backpage/shop/products/${productId}`);
 };
 
-// 跳转到支付页面
-const goToPayment = (order) => {
-    if (!order || !order.id) {
-        ElMessage.warning("訂單信息不完整，無法跳轉到支付頁面");
+// 去支付
+const goToPayment = () => {
+    if (!order.value || order.value.status !== "PENDING_PAYMENT") {
+        ElMessage.warning("當前訂單狀態不支持支付");
         return;
     }
 
-    // 跳轉到支付模擬頁面，並傳遞訂單ID
+    // 跳轉到支付頁面
     router.push({
-        path: "/backpage/shop/payment",
-        query: { orderId: order.id },
+        path: "/shop/checkout",
+        query: { orderId: order.value.id },
     });
-
-    ElMessage.success("正在跳轉到支付頁面，請確認訂單支付");
 };
 
 // 取消訂單

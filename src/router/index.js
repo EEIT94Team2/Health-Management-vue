@@ -6,7 +6,6 @@ import Layout from "@/components/Layouts/backend/index.vue";
 import BackPage from "@/views/backend/BackPage.vue";
 
 // 前端
-import FrontendLayout from"@/components/Layouts/frontend/index.vue";
 import HomePage from "@/views/frontend/HomePage.vue";
 import GymHomePage from "@/views/frontend/GymHomePage.vue";
 import GymPage from "@/views/frontend/GymPage.vue";
@@ -29,6 +28,7 @@ import ProductList from "@/views/backend/shop/ProductList.vue";
 import ProductDetail from "@/views/backend/shop/ProductDetail.vue";
 import ProductManagement from "@/views/backend/shop/ProductManagement.vue";
 import ProductAdmin from "@/views/backend/shop/ProductAdmin.vue";
+import PaymentSimulation from "@/views/backend/shop/PaymentSimulation.vue";
 
 // 論壇
 import ForumHomeView from "@/views/backend/social/ForumHomeView.vue";
@@ -48,23 +48,11 @@ import Forbidden403 from "@/views/403.vue";
 import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
-        path: '/',
-        component: FrontendLayout, // ✅ 改成使用 layout
-        children: [
-          {
-            path: '',
-            name: 'HomePage',
-            component: HomePage,
-            meta: { title: '首頁' }
-          },
-          {
-            path: 'courses',
-            name: 'Courses',
-            component: Courses,
-            meta: { title: '課程' }
-          }
-        ]
-      },
+        path: "/",
+        name: "HomePage",
+        component: HomePage,
+        meta: { title: "首頁" },
+    },
     {
         path: "/gym",
         name: "GymHomePage",
@@ -76,6 +64,12 @@ const routes = [
         name: "GymPage",
         component: GymPage,
         meta: { title: "健身房" },
+    },
+    {
+        path: "/courses",
+        name: "Courses",
+        component: Courses,
+        meta: { title: "登入" },
     },
     {
         path: "/backpage",
@@ -182,8 +176,8 @@ const routes = [
             {
                 path: "shop/checkout",
                 name: "PaymentSimulation",
-                redirect: "shop/orders",
-                meta: { title: "支付功能暫不可用", requiresAuth: true, isAdmin: true },
+                component: PaymentSimulation,
+                meta: { title: "模擬支付", requiresAuth: true, isAdmin: true },
             },
 
             // 論壇
@@ -273,20 +267,6 @@ const routes = [
         name: "GlobalForbidden",
         component: Forbidden403,
         meta: { title: "訪問被拒絕" },
-    },
-    // 添加或修改支付模擬頁面的路由
-    {
-        path: "/backpage/shop/payment",
-        name: "PaymentSimulation",
-        component: () => import("@/views/backend/shop/PaymentSimulation.vue"),
-        meta: {
-            requiresAuth: true,
-        },
-    },
-    // 添加一個支付頁面的別名路由，方便用戶直接訪問
-    {
-        path: "/payment",
-        redirect: "/backpage/shop/payment",
     },
 ];
 
