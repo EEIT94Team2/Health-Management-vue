@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <h2>歡迎來到健身房管理系統</h2>
+    <h2 class="page-title">歡迎來到健身房管理系統</h2>
     <div v-if="loading" class="loading">
       加載中...
     </div>
@@ -98,6 +98,12 @@ onMounted(async () => {
   padding: 20px;
 }
 
+/* 2. 新增 page-title class 的樣式 */
+.page-title {
+  text-align: left; /* 設定文字靠左 */
+  margin-bottom: 20px; /* 可以選擇性地加個下邊距，讓標題和按鈕間有些空間 */
+}
+
 .loading {
   display: flex;
   justify-content: center;
@@ -109,7 +115,8 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 20px;
-  margin-top: 20px;
+  /* 由於標題和按鈕現在有 margin-bottom，這裡的 margin-top 可能需要調整或移除 */
+  /* margin-top: 20px; */
 }
 
 .welcome-card, .dashboard-card {
