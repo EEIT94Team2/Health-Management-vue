@@ -178,8 +178,6 @@ const routes = [
                 name: "PaymentSimulation",
                 redirect: "shop/orders",
                 meta: { title: "支付功能暫不可用", requiresAuth: true, isAdmin: true },
-                component: PaymentSimulation,
-                meta: { title: "模擬支付", requiresAuth: true, isAdmin: true },
             },
 
             // 論壇

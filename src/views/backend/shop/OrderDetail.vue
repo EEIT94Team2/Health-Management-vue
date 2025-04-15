@@ -119,7 +119,8 @@
 
                 <div class="actions-container">
                     <el-button type="primary" @click="router.push('/backpage/shop/orders')"
-                        >返回訂單列表</el-button>
+                        >返回訂單列表</el-button
+                    >
                     <el-button
                         type="success"
                         v-if="order.status && order.status.toLowerCase().includes('pending')"
@@ -465,28 +466,6 @@ function getProductImageUrl(item) {
     } else if (item.image && item.image.trim() !== "") {
         return item.image;
     }
-    }
-
-    // 調試輸出
-    console.log("處理後的訂單商品:", order.value.orderItems);
-}
-
-// 獲取商品圖片URL (提供備用方案)
-function getProductImageUrl(item) {
-    if (!item) return "";
-
-    // 檢查多個可能的圖片來源
-    if (item.product?.imageUrl && item.product.imageUrl.trim() !== "") {
-        return item.product.imageUrl;
-    } else if (item.imageUrl && item.imageUrl.trim() !== "") {
-        return item.imageUrl;
-    } else if (item.productImageUrl && item.productImageUrl.trim() !== "") {
-        return item.productImageUrl;
-    } else if (item.product?.image && item.product.image.trim() !== "") {
-        return item.product.image;
-    } else if (item.image && item.image.trim() !== "") {
-        return item.image;
-    }
 
     // 默認圖片
     return "https://via.placeholder.com/80x80?text=無圖片";
@@ -518,19 +497,6 @@ const goToPayment = (order) => {
     });
 
     ElMessage.success("正在跳轉到支付頁面，請確認訂單支付");
-
-// 去支付
-const goToPayment = () => {
-    if (!order.value || order.value.status !== "PENDING_PAYMENT") {
-        ElMessage.warning("當前訂單狀態不支持支付");
-        return;
-    }
-
-    // 跳轉到支付頁面
-    router.push({
-        path: "/shop/checkout",
-        query: { orderId: order.value.id },
-    });
 };
 
 // 取消訂單

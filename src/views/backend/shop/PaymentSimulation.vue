@@ -10,12 +10,13 @@
                             v-if="
                                 currentOrder &&
                                 (currentOrder.status === 'PENDING_PAYMENT' ||
-                                    currentOrder.status?.toLowerCase().includes('pending'))"
-                            @click="processPayment">
+                                    currentOrder.status?.toLowerCase().includes('pending'))
+                            "
+                            @click="processPayment"
+                        >
                             立即支付訂單
                         </el-button>
                         <el-tag v-else type="warning">當前訂單暫時不支援支付</el-tag>
-                        <el-tag type="warning">管理員專用</el-tag>
                     </div>
                 </div>
             </template>
@@ -25,18 +26,11 @@
                 <el-result
                     icon="error"
                     title="訪問被拒絕"
-                    sub-title="抱歉，您需要登錄才能訪問此頁面">
+                    sub-title="抱歉，您需要登錄才能訪問此頁面"
+                >
                     <template #extra>
                         <el-button type="primary" @click="$router.push('/member/login')"
                             >去登錄</el-button
-            <div v-if="!isAdmin" class="access-denied">
-                <el-result
-                    icon="error"
-                    title="訪問被拒絕"
-                    sub-title="抱歉，只有管理員才能訪問此頁面">
-                    <template #extra>
-                        <el-button type="primary" @click="$router.push('/dashboard')"
-                            >返回首頁</el-button
                         >
                     </template>
                 </el-result>
@@ -49,9 +43,10 @@
                     v-if="
                         currentOrder &&
                         (currentOrder.status === 'PENDING_PAYMENT' ||
-                            currentOrder.status.toLowerCase().includes('pending'))"
-                    v-if="currentOrder && currentOrder.status === 'PENDING_PAYMENT'"
-                    class="section order-payment">
+                            currentOrder.status.toLowerCase().includes('pending'))
+                    "
+                    class="section order-payment"
+                >
                     <h3>訂單支付</h3>
                     <el-alert type="info" :closable="false">
                         您正在為訂單 <strong>{{ currentOrder.id }}</strong> 進行支付，總金額:
@@ -60,6 +55,7 @@
 
                     <el-card class="payment-methods">
                         <h4>選擇支付方式</h4>
+
                         <!-- 支付平台選擇 -->
                         <div class="payment-platform">
                             <h5>支付平台</h5>
@@ -71,7 +67,6 @@
 
                         <div class="methods-list">
                             <h5>支付方式</h5>
-                        <div class="methods-list">
                             <el-radio-group v-model="selectedPaymentMethod">
                                 <el-radio label="CREDIT_CARD">信用卡</el-radio>
                                 <el-radio label="ALIPAY">支付寶</el-radio>
@@ -79,7 +74,8 @@
                                 <el-radio
                                     v-if="selectedPaymentPlatform === 'NEWEBPAY'"
                                     label="LINEPAY"
-                                    >LINE Pay</el-radio>
+                                    >LINE Pay</el-radio
+                                >
                             </el-radio-group>
                         </div>
 
@@ -89,7 +85,6 @@
                                 <span>${{ currentOrder.totalAmount }}</span>
                             </div>
                             <div class="summary-row">
-
                                 <span>支付平台：</span>
                                 <span>{{ getPaymentPlatformLabel(selectedPaymentPlatform) }}</span>
                             </div>
@@ -105,10 +100,6 @@
                                 >返回訂單</el-button
                             >
                             <el-button type="primary" @click="processPayment">確認支付</el-button>
-                            <el-button
-                                type="primary"
-                                @click="createPaymentForOrder(selectedPaymentMethod)"
-                                >確認支付</el-button>
                         </div>
                     </el-card>
                 </div>
@@ -122,7 +113,6 @@
                         <el-form-item label="支付編號">
                             <el-input v-model="searchForm.paymentId" placeholder="請輸入支付編號" />
                         </el-form-item>
-                        
                         <el-form-item label="支付平台">
                             <el-select v-model="searchForm.platform" placeholder="請選擇支付平台">
                                 <el-option label="標準支付" value="STANDARD" />
@@ -141,7 +131,7 @@
                             :icon="getPaymentResultIcon(paymentInfo.status)"
                             :title="getPaymentResultTitle(paymentInfo.status)"
                             :sub-title="`支付編號: ${paymentInfo.id || '未提供'}`"
-                            :sub-title="`支付編號: ${paymentInfo.id}`">
+                        >
                             <template #extra>
                                 <el-descriptions :column="2" border>
                                     <el-descriptions-item label="訂單編號">{{
@@ -154,7 +144,8 @@
                                         paymentInfo.method
                                     }}</el-descriptions-item>
                                     <el-descriptions-item label="支付金額"
-                                        >${{ paymentInfo.amount }}</el-descriptions-item>
+                                        >${{ paymentInfo.amount }}</el-descriptions-item
+                                    >
                                     <el-descriptions-item label="支付平台">
                                         {{ paymentInfo.platform || "標準支付" }}
                                     </el-descriptions-item>
@@ -165,18 +156,6 @@
                                         模擬支付成功
                                     </el-button>
                                     <el-button type="danger" @click="simulatePaymentFailure">
-                                </el-descriptions>
-
-                                <div class="actions" v-if="paymentInfo.status === 'PENDING'">
-                                    <el-button
-                                        type="success"
-                                        @click="simulatePaymentCallback(paymentInfo.id, 'SUCCESS')">
-                                        模擬支付成功
-                                    </el-button>
-                                    <el-button
-                                        type="danger"
-                                        @click="simulatePaymentCallback(paymentInfo.id, 'FAILED')">
-
                                         模擬支付失敗
                                     </el-button>
                                 </div>
@@ -223,25 +202,23 @@
                                     type="success"
                                     size="small"
                                     @click="simulatePaymentCallbackByRow(row, 'SUCCESS')"
-                                    @click="simulatePaymentCallback(row.id, 'SUCCESS')">
+                                >
                                     模擬成功
                                 </el-button>
                                 <el-button
                                     type="danger"
                                     size="small"
-                                    @click="simulatePaymentCallbackByRow(row, 'FAILED')">
+                                    @click="simulatePaymentCallbackByRow(row, 'FAILED')"
+                                >
                                     模擬失敗
                                 </el-button>
                                 <el-button
                                     type="primary"
                                     size="small"
                                     v-if="!currentOrder || currentOrder.id !== row.orderId"
-                                    @click="loadOrderById(row.orderId)">
-                                    選擇此訂單
-                                </el-button>
-                                    @click="simulatePaymentCallback(row.id, 'FAILED')"
+                                    @click="loadOrderById(row.orderId)"
                                 >
-                                    模擬失敗
+                                    選擇此訂單
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -267,7 +244,6 @@ import {
     mockNewebpayCallback,
     getOrdersByUserId,
 } from "@/api/shop";
-import { getPaymentStatus, mockPaymentCallback, createPayment, getOrderById } from "@/api/shop";
 
 const router = useRouter();
 const route = useRoute();
@@ -372,9 +348,6 @@ const getPaymentPlatformLabel = (platform) => {
         default:
             return platform;
     }
-        default:
-            return method;
-    }
 };
 
 // 格式化日期
@@ -394,6 +367,7 @@ const searchPayment = async () => {
         ElMessage.warning("請輸入訂單編號或支付編號");
         return;
     }
+
     loading.value = true;
     try {
         // 無論選擇哪種支付平台，如果有訂單ID，都先嘗試加載訂單
@@ -710,76 +684,6 @@ const simulatePaymentFailure = async () => {
         await simulateNewebpayCallback(paymentInfo.value.orderId, "FAILED");
     } else {
         await simulatePaymentCallback(paymentInfo.value.id, "FAILED");
-    if (!searchForm.value.paymentId) {
-        ElMessage.warning("支付編號不能為空");
-        return;
-    }
-
-    loading.value = true;
-    try {
-        const response = await getPaymentStatus(searchForm.value.paymentId.trim());
-        paymentInfo.value = response.data;
-
-        if (!paymentInfo.value) {
-            ElMessage.warning("未找到支付信息");
-        }
-    } catch (error) {
-        console.error("查詢支付狀態失敗:", error);
-        ElMessage.error("查詢支付狀態失敗");
-    } finally {
-        loading.value = false;
-    }
-};
-
-// 从URL参数中获取订单ID并加载订单
-const loadOrderFromParams = async () => {
-    const orderId = route.query.orderId;
-    if (orderId && !isNaN(parseInt(orderId))) {
-        loading.value = true;
-        try {
-            const response = await getOrderById(parseInt(orderId));
-            currentOrder.value = response.data;
-            orderLoaded.value = true;
-            searchForm.value.orderId = orderId.toString();
-
-            // 如果訂單尚未支付，顯示支付表單
-            if (currentOrder.value.status === "PENDING_PAYMENT") {
-                ElMessage.info("請為訂單進行支付");
-            }
-        } catch (error) {
-            console.error("加載訂單失敗:", error);
-            ElMessage.error("加載訂單失敗");
-        } finally {
-            loading.value = false;
-        }
-    }
-};
-
-// 为当前订单创建支付
-const createPaymentForOrder = async (paymentMethod = "CREDIT_CARD") => {
-    if (!currentOrder.value || currentOrder.value.status !== "PENDING_PAYMENT") {
-        ElMessage.warning("當前訂單狀態不支持支付");
-        return;
-    }
-
-    loading.value = true;
-    try {
-        const paymentRequest = {
-            method: paymentMethod,
-            amount: currentOrder.value.totalAmount,
-        };
-
-        const response = await createPayment(currentOrder.value.id, paymentRequest);
-        paymentInfo.value = response.data;
-        ElMessage.success("支付請求已創建，請確認支付");
-
-        // 刷新待處理支付列表
-        fetchPendingPayments();
-    } catch (error) {
-        console.error("創建支付失敗:", error);
-        ElMessage.error("創建支付失敗");
-    } finally {
-        loading.value = false;
     }
 };
 
@@ -798,7 +702,6 @@ const simulatePaymentCallback = async (paymentId, status) => {
         // 更新支付狀態
         const response = await getPaymentStatus(paymentId.trim());
         paymentInfo.value = response.data;
-        
         // 添加平台信息
         if (paymentInfo.value) {
             paymentInfo.value.platform = "STANDARD";
@@ -952,10 +855,6 @@ const simulatePaymentCallbackByRow = async (row, status) => {
     } else {
         await simulatePaymentCallback(row.id, status);
     }
-        ElMessage.error("模擬支付回調失敗");
-    } finally {
-        loading.value = false;
-    }
 };
 
 // 获取所有待处理的支付
@@ -1052,12 +951,6 @@ const loadOrderById = async (id) => {
 };
 
 onMounted(async () => {
-    // 這裡應該調用API獲取所有待處理的支付
-    // 目前後端可能沒有提供這個API，所以用空數組代替
-    pendingPayments.value = [];
-};
-
-onMounted(() => {
     if (!authStore.isAuthenticated) {
         ElMessage.warning("請先登入");
         router.push("/member/login");
@@ -1102,11 +995,6 @@ onMounted(() => {
             ElMessage.info("請確認支付信息後點擊「確認支付」按鈕");
         }, 1000);
     }
-    // 加載URL中可能帶的訂單ID
-    loadOrderFromParams();
-
-    // 獲取待處理支付列表
-    fetchPendingPayments();
 });
 </script>
 
@@ -1217,32 +1105,5 @@ onMounted(() => {
     .payment-actions {
         flex-direction: column;
     }
-    border-radius: 4px;
-}
-
-.section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: #409eff;
-    font-weight: 500;
-}
-
-.payment-info {
-    margin-top: 20px;
-}
-
-.actions {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-}
-
-.empty-pending {
-    padding: 30px 0;
-}
-
-:deep(.el-descriptions) {
-    margin-bottom: 20px;
 }
 </style>
