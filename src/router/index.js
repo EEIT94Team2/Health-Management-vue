@@ -6,6 +6,7 @@ import Layout from "@/components/Layouts/backend/index.vue";
 import BackPage from "@/views/backend/BackPage.vue";
 
 // 前端
+import FrontendLayout from"@/components/Layouts/frontend/index.vue";
 import HomePage from "@/views/frontend/HomePage.vue";
 import GymHomePage from "@/views/frontend/GymHomePage.vue";
 import GymPage from "@/views/frontend/GymPage.vue";
@@ -28,7 +29,6 @@ import ProductList from "@/views/backend/shop/ProductList.vue";
 import ProductDetail from "@/views/backend/shop/ProductDetail.vue";
 import ProductManagement from "@/views/backend/shop/ProductManagement.vue";
 import ProductAdmin from "@/views/backend/shop/ProductAdmin.vue";
-import PaymentSimulation from "@/views/backend/shop/PaymentSimulation.vue";
 
 // 論壇
 import ForumHomeView from "@/views/backend/social/ForumHomeView.vue";
@@ -48,11 +48,23 @@ import Forbidden403 from "@/views/403.vue";
 import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
-        path: "/",
-        name: "HomePage",
-        component: HomePage,
-        meta: { title: "首頁" },
-    },
+        path: '/',
+        component: FrontendLayout, // ✅ 改成使用 layout
+        children: [
+          {
+            path: '',
+            name: 'HomePage',
+            component: HomePage,
+            meta: { title: '首頁' }
+          },
+          {
+            path: 'courses',
+            name: 'Courses',
+            component: Courses,
+            meta: { title: '課程' }
+          }
+        ]
+      },
     {
         path: "/gym",
         name: "GymHomePage",
@@ -64,12 +76,6 @@ const routes = [
         name: "GymPage",
         component: GymPage,
         meta: { title: "健身房" },
-    },
-    {
-        path: "/courses",
-        name: "Courses",
-        component: Courses,
-        meta: { title: "登入" },
     },
     {
         path: "/backpage",
