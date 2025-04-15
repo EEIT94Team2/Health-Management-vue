@@ -133,6 +133,10 @@
                             </el-button>
 
                             <el-button
+                                v-if="
+                                    row.status &&
+                                    (row.status.toLowerCase().includes('pending') ||
+                                        row.status === 'PENDING_PAYMENT')"
                                 v-if="row.status === 'PENDING_PAYMENT'"
                                 type="success"
                                 size="small"
@@ -354,6 +358,64 @@ const fetchOrders = async () => {
             orders.value = [];
             total.value = 0;
         }
+        }
+
+        console.log("獲取訂單響應:", response);
+
+        // 處理API返回的數據
+        if (response && response.data) {
+            let ordersData = [];
+            let totalCount = 0;
+
+            // 檢查不同可能的數據結構
+            if (response.data.data) {
+                // 標準API響應格式: {success: true, data: {...}}
+                const data = response.data.data;
+
+                if (data.content) {
+                    // 分頁格式: {content: [], totalElements: 10}
+                    ordersData = data.content;
+                    totalCount = data.totalElements || 0;
+                } else if (Array.isArray(data)) {
+                    // 直接數組格式
+                    ordersData = data;
+                    totalCount = data.length;
+                } else {
+                    console.warn("未知的訂單數據格式", data);
+                }
+            } else if (response.data.content) {
+                // 直接分頁格式
+                ordersData = response.data.content;
+                totalCount = response.data.totalElements || 0;
+            } else if (Array.isArray(response.data)) {
+                // 直接數組
+                ordersData = response.data;
+                totalCount = response.data.length;
+            } else {
+                console.warn("無法識別的訂單API響應格式", response.data);
+            }
+
+            orders.value = ordersData;
+            total.value = totalCount;
+
+            // 如果是管理員，嘗試獲取用戶郵箱
+            if (isAdmin.value && orders.value.length > 0) {
+                orders.value.forEach((order) => {
+                    if (
+                        !order.userName ||
+                        order.userName === "未知用戶" ||
+                        order.userName === "未知用户"
+                    ) {
+                        fetchUserEmail(order);
+                    }
+                });
+            }
+        } else {
+            console.error("獲取訂單列表失敗：無效響應", response);
+            ElMessage.error("獲取訂單列表失敗：無效響應");
+            orders.value = [];
+            total.value = 0;
+        }
     } catch (error) {
         console.error("獲取訂單列表失敗:", error);
         ElMessage.error(error.message || "獲取訂單列表失敗");
@@ -391,8 +453,20 @@ const viewOrder = (orderId) => {
     }
 };
 
-// 去支付
+// 跳转到支付页面
 const goToPayment = (order) => {
+    if (!order || !order.id) {
+        ElMessage.warning("訂單信息不完整，無法跳轉到支付頁面");
+        return;
+    }
+
+    // 跳轉到支付模擬頁面，並傳遞訂單ID
+    router.push({
+        path: "/backpage/shop/payment",
+        query: { orderId: order.id },
+    });
+
+    ElMessage.success("正在跳轉到支付頁面，請確認訂單支付");
     router.push(`/backpage/shop/checkout?orderId=${order.id}`);
 };
 

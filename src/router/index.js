@@ -176,6 +176,8 @@ const routes = [
             {
                 path: "shop/checkout",
                 name: "PaymentSimulation",
+                redirect: "shop/orders",
+                meta: { title: "支付功能暫不可用", requiresAuth: true, isAdmin: true },
                 component: PaymentSimulation,
                 meta: { title: "模擬支付", requiresAuth: true, isAdmin: true },
             },
@@ -267,6 +269,20 @@ const routes = [
         name: "GlobalForbidden",
         component: Forbidden403,
         meta: { title: "訪問被拒絕" },
+    },
+    // 添加或修改支付模擬頁面的路由
+    {
+        path: "/backpage/shop/payment",
+        name: "PaymentSimulation",
+        component: () => import("@/views/backend/shop/PaymentSimulation.vue"),
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    // 添加一個支付頁面的別名路由，方便用戶直接訪問
+    {
+        path: "/payment",
+        redirect: "/backpage/shop/payment",
     },
 ];
 

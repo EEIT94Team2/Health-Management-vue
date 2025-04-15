@@ -93,17 +93,6 @@
                     </el-icon>
                     <span>訂單管理</span>
                 </el-menu-item>
-
-                <el-menu-item
-                    v-if="userRole === 'admin'"
-                    index="/backpage/shop/checkout"
-                    :class="{ 'is-active': activePath === '/backpage/shop/checkout' }"
-                >
-                    <el-icon>
-                        <Money />
-                    </el-icon>
-                    <span>模擬支付</span>
-                </el-menu-item>
             </el-sub-menu>
 
             <el-sub-menu index="fitness">
