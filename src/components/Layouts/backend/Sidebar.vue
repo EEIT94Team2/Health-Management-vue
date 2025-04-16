@@ -15,9 +15,8 @@
     >
       <el-menu-item index="/backpage/dashboard">
         <el-icon><HomeFilled /></el-icon>
-        <span>首頁</span>
+        <span>後台首頁</span>
       </el-menu-item>
-
       <el-sub-menu index="member">
         <template #title>
           <el-icon><User /></el-icon>
@@ -29,7 +28,6 @@
         <el-menu-item index="/backpage/member/profile">
           <span>會員資料</span>
         </el-menu-item>
-
         <el-menu-item
           index="/backpage/member/management"
           v-if="userRole === 'admin'"
@@ -50,22 +48,16 @@
 
       <el-sub-menu v-if="checkPermission(['admin', 'shop'])" index="shop">
         <template #title>
-          <el-icon>
-            <Shop />
-          </el-icon>
+          <el-icon><Shop /></el-icon>
           <span>商城管理</span>
         </template>
-
         <el-menu-item
           index="/backpage/shop/products"
           :class="{ 'is-active': activePath === '/backpage/shop/products' }"
         >
-          <el-icon>
-            <Goods />
-          </el-icon>
+          <el-icon><Goods /></el-icon>
           <span>商品列表</span>
         </el-menu-item>
-
         <el-menu-item
           v-if="userRole === 'admin'"
           index="/backpage/shop/product-admin"
@@ -73,41 +65,22 @@
             'is-active': activePath === '/backpage/shop/product-admin',
           }"
         >
-          <el-icon>
-            <Setting />
-          </el-icon>
+          <el-icon><Setting /></el-icon>
           <span>商品管理後台</span>
         </el-menu-item>
-
         <el-menu-item
           index="/backpage/shop/cart"
           :class="{ 'is-active': activePath === '/backpage/shop/cart' }"
         >
-          <el-icon>
-            <ShoppingCart />
-          </el-icon>
+          <el-icon><ShoppingCart /></el-icon>
           <span>購物車管理</span>
         </el-menu-item>
-
         <el-menu-item
           index="/backpage/shop/orders"
           :class="{ 'is-active': activePath === '/backpage/shop/orders' }"
         >
-          <el-icon>
-            <Document />
-          </el-icon>
+          <el-icon><Document /></el-icon>
           <span>訂單管理</span>
-        </el-menu-item>
-
-        <el-menu-item
-          v-if="userRole === 'admin'"
-          index="/backpage/shop/checkout"
-          :class="{ 'is-active': activePath === '/backpage/shop/checkout' }"
-        >
-          <el-icon>
-            <Money />
-          </el-icon>
-          <span>模擬支付</span>
         </el-menu-item>
       </el-sub-menu>
 
@@ -163,12 +136,15 @@
           <span>發表文章</span>
         </el-menu-item>
       </el-sub-menu>
+      <el-menu-item index="/">
+        <el-icon><Monitor /></el-icon> <span>前往前台</span>
+      </el-menu-item>
     </el-menu>
   </div>
 </template>
 
 <script setup>
-import { ref, defineEmits, onMounted, computed } from "vue";
+import { ref, defineEmits, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
   HomeFilled,
@@ -227,9 +203,16 @@ const activePath = computed(() => {
 
 const handleSelect = (index, indexPath) => {
   let title = "後端管理系統";
+  // 如果需要，可以在這裡處理 "前往前台" 的標題，但通常導航到前台後，標題會由前台佈局控制
+  if (index === "/") {
+    // 可以選擇不更新標題，或者設置一個特定的標題
+    // title = "前端網站";
+    // emit("update-title", title);
+    return; // 直接返回，因為導航已由 el-menu router 處理
+  }
   switch (index) {
     case "/backpage/dashboard":
-      title = "首頁";
+      title = "後台首頁"; // 建議修改
       break;
     case "/backpage/member/login":
       title = "會員登入";

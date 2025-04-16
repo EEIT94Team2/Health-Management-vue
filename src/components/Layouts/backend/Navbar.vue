@@ -57,7 +57,7 @@ import {
 import { UserFilled, SwitchButton } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores/auth";
 
-// 導入圖片
+// 导入图片
 import userAvatarImg from "@/assets/images/user.jpg";
 
 const router = useRouter();
