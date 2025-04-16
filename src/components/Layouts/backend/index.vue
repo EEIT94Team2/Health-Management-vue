@@ -22,12 +22,10 @@ import Navbar from "./Navbar.vue";
 import AppMain from "./AppMain.vue";
 import Footer from "./Footer.vue";
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
 
 const isSidebarCollapsed = ref(false);
 const navbarTitle = ref("後端管理系統");
 const userRole = ref("");
-const router = useRouter();
 
 onMounted(() => {
     userRole.value = localStorage.getItem("userRole") || "";

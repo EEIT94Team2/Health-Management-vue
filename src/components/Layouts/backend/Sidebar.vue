@@ -1,9 +1,9 @@
 <template>
     <div class="sidebar" :class="{ collapsed: isCollapsed }" v-if="isVisible">
         <div class="sidebar-header">
-            <img :src="sidebarLogo" class="header-logo-icon" alt="Header Logo" />
-            <span class="logo-text">{{ title }}</span>
-        </div>
+             <img :src="sidebarLogo" class="header-logo-icon" alt="Header Logo" />
+             <span class="logo-text">{{ title }}</span>
+         </div>
         <el-menu
             router
             default-active="$route.path"
@@ -15,132 +15,107 @@
         >
             <el-menu-item index="/backpage/dashboard">
                 <el-icon><HomeFilled /></el-icon>
-                <span>首頁</span>
+                <span>後台首頁</span>
             </el-menu-item>
-
             <el-sub-menu index="member">
-                <template #title>
-                    <el-icon><User /></el-icon>
-                    <span>會員中心</span>
-                </template>
-                <el-menu-item index="/backpage/member/register">
-                    <span>會員註冊</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/member/profile">
-                    <span>會員資料</span>
-                </el-menu-item>
-
-                <el-menu-item index="/backpage/member/management" v-if="userRole === 'admin'">
-                    <span>會員總管</span>
-                </el-menu-item>
+                 <template #title>
+                     <el-icon><User /></el-icon>
+                     <span>會員中心</span>
+                 </template>
+                 <el-menu-item index="/backpage/member/register">
+                     <span>會員註冊</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/member/profile">
+                     <span>會員資料</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/member/management" v-if="userRole === 'admin'">
+                     <span>會員總管</span>
+                 </el-menu-item>
             </el-sub-menu>
 
             <el-sub-menu index="courses">
-                <template #title>
-                    <el-icon><Calendar /></el-icon>
-                    <span>課程管理</span>
-                </template>
-                <el-menu-item index="/backpage/courses">
-                    <span>課程列表</span>
-                </el-menu-item>
-            </el-sub-menu>
+                 <template #title>
+                     <el-icon><Calendar /></el-icon>
+                     <span>課程管理</span>
+                 </template>
+                 <el-menu-item index="/backpage/courses">
+                     <span>課程列表</span>
+                 </el-menu-item>
+             </el-sub-menu>
 
-            <el-sub-menu v-if="checkPermission(['admin', 'shop'])" index="shop">
-                <template #title>
-                    <el-icon>
-                        <Shop />
-                    </el-icon>
-                    <span>商城管理</span>
-                </template>
+             <el-sub-menu v-if="checkPermission(['admin', 'shop'])" index="shop">
+                 <template #title>
+                     <el-icon><Shop /></el-icon>
+                     <span>商城管理</span>
+                 </template>
+                 <el-menu-item index="/backpage/shop/products" :class="{ 'is-active': activePath === '/backpage/shop/products' }">
+                     <el-icon><Goods /></el-icon>
+                     <span>商品列表</span>
+                 </el-menu-item>
+                 <el-menu-item v-if="userRole === 'admin'" index="/backpage/shop/product-admin" :class="{ 'is-active': activePath === '/backpage/shop/product-admin' }">
+                     <el-icon><Setting /></el-icon>
+                     <span>商品管理後台</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/shop/cart" :class="{ 'is-active': activePath === '/backpage/shop/cart' }">
+                     <el-icon><ShoppingCart /></el-icon>
+                     <span>購物車管理</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/shop/orders" :class="{ 'is-active': activePath === '/backpage/shop/orders' }">
+                     <el-icon><Document /></el-icon>
+                     <span>訂單管理</span>
+                 </el-menu-item>
+             </el-sub-menu>
 
-                <el-menu-item
-                    index="/backpage/shop/products"
-                    :class="{ 'is-active': activePath === '/backpage/shop/products' }"
-                >
-                    <el-icon>
-                        <Goods />
-                    </el-icon>
-                    <span>商品列表</span>
-                </el-menu-item>
+             <el-sub-menu index="fitness">
+                 <template #title>
+                     <el-icon><Histogram /></el-icon>
+                     <span>追蹤成效</span>
+                 </template>
+                  <el-menu-item index="/backpage/fitness/admin/workouts" v-if="userRole === 'admin'">
+                     <span>運動紀錄管理</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/fitness/admin/body" v-if="userRole === 'admin'">
+                     <span>身體數據管理</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/fitness/admin/reports" v-if="userRole === 'admin'">
+                     <span>報告與數據分析</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/fitness/overview" v-else>
+                     <span>成效總覽</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/fitness/reports" v-else>
+                     <span>報表分析</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/fitness/goals" v-else>
+                     <span>目標設定</span>
+                 </el-menu-item>
+             </el-sub-menu>
 
-                <el-menu-item
-                    v-if="userRole === 'admin'"
-                    index="/backpage/shop/product-admin"
-                    :class="{ 'is-active': activePath === '/backpage/shop/product-admin' }"
-                >
-                    <el-icon>
-                        <Setting />
-                    </el-icon>
-                    <span>商品管理後台</span>
-                </el-menu-item>
+             <el-sub-menu index="social">
+                 <template #title>
+                     <el-icon><ChatSquare /></el-icon>
+                     <span>論壇</span>
+                 </template>
+                 <el-menu-item index="/backpage/social/home">
+                     <span>論壇首頁</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/social/posts">
+                     <span>文章列表</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/social/create">
+                     <span>發表文章</span>
+                 </el-menu-item>
+             </el-sub-menu>
+             <el-menu-item index="/">
+                <el-icon><Monitor /></el-icon> <span>前往前台</span>
+            </el-menu-item>
 
-                <el-menu-item
-                    index="/backpage/shop/cart"
-                    :class="{ 'is-active': activePath === '/backpage/shop/cart' }"
-                >
-                    <el-icon>
-                        <ShoppingCart />
-                    </el-icon>
-                    <span>購物車管理</span>
-                </el-menu-item>
-
-                <el-menu-item
-                    index="/backpage/shop/orders"
-                    :class="{ 'is-active': activePath === '/backpage/shop/orders' }"
-                >
-                    <el-icon>
-                        <Document />
-                    </el-icon>
-                    <span>訂單管理</span>
-                </el-menu-item>
-            </el-sub-menu>
-
-            <el-sub-menu index="fitness">
-                <template #title>
-                    <el-icon><Histogram /></el-icon>
-                    <span>追蹤成效</span>
-                </template>
-                <el-menu-item index="/backpage/fitness/admin/workouts" v-if="userRole === 'admin'">
-                    <span>運動紀錄管理</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/fitness/admin/body" v-if="userRole === 'admin'">
-                    <span>身體數據管理</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/fitness/admin/reports" v-if="userRole === 'admin'">
-                    <span>報告與數據分析</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/fitness/overview" v-else>
-                    <span>成效總覽</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/fitness/reports" v-else>
-                    <span>報表分析</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/fitness/goals" v-else>
-                    <span>目標設定</span>
-                </el-menu-item>
-            </el-sub-menu>
-
-            <el-sub-menu index="social">
-                <template #title>
-                    <el-icon><ChatSquare /></el-icon>
-                    <span>論壇</span>
-                </template>
-                <el-menu-item index="/backpage/social/home">
-                    <span>論壇首頁</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/social/posts">
-                    <span>文章列表</span>
-                </el-menu-item>
-                <el-menu-item index="/backpage/social/create">
-                    <span>發表文章</span>
-                </el-menu-item>
-            </el-sub-menu>
         </el-menu>
     </div>
 </template>
 
 <script setup>
-import { ref, defineEmits, onMounted, computed } from "vue";
+import { ref, defineEmits, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
     HomeFilled,
@@ -152,8 +127,8 @@ import {
     Shop,
     Goods,
     Document,
-    Money,
     Setting,
+    Monitor
 } from "@element-plus/icons-vue";
 import sidebarLogoImage from "@/assets/images/logo.png"; // 导入你的 Logo 图示
 import { useAuthStore } from "@/stores/auth"; // 引入 authStore
@@ -199,9 +174,16 @@ const activePath = computed(() => {
 
 const handleSelect = (index, indexPath) => {
     let title = "後端管理系統";
+    // 如果需要，可以在這裡處理 "前往前台" 的標題，但通常導航到前台後，標題會由前台佈局控制
+    if (index === '/') {
+       // 可以選擇不更新標題，或者設置一個特定的標題
+       // title = "前端網站";
+       // emit("update-title", title);
+       return; // 直接返回，因為導航已由 el-menu router 處理
+    }
     switch (index) {
         case "/backpage/dashboard":
-            title = "首頁";
+            title = "後台首頁"; // 建議修改
             break;
         case "/backpage/member/login":
             title = "會員登入";
