@@ -1,32 +1,42 @@
 <template>
-  <div>
-    <h1>身體數據管理</h1>
-
-    <el-form :inline="true" :model="searchForm" class="search-form">
-      <el-form-item label="用戶 ID">
-        <el-input
-          v-model="searchForm.userId"
-          placeholder="輸入用戶 ID"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="姓名">
-        <el-input v-model="searchForm.name" placeholder="輸入姓名"></el-input>
-      </el-form-item>
-      <el-form-item label="日期範圍">
-        <el-date-picker
-          v-model="searchForm.dateRange"
-          type="daterange"
-          range-separator="-"
-          start-placeholder="開始日期"
-          end-placeholder="結束日期"
-          value-format="YYYY-MM-DD"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="fetchBodyData">查詢</el-button>
-        <el-button @click="resetSearchForm">重置</el-button>
-      </el-form-item>
-    </el-form>
+  <el-card class="body-data-management-container">
+    <template #header>
+      <div class="body-data-management-header">
+        <div class="search-and-add">
+          <el-form :inline="true" :model="searchForm" class="search-form">
+            <el-form-item label="用戶 ID">
+              <el-input
+                v-model="searchForm.userId"
+                placeholder="輸入用戶 ID"
+              ></el-input>
+            </el-form-item>
+            <el-form-item label="姓名">
+              <el-input
+                v-model="searchForm.name"
+                placeholder="輸入姓名"
+              ></el-input>
+            </el-form-item>
+            <el-form-item label="日期範圍">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="daterange"
+                range-separator="-"
+                start-placeholder="開始日期"
+                end-placeholder="結束日期"
+                value-format="YYYY-MM-DD"
+              ></el-date-picker>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="fetchBodyData">查詢</el-button>
+              <el-button @click="resetSearchForm">重置</el-button>
+            </el-form-item>
+          </el-form>
+          <el-button type="info" @click="openEditDialog(null)"
+            >新增資料</el-button
+          >
+        </div>
+      </div>
+    </template>
 
     <el-table :data="bodyData" border style="width: 100%">
       <el-table-column prop="id" label="ID" width="50"></el-table-column>
@@ -63,14 +73,7 @@
       </el-table-column>
     </el-table>
 
-    <div
-      style="
-        margin-top: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
+    <div class="pagination">
       <el-pagination
         v-model:currentPage="currentPage"
         v-model:page-size="pageSize"
@@ -80,7 +83,6 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-      <el-button @click="openEditDialog(null)">新增資料</el-button>
     </div>
 
     <el-dialog
@@ -153,7 +155,7 @@
         </span>
       </template>
     </el-dialog>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
@@ -182,7 +184,7 @@ const editForm = reactive({
   waistCircumference: null,
   hipCircumference: null,
   dateRecorded: null,
-  muscleMass: null, // 添加肌肉量屬性
+  muscleMass: null,
 });
 
 const getAuthHeaders = () => ({
@@ -328,15 +330,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.body-data-management-container {
+  max-width: 1200px;
+  margin: 20px auto;
+}
+
+.body-data-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.search-and-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .search-form {
-  margin-bottom: 20px;
+  margin-right: 10px;
 }
 
 .pagination {
-  display: inline-block;
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .el-button {
-  margin-left: 10px;
+  margin-left: 5px;
 }
 </style>

@@ -1,32 +1,44 @@
 <template>
-  <div>
-    <h1>目標設定與進度監控</h1>
-
-    <el-form :inline="true" :model="searchForm" class="search-form">
-      <el-form-item label="用戶 ID">
-        <el-input
-          v-model="searchForm.userId"
-          placeholder="輸入用戶 ID"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="姓名">
-        <el-input v-model="searchForm.name" placeholder="輸入姓名"></el-input>
-      </el-form-item>
-      <el-form-item label="日期範圍">
-        <el-date-picker
-          v-model="searchForm.startDateRange"
-          type="daterange"
-          range-separator="-"
-          start-placeholder="開始日期"
-          end-placeholder="結束日期"
-          value-format="YYYY-MM-DD"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="fetchGoalsProgress">查詢</el-button>
-        <el-button @click="resetSearchForm">重置</el-button>
-      </el-form-item>
-    </el-form>
+  <el-card class="goals-progress-management-container">
+    <template #header>
+      <div class="goals-progress-management-header">
+        <div class="search-and-add">
+          <el-form :inline="true" :model="searchForm" class="search-form">
+            <el-form-item label="用戶 ID">
+              <el-input
+                v-model="searchForm.userId"
+                placeholder="輸入用戶 ID"
+              ></el-input>
+            </el-form-item>
+            <el-form-item label="姓名">
+              <el-input
+                v-model="searchForm.name"
+                placeholder="輸入姓名"
+              ></el-input>
+            </el-form-item>
+            <el-form-item label="日期範圍">
+              <el-date-picker
+                v-model="searchForm.startDateRange"
+                type="daterange"
+                range-separator="-"
+                start-placeholder="開始日期"
+                end-placeholder="結束日期"
+                value-format="YYYY-MM-DD"
+              ></el-date-picker>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="fetchGoalsProgress"
+                >查詢</el-button
+              >
+              <el-button @click="resetSearchForm">重置</el-button>
+            </el-form-item>
+          </el-form>
+          <el-button type="info" @click="openEditDialog(null)"
+            >新增目標</el-button
+          >
+        </div>
+      </div>
+    </template>
 
     <el-table :data="goalsProgress" border style="width: 100%">
       <el-table-column prop="userId" label="用戶 ID"></el-table-column>
@@ -51,14 +63,7 @@
       </el-table-column>
     </el-table>
 
-    <div
-      style="
-        margin-top: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
+    <div class="pagination">
       <el-pagination
         v-model:currentPage="currentPage"
         v-model:pageSize="pageSize"
@@ -68,7 +73,6 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-      <el-button @click="openEditDialog(null)">新增目標</el-button>
     </div>
 
     <el-dialog
@@ -126,7 +130,7 @@
         </span>
       </template>
     </el-dialog>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
@@ -145,7 +149,7 @@ const searchForm = reactive({
 });
 const editDialogVisible = ref(false);
 const editForm = reactive({
-  goalId: null, // 將 id 更名為 goalId 以匹配後端
+  goalId: null,
   userId: null,
   goalType: "",
   targetValue: null,
@@ -163,7 +167,6 @@ const fetchGoalsProgress = async () => {
   let apiUrl = "";
 
   if (searchForm.userId && searchForm.name && searchForm.startDateRange) {
-    // 需要後端同時支持這三個條件的查詢
     console.warn("後端 API 目前沒有同時按用戶 ID、姓名和日期範圍查詢的功能。");
     return;
   } else if (searchForm.userId && searchForm.name) {
@@ -211,7 +214,7 @@ const openEditDialog = (row) => {
   if (row) {
     Object.assign(editForm, row);
   } else {
-    editForm.goalId = null; // 將 id 更名為 goalId
+    editForm.goalId = null;
     editForm.userId = null;
     editForm.goalType = "";
     editForm.targetValue = null;
@@ -274,25 +277,46 @@ const handleCurrentChange = (page) => {
 };
 
 onMounted(() => {
-  // 初始載入時，可以根據需要查詢特定用戶的目標，或者不帶參數查詢所有（如果後端支持）
-  // 目前前端預設會查詢 userId 為空的，後端可能會返回所有用戶的目標（如果沒有 userId）。
   fetchGoalsProgress();
 });
 </script>
 
 <style scoped>
+.goals-progress-management-container {
+  max-width: 1200px;
+  margin: 20px auto;
+}
+
+.goals-progress-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.search-and-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .search-form {
-  margin-bottom: 20px;
+  margin-right: 10px;
 }
 
 .pagination {
   margin-top: 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
 }
 
 .pagination .el-button {
   /* 可以根據需要調整樣式 */
+  margin-left: 5px;
 }
 </style>
