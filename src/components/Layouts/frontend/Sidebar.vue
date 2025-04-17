@@ -64,7 +64,7 @@ const handleNavClick = (item) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  z-index: 1000;
   cursor: pointer;
   transition: background 0.3s ease, transform 0.3s ease-in-out; /* 添加 transform 的 transition */
   font-size: 2rem; /* 調整觸發圖示大小 */
@@ -89,7 +89,7 @@ const handleNavClick = (item) => {
   height: calc(100vh - 70px);
   background: rgba(#10202B, 60%);
   color: #fff;
-  z-index: 998;
+  z-index: 1000;
   transition: left 0.3s ease-in-out;
   padding: 20px 25px;
   white-space: nowrap;

@@ -49,7 +49,7 @@ import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
         path: '/',
-        component: FrontendLayout, // ✅ 改成使用 layout
+        component: FrontendLayout, 
         children: [
           {
             path: '',
@@ -62,9 +62,46 @@ const routes = [
             name: 'Courses',
             component: Courses,
             meta: { title: '課程' }
+          },
+          // 前台商城路由
+          {
+            path: 'shop/products',
+            name: 'FrontProductList',
+            component: () => import('@/views/frontend/shop/ProductList.vue'),
+            meta: { title: '商品列表' }
+          },
+          {
+            path: 'shop/products/:id',
+            name: 'FrontProductDetail',
+            component: () => import('@/views/frontend/shop/ProductDetail.vue'),
+            meta: { title: '商品詳情' }
+          },
+          {
+            path: 'shop/cart',
+            name: 'FrontCart',
+            component: () => import('@/views/frontend/shop/Cart.vue'),
+            meta: { title: '購物車', requiresAuth: true }
+          },
+          {
+            path: 'shop/checkout',
+            name: 'FrontCheckout',
+            component: () => import('@/views/frontend/shop/Checkout.vue'),
+            meta: { title: '結帳', requiresAuth: true }
+          },
+          {
+            path: 'shop/orders',
+            name: 'FrontOrderList',
+            component: () => import('@/views/frontend/shop/OrderList.vue'),
+            meta: { title: '我的訂單', requiresAuth: true }
+          },
+          {
+            path: 'shop/orders/:id',
+            name: 'FrontOrderDetail',
+            component: () => import('@/views/frontend/shop/OrderDetail.vue'),
+            meta: { title: '訂單詳情', requiresAuth: true }
           }
         ]
-      },
+    },
     {
         path: "/gym",
         name: "GymHomePage",
