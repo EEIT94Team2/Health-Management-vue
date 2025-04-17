@@ -32,7 +32,7 @@
         </ul>
       </nav>
         <div class="header-buttons">
-          <el-button size="medium">登入</el-button> <el-button type="primary" size="medium">免費註冊</el-button>
+          <el-button size="medium" @click="handleLogin">登入</el-button> <el-button type="primary" size="medium" @click="handleRegister">免費註冊</el-button>
         </div>
       </div>
     </div>
@@ -54,6 +54,14 @@ const handleLogoClick = (event) => {
     event.preventDefault()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+}
+
+const handleLogin = () => {
+  router.push('/user/login')
+}
+
+const handleRegister = () => {
+  router.push('/user/register')
 }
 
 const menus = reactive([
