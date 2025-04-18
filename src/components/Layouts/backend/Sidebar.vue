@@ -84,39 +84,27 @@
         </el-menu-item>
       </el-sub-menu>
 
-      <el-sub-menu index="fitness">
+      <el-sub-menu index="fitness" v-if="userRole === 'admin'">
         <template #title>
           <el-icon><Histogram /></el-icon>
           <span>追蹤成效</span>
         </template>
-        <el-menu-item
-          index="/backpage/fitness/admin/workouts"
-          v-if="userRole === 'admin'"
-        >
+        <el-menu-item index="/backpage/fitness/admin/workouts">
           <span>運動紀錄管理</span>
         </el-menu-item>
-        <el-menu-item
-          index="/backpage/fitness/admin/body"
-          v-if="userRole === 'admin'"
-        >
+        <el-menu-item index="/backpage/fitness/admin/body">
           <span>身體數據管理</span>
         </el-menu-item>
-        <el-menu-item
-          index="/backpage/fitness/admin/diet"
-          v-if="userRole === 'admin'"
-        >
+        <el-menu-item index="/backpage/fitness/admin/diet">
           <span>飲食數據管理</span>
         </el-menu-item>
-        <el-menu-item
-          index="/backpage/fitness/admin/goals"
-          v-if="userRole === 'admin'"
-        >
+        <el-menu-item index="/backpage/fitness/admin/goals">
           <span>目標設定管理</span>
         </el-menu-item>
-        <el-menu-item
-          index="/backpage/fitness/admin/reports"
-          v-if="userRole === 'admin'"
-        >
+        <el-menu-item index="/backpage/fitness/admin/achievements">
+          <span>獎章管理</span>
+        </el-menu-item>
+        <el-menu-item index="/backpage/fitness/admin/reports">
           <span>報告與數據分析</span>
         </el-menu-item>
       </el-sub-menu>
@@ -249,6 +237,9 @@ const handleSelect = (index, indexPath) => {
       break;
     case "/backpage/fitness/admin/diet":
       title = "飲食數據管理";
+      break;
+    case "/backpage/fitness/admin/achievements":
+      title = "獎章管理";
       break;
     case "/backpage/fitness/admin/goals":
       title = "目標設定與進度監控";

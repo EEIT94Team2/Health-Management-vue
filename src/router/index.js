@@ -41,6 +41,7 @@ import AdminExerciseRecords from "@/views/backend/fitness/ExerciseRecords.vue";
 import AdminBodyData from "@/views/backend/fitness/BodyData.vue";
 import AdminGoalsProgress from "@/views/backend/fitness/GoalsProgress.vue";
 import ReportsAnalysis from "@/views/backend/fitness/ReportsAnalysis.vue";
+import AdminAchievement from "@/views/backend/fitness/Achievement.vue";
 
 // 錯誤頁面
 import Forbidden403 from "@/views/403.vue";
@@ -242,6 +243,16 @@ const routes = [
         component: AdminGoalsProgress,
         meta: {
           title: "目標與進度",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/achievements",
+        name: "AdminAchievement",
+        component: AdminAchievement,
+        meta: {
+          title: "獎章管理",
           requiresAuth: true,
           isAdmin: true,
         },

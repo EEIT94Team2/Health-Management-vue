@@ -26,6 +26,26 @@
                 value-format="YYYY-MM-DD"
               ></el-date-picker>
             </el-form-item>
+            <el-form-item label="目標類型">
+              <el-select
+                v-model="searchForm.goalType"
+                placeholder="選擇目標類型"
+              >
+                <el-option label="全部" value=""></el-option>
+                <el-option label="減重" value="減重"></el-option>
+                <el-option label="增肌" value="增肌"></el-option>
+                <el-option label="心肺健康" value="心肺健康"></el-option>
+                <el-option label="其他" value="其他"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="狀態">
+              <el-select v-model="searchForm.status" placeholder="選擇狀態">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="進行中" value="進行中"></el-option>
+                <el-option label="已完成" value="已完成"></el-option>
+                <el-option label="未達成" value="未達成"></el-option>
+              </el-select>
+            </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="fetchGoalsProgress"
                 >查詢</el-button
@@ -146,6 +166,8 @@ const searchForm = reactive({
   userId: "",
   name: "",
   startDateRange: null,
+  goalType: "",
+  status: "",
 });
 const editDialogVisible = ref(false);
 const editForm = reactive({
@@ -160,45 +182,35 @@ const editForm = reactive({
 });
 
 const fetchGoalsProgress = async () => {
+  const token = localStorage.getItem("authToken"); // 假設您已儲存 token
+
   const params = {
     page: currentPage.value - 1,
     size: pageSize.value,
+    userId: searchForm.userId || null,
+    name: searchForm.name || null,
+    startDate: searchForm.startDateRange ? searchForm.startDateRange[0] : null,
+    endDate: searchForm.startDateRange ? searchForm.startDateRange[1] : null,
+    goalType: searchForm.goalType || null, // 包含目標類型
+    status: searchForm.status || null, // 包含狀態
   };
-  let apiUrl = "";
-
-  if (searchForm.userId && searchForm.name && searchForm.startDateRange) {
-    console.warn("後端 API 目前沒有同時按用戶 ID、姓名和日期範圍查詢的功能。");
-    return;
-  } else if (searchForm.userId && searchForm.name) {
-    console.warn("後端 API 目前沒有同時按用戶 ID 和姓名查詢的功能。");
-    return;
-  } else if (searchForm.userId && searchForm.startDateRange) {
-    const startDate = searchForm.startDateRange[0];
-    const endDate = searchForm.startDateRange[1];
-    apiUrl = `/api/tracking/fitnessgoals/user/${searchForm.userId}/by-date-range?startDate=${startDate}&endDate=${endDate}`;
-  } else if (searchForm.name && searchForm.startDateRange) {
-    const startDate = searchForm.startDateRange[0];
-    const endDate = searchForm.startDateRange[1];
-    apiUrl = `/api/tracking/fitnessgoals/by-date-range?name=${searchForm.name}&startDate=${startDate}&endDate=${endDate}`;
-  } else if (searchForm.userId) {
-    apiUrl = `/api/tracking/fitnessgoals/user/${searchForm.userId}`;
-  } else if (searchForm.name) {
-    apiUrl = `/api/tracking/fitnessgoals/user/by-name?name=${searchForm.name}`;
-  } else if (searchForm.startDateRange) {
-    const startDate = searchForm.startDateRange[0];
-    const endDate = searchForm.startDateRange[1];
-    apiUrl = `/api/tracking/fitnessgoals/by-date-range?startDate=${startDate}&endDate=${endDate}`;
-  } else {
-    apiUrl = `/api/tracking/fitnessgoals/user/`;
-  }
 
   try {
-    const response = await axios.get(apiUrl, { params });
-    goalsProgress.value = response.data;
-    total.value = response.data.length;
+    const response = await axios.get(`/api/tracking/fitnessgoals`, {
+      params,
+      headers: {
+        Authorization: `Bearer ${token}`, // 包含授權標頭
+      },
+    });
+    goalsProgress.value = response.data.content;
+    total.value = response.data.totalElements;
   } catch (error) {
     console.error("獲取健身目標失敗", error);
     ElMessage.error("獲取健身目標失敗");
+    if (error.response && error.response.status === 403) {
+      ElMessage.error("您沒有權限存取該資源，請確認您已登入。");
+      // 可以導向登入頁面或其他處理邏輯
+    }
   }
 };
 
@@ -206,6 +218,8 @@ const resetSearchForm = () => {
   searchForm.userId = "";
   searchForm.name = "";
   searchForm.startDateRange = null;
+  searchForm.goalType = "";
+  searchForm.status = "";
   currentPage.value = 1;
   fetchGoalsProgress();
 };
@@ -268,6 +282,7 @@ const handleDelete = async (id) => {
 
 const handleSizeChange = (size) => {
   pageSize.value = size;
+  currentPage.value = 1;
   fetchGoalsProgress();
 };
 
