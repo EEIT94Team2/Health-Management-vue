@@ -47,7 +47,7 @@ const form = reactive({
 
 const createPost = async () => {
     try {
-        await axios.post("/posts", form);
+        await axios.post("/api/posts", form);
         ElMessage.success("發文成功");
         router.push("/backpage/social/posts");
     } catch (error) {
@@ -60,7 +60,7 @@ const posts = ref([]);
 
 const loadPosts = async () => {
     try {
-        const res = await axios.get("/posts");
+        const res = await axios.get("/api/posts");
         posts.value = res.data;
     } catch (err) {
         ElMessage.error("讀取文章失敗");
