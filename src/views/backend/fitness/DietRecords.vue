@@ -139,7 +139,7 @@ import { ref, reactive, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
 
-const dietData = ref([]); // 將 bodyData 更名為 dietData
+const dietData = ref([]);
 const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -154,7 +154,6 @@ const editForm = reactive({
   id: null,
   userId: null,
   name: "",
-  // 假設的飲食數據欄位，你需要根據實際情況修改
   mealType: "",
   foodItems: "",
   calories: null,
@@ -164,13 +163,11 @@ const editForm = reactive({
   dateLogged: null,
 });
 
-const fetchDietData = async () => {
-  // 更名為 fetchDietData
-  if (!searchForm.userId && !searchForm.name) {
+const fetchDietData = async (checkCriteria = true) => {
+  if (checkCriteria && !searchForm.userId && !searchForm.name) {
     ElMessage.warning("請輸入用戶 ID 或姓名進行查詢");
     return;
   }
-
   try {
     const params = {
       page: currentPage.value - 1,
@@ -180,11 +177,11 @@ const fetchDietData = async () => {
       startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
       endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
     };
-    // 將 API 路徑修改為飲食數據相關的端點
-    const response = await axios.get("/api/admin/diet-data", { params });
+    const response = await axios.get("/api/tracking/nutrition/search", {
+      params,
+    });
     dietData.value = response.data.content;
     total.value = response.data.totalElements;
-
     if (dietData.value.length === 0 && (searchForm.userId || searchForm.name)) {
       ElMessage.warning("查無符合條件的飲食數據");
     }
@@ -196,12 +193,12 @@ const fetchDietData = async () => {
 
 const handleSizeChange = (size) => {
   pageSize.value = size;
-  fetchDietData(); // 使用 fetchDietData
+  fetchDietData(false); // 不檢查條件
 };
 
 const handleCurrentChange = (page) => {
   currentPage.value = page;
-  fetchDietData(); // 使用 fetchDietData
+  fetchDietData(false); // 不檢查條件
 };
 
 const resetSearchForm = () => {
@@ -209,7 +206,7 @@ const resetSearchForm = () => {
   searchForm.name = "";
   searchForm.dateRange = null;
   currentPage.value = 1;
-  fetchDietData(); // 使用 fetchDietData
+  fetchDietData(false); // 不檢查條件
 };
 
 const openEditDialog = (row) => {
@@ -218,7 +215,6 @@ const openEditDialog = (row) => {
       editForm[key] = row[key];
     });
   } else {
-    // 新增時重置表單
     Object.keys(editForm).forEach((key) => (editForm[key] = null));
   }
   editDialogVisible.value = true;
@@ -226,7 +222,6 @@ const openEditDialog = (row) => {
 
 const saveEdit = async () => {
   try {
-    // 創建符合你的後端 API 要求的 payload
     const payload = {
       userId: editForm.userId,
       mealType: editForm.mealType,
@@ -238,18 +233,14 @@ const saveEdit = async () => {
       dateLogged: editForm.dateLogged,
     };
     if (editForm.id) {
-      // 編輯
-      // 將 API 路徑修改為更新飲食數據的端點
-      await axios.put(`/api/admin/diet-data/${editForm.id}`, payload);
+      await axios.put(`/api/tracking/nutrition/${editForm.id}`, payload);
       ElMessage.success("飲食數據更新成功");
     } else {
-      // 新增
-      // 將 API 路徑修改為新增飲食數據的端點
-      await axios.post("/api/admin/diet-data", payload);
+      await axios.post("/api/tracking/nutrition/add", payload);
       ElMessage.success("飲食數據新增成功");
     }
     editDialogVisible.value = false;
-    fetchDietData(); // 使用 fetchDietData
+    fetchDietData(false); // 不檢查條件
   } catch (error) {
     console.error(editForm.id ? "更新飲食數據失敗" : "新增飲食數據失敗", error);
     ElMessage.error(editForm.id ? "更新飲食數據失敗" : "新增飲食數據失敗");
@@ -258,10 +249,9 @@ const saveEdit = async () => {
 
 const handleDelete = async (id) => {
   try {
-    // 將 API 路徑修改為刪除飲食數據的端點
-    await axios.delete(`/api/admin/diet-data/${id}`);
+    await axios.delete(`/api/tracking/nutrition/${id}`);
     ElMessage.success("飲食數據刪除成功");
-    fetchDietData(); // 使用 fetchDietData
+    fetchDietData(false); // 不檢查條件
   } catch (error) {
     console.error("刪除飲食數據失敗", error);
     ElMessage.error("刪除飲食數據失敗");
@@ -269,9 +259,48 @@ const handleDelete = async (id) => {
 };
 
 onMounted(() => {
-  fetchDietData(); // 使用 fetchDietData
+  fetchDietData(false); // 頁面載入時不檢查條件直接載入
 });
 </script>
+
+<style scoped>
+.diet-data-management-container {
+  max-width: 1200px;
+  margin: 20px auto;
+}
+
+.diet-data-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.search-and-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-form {
+  margin-right: 10px;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.el-button {
+  margin-left: 5px;
+}
+</style>
 
 <style scoped>
 .diet-data-management-container {

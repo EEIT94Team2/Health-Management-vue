@@ -163,39 +163,21 @@ const fetchGoalsProgress = async () => {
   const params = {
     page: currentPage.value - 1,
     size: pageSize.value,
+    userId: searchForm.userId || undefined,
+    name: searchForm.name || undefined,
+    startDate: searchForm.startDateRange
+      ? searchForm.startDateRange[0]
+      : undefined,
+    endDate: searchForm.startDateRange
+      ? searchForm.startDateRange[1]
+      : undefined,
   };
-  let apiUrl = "";
-
-  if (searchForm.userId && searchForm.name && searchForm.startDateRange) {
-    console.warn("後端 API 目前沒有同時按用戶 ID、姓名和日期範圍查詢的功能。");
-    return;
-  } else if (searchForm.userId && searchForm.name) {
-    console.warn("後端 API 目前沒有同時按用戶 ID 和姓名查詢的功能。");
-    return;
-  } else if (searchForm.userId && searchForm.startDateRange) {
-    const startDate = searchForm.startDateRange[0];
-    const endDate = searchForm.startDateRange[1];
-    apiUrl = `/api/tracking/fitnessgoals/user/${searchForm.userId}/by-date-range?startDate=${startDate}&endDate=${endDate}`;
-  } else if (searchForm.name && searchForm.startDateRange) {
-    const startDate = searchForm.startDateRange[0];
-    const endDate = searchForm.startDateRange[1];
-    apiUrl = `/api/tracking/fitnessgoals/by-date-range?name=${searchForm.name}&startDate=${startDate}&endDate=${endDate}`;
-  } else if (searchForm.userId) {
-    apiUrl = `/api/tracking/fitnessgoals/user/${searchForm.userId}`;
-  } else if (searchForm.name) {
-    apiUrl = `/api/tracking/fitnessgoals/user/by-name?name=${searchForm.name}`;
-  } else if (searchForm.startDateRange) {
-    const startDate = searchForm.startDateRange[0];
-    const endDate = searchForm.startDateRange[1];
-    apiUrl = `/api/tracking/fitnessgoals/by-date-range?startDate=${startDate}&endDate=${endDate}`;
-  } else {
-    apiUrl = `/api/tracking/fitnessgoals/user/`;
-  }
+  const apiUrl = `/api/tracking/fitnessgoals`;
 
   try {
     const response = await axios.get(apiUrl, { params });
-    goalsProgress.value = response.data;
-    total.value = response.data.length;
+    goalsProgress.value = response.data.content; // 後端返回的是 Page 物件，需要取 content
+    total.value = response.data.totalElements; // 總元素數量
   } catch (error) {
     console.error("獲取健身目標失敗", error);
     ElMessage.error("獲取健身目標失敗");

@@ -114,6 +114,12 @@
           <span>目標設定管理</span>
         </el-menu-item>
         <el-menu-item
+          index="/backpage/fitness/admin/achievements"
+          v-if="userRole === 'admin'"
+        >
+          <span>獎章管理</span>
+        </el-menu-item>
+        <el-menu-item
           index="/backpage/fitness/admin/reports"
           v-if="userRole === 'admin'"
         >
