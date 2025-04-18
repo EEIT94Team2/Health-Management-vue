@@ -262,16 +262,21 @@
                             <p>與志同道合的健康夥伴分享心得、交流經驗，一起邁向更健康的生活。</p>
                             <ul class="community-features">
                                 <li>
+                                    <router-link to="/forum" class="plain-link">
                                     <el-icon><ChatDotRound /></el-icon> 健康討論區
+                                    </router-link>
                                 </li>
                                 <li>
-                                    <el-icon><Connection /></el-icon> 尋找運動夥伴
+                                    <router-link to="/forum" class="plain-link">
+                                    <el-icon><Connection /></el-icon> 尋找運動夥伴</router-link>
                                 </li>
                                 <li>
-                                    <el-icon><Share /></el-icon> 分享成功故事
+                                    <router-link to="/forum" class="plain-link">
+                                    <el-icon><Share /></el-icon> 分享成功故事</router-link>
                                 </li>
                                 <li>
-                                    <el-icon><QuestionFilled /></el-icon> 專家解答
+                                    <router-link to="/UserSocialProfile" class="plain-link">
+                                    <el-icon><QuestionFilled /></el-icon> 個人檔案</router-link>
                                 </li>
                             </ul>
                             <el-button type="success" @click="goToForum">進入社區</el-button>
@@ -960,6 +965,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .health-platform {
     // 深色主題變數
     --bg-primary: #111827;
@@ -2016,6 +2022,18 @@ export default {
     margin: 0 10%;
 }
 
+//連結-無底線且不改風格
+.plain-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+//連結-無互動
+.plain-link:hover {
+  color: inherit;
+  background-color: transparent;
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
     .section-container {
@@ -2037,5 +2055,6 @@ export default {
     .contact-content {
         grid-template-columns: 1fr;
     }
+    
 }
 </style>
