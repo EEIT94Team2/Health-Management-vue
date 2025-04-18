@@ -112,6 +112,12 @@ const routes = [
             component: () => import('@/views/frontend/member/RegisterPage.vue'),
             meta: { title: '會員註冊' }
           },
+          {
+            path: 'user/profile',
+            name: 'FrontProfile',
+            component: () => import('@/views/frontend/member/ProfileView.vue'),
+            meta: { title: '會員中心', requiresAuth: true }
+          },
         ]
     },
     {
