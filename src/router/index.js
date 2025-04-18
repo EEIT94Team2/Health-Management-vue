@@ -99,7 +99,25 @@ const routes = [
             name: 'FrontOrderDetail',
             component: () => import('@/views/frontend/shop/OrderDetail.vue'),
             meta: { title: '訂單詳情', requiresAuth: true }
-          }
+          },
+          {
+            path: 'user/login',
+            name: 'FrontLogin',
+            component: () => import('@/views/frontend/member/LoginPage.vue'),
+            meta: { title: '會員登入' }
+          },
+          {
+            path: 'user/register',
+            name: 'FrontRegister',
+            component: () => import('@/views/frontend/member/RegisterPage.vue'),
+            meta: { title: '會員註冊' }
+          },
+          {
+            path: 'user/profile',
+            name: 'FrontProfile',
+            component: () => import('@/views/frontend/member/ProfileView.vue'),
+            meta: { title: '會員中心', requiresAuth: true }
+          },
         ]
     },
     {
