@@ -22,6 +22,13 @@
             <div class="links">
               <router-link to="/user/register" class="register-link">還沒有帳號？立即註冊</router-link>
               <div class="separator"></div>
+              <a href="http://localhost:8080/oauth2/authorization/google" class="google-login-link">
+                <el-button class="google-btn" type="info">
+                  <i class="bi bi-google"></i>
+                  使用Google帳號登入
+                </el-button>
+              </a>
+              <div class="separator"></div>
               <router-link to="/user/forgot-password" class="forgot-password-link">忘記密碼？</router-link>
             </div>
             <p v-if="loginError" class="error-message">{{ loginError }}</p>
@@ -213,5 +220,32 @@ const handleLogin = async () => {
   height: 1px;
   background-color: rgba(255, 255, 255, 0.1);
   margin: 5px 0;
+}
+
+.google-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 1rem;
+  font-weight: 500;
+  background-color: #f46342;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.google-btn:hover {
+  background-color: #1f8d1a;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.google-login-link {
+  text-decoration: none;
+  width: 100%;
+  display: block;
 }
 </style>
