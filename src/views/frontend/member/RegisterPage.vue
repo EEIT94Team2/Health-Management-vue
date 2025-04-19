@@ -17,7 +17,21 @@
                 type="password" 
                 placeholder="請輸入您的密碼" 
                 show-password
+                @input="checkPasswordStrength"
               />
+              <div class="password-strength-container" v-if="registerForm.password">
+                <div class="strength-labels">
+                  <span>弱</span>
+                  <span>中</span>
+                  <span>強</span>
+                </div>
+                <div class="strength-bar">
+                  <div 
+                    class="strength-indicator" 
+                    :style="{ width: strengthPercentage + '%', backgroundColor: strengthColor }"
+                  ></div>
+                </div>
+              </div>
             </el-form-item>
             <el-form-item label="性別" prop="gender">
               <el-radio-group v-model="registerForm.gender">
@@ -49,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import axios from 'axios';
@@ -67,6 +81,61 @@ const registerForm = ref({
   bio: ''
 });
 
+// 密碼強度相關
+const passwordScore = ref(0);
+const strengthTex=t = ref('');
+const strengthColor = ref('');
+const strengthPercentage = ref(0);
+
+// 檢查密碼強度
+const checkPasswordStrength = () => {
+  const password = registerForm.value.password;
+  let score = 0;
+
+  // 如果密碼為空，重置所有值
+  if (!password) {
+    passwordScore.value = 0;
+    strengthText.value = '';
+    strengthColor.value = '';
+    strengthPercentage.value = 0;
+    return;
+  }
+
+  // 密碼長度得分
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+
+  // 包含大寫字母
+  if (/[A-Z]/.test(password)) score += 1;
+  
+  // 包含小寫字母
+  if (/[a-z]/.test(password)) score += 1;
+  
+  // 包含數字
+  if (/[0-9]/.test(password)) score += 1;
+  
+  // 包含特殊字符
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  // 設置最終分數
+  passwordScore.value = score;
+
+  // 根據分數設置強度文字和顏色
+  if (score <= 2) {
+    strengthText.value = '弱';
+    strengthColor.value = '#e74c3c';
+    strengthPercentage.value = 33;
+  } else if (score <= 4) {
+    strengthText.value = '中';
+    strengthColor.value = '#f39c12';
+    strengthPercentage.value = 66;
+  } else {
+    strengthText.value = '強';
+    strengthColor.value = '#2ecc71';
+    strengthPercentage.value = 100;
+  }
+};
+
 const rules = {
   name: [
     { required: true, message: '請輸入姓名', trigger: 'blur' },
@@ -78,7 +147,19 @@ const rules = {
   ],
   password: [
     { required: true, message: '請輸入密碼', trigger: 'blur' },
-    { min: 6, message: '密碼長度至少為6個字符', trigger: 'blur' }
+    { min: 8, message: '密碼長度至少為8個字符', trigger: 'blur' },
+    { 
+      validator: (rule, value, callback) => {
+        if (!/[A-Z]/.test(value)) {
+          callback(new Error('密碼必須包含至少一個大寫字母'));
+        } else if (!/[a-z]/.test(value)) {
+          callback(new Error('密碼必須包含至少一個小寫字母'));
+        } else {
+          callback();
+        }
+      }, 
+      trigger: 'blur' 
+    }
   ],
   gender: [
     { required: true, message: '請選擇性別', trigger: 'change' }
@@ -278,5 +359,32 @@ const handleRegister = async () => {
 
 :deep(.el-radio__input.is-checked + .el-radio__label) {
   color: var(--highlight-color);
+}
+
+/* 密碼強度樣式 */
+.password-strength-container {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.strength-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  font-size: 0.9rem;
+}
+
+.strength-bar {
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.strength-indicator {
+  height: 100%;
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }
 </style> 
