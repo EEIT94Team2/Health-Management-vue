@@ -487,7 +487,7 @@
 
 <script>
 import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { getProducts } from "@/api/shop";
 import Sidebar from "@/components/Layouts/frontend/Sidebar.vue";
@@ -533,6 +533,7 @@ export default {
     },
     setup() {
         const router = useRouter();
+        const route = useRoute();
 
         // 控制 Sidebar 狀態（父層控制）
         const isSidebarOpen = ref(false);
@@ -906,9 +907,46 @@ export default {
             // 可加入發送預約數據至後端
         };
 
-        // 若有額外 API 請求，可於 onMounted 呼叫
+        // 在 onMounted 中处理 Google OAuth 登录重定向后的 URL 参数
         onMounted(() => {
             fetchPopularProducts();
+            
+            // 检查 URL 中是否有 token 参数（Google OAuth 登录重定向后）
+            const token = route.query.token;
+            const userId = route.query.userId;
+            const email = route.query.email;
+            const role = route.query.role;
+            
+            console.log('檢查URL參數:', { token, userId, email, role });
+            
+            if (token) {
+                console.log('從 URL 參數中獲取到 token，儲存登入狀態');
+                
+                // 保存 token 和用户信息到 localStorage
+                localStorage.setItem('authToken', token);
+                if (role) localStorage.setItem('userRole', role);
+                
+                // 如果有 userId 和 email，创建一个简单的用户信息对象
+                if (userId && email) {
+                    const userInfo = { id: userId, email: email };
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                }
+                
+                // 配置 axios 默认请求头
+                import('axios').then(({ default: axios }) => {
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                });
+                
+                // 清除 URL 参数（可选）
+                router.replace('/');
+                
+                // 显示登录成功消息
+                ElMessage({
+                    message: '使用 Google 帳號登入成功！',
+                    type: 'success',
+                    duration: 2000
+                });
+            }
         });
 
         // 此處 bookTrainer 如有使用，可自行定義邏輯

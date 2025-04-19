@@ -39,7 +39,9 @@
         <!-- 已登錄 -->
         <div class="user-dropdown" v-else @mouseenter="userMenuOpen = true" @mouseleave="userMenuOpen = false">
           <div class="user-dropdown-toggle">
-            <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" /> {{ userInfo?.name || '用戶' }} <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
+            <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" /> 
+            <span class="user-name" :title="userInfo?.name">{{ displayName }}</span>
+            <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
           </div>
           <ul class="dropdown" :class="{ show: userMenuOpen }">
             <li><router-link to="/user/profile">會員中心</router-link></li>
@@ -57,9 +59,10 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
@@ -67,8 +70,71 @@ const authStore = useAuthStore();
 
 // 用户登录状态
 const isAuthenticated = computed(() => authStore.isAuthenticated);
-const userInfo = computed(() => authStore.getUserInfo);
+const userInfo = computed(() => {
+  console.log('Current userInfo in Navbar:', authStore.getUserInfo);
+  return authStore.getUserInfo;
+});
 const userMenuOpen = ref(false);
+
+// 計算顯示名稱
+const displayName = computed(() => {
+  // 直接從localStorage中獲取userName，這樣即使authStore中的userInfo不完整也能正確顯示
+  const userName = localStorage.getItem('userName');
+  
+  // 獲取authStore中的用戶信息作為備選
+  const info = userInfo.value;
+  
+  // 輸出調試信息
+  console.log('顯示名稱計算:', {
+    localStorage_userName: userName,
+    authStore_name: info?.name,
+    authStore_info: info
+  });
+  
+  // 優先使用localStorage中的userName，然後是authStore中的name，最後使用默認值
+  return userName || (info?.name) || '用戶';
+});
+
+// 在組件掛載時獲取最新用戶信息
+onMounted(async () => {
+  if (isAuthenticated.value) {
+    try {
+      await refreshUserName();
+    } catch (error) {
+      console.error('刷新用戶名稱失敗:', error);
+    }
+  }
+});
+
+// 刷新用戶名稱
+const refreshUserName = async () => {
+  try {
+    // 確認有token
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const response = await axios.get('/api/users/userinfo');
+    
+    if (response.data && response.data.data && response.data.data.name) {
+      const apiUser = response.data.data;
+      
+      // 更新 localStorage
+      localStorage.setItem('userName', apiUser.name);
+      
+      // 更新 userInfo
+      if (userInfo.value) {
+        const updatedInfo = { ...userInfo.value, name: apiUser.name };
+        localStorage.setItem("userInfo", JSON.stringify(updatedInfo));
+        authStore.setUserInfo(updatedInfo);
+      }
+      
+      console.log('成功刷新用戶名稱:', apiUser.name);
+    }
+  } catch (error) {
+    console.error('獲取用戶名稱失敗:', error);
+  }
+};
 
 const isHomepage = computed(() => route.path === '/');
 
@@ -89,7 +155,10 @@ const handleRegister = () => {
 
 const handleLogout = () => {
   authStore.logout();
-  router.push('/');
+  // 強制頁面刷新以確保UI更新正確
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 100);
 };
 
 const menus = reactive([
@@ -343,6 +412,14 @@ const handleNavClick = (menuItem) => {
       height: 32px;
       border-radius: 50%;
       object-fit: cover;
+    }
+    
+    .user-name {
+      max-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
     }
     
     &:hover {
