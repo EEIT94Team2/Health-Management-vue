@@ -6,7 +6,7 @@ import Layout from "@/components/Layouts/backend/index.vue";
 import BackPage from "@/views/backend/BackPage.vue";
 
 // 前端
-import FrontendLayout from"@/components/Layouts/frontend/index.vue";
+import FrontendLayout from "@/components/Layouts/frontend/index.vue";
 import HomePage from "@/views/frontend/HomePage.vue";
 import GymHomePage from "@/views/frontend/GymHomePage.vue";
 import GymPage from "@/views/frontend/GymPage.vue";
@@ -48,59 +48,97 @@ import Forbidden403 from "@/views/403.vue";
 import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
-        path: '/',
-        component: FrontendLayout, 
+        path: "/",
+        component: FrontendLayout,
         children: [
-          {
-            path: '',
-            name: 'HomePage',
-            component: HomePage,
-            meta: { title: '首頁' }
-          },
-          {
-            path: 'courses',
-            name: 'Courses',
-            component: Courses,
-            meta: { title: '課程' }
-          },
-          // 前台商城路由
-          {
-            path: 'shop/products',
-            name: 'FrontProductList',
-            component: () => import('@/views/frontend/shop/ProductList.vue'),
-            meta: { title: '商品列表' }
-          },
-          {
-            path: 'shop/products/:id',
-            name: 'FrontProductDetail',
-            component: () => import('@/views/frontend/shop/ProductDetail.vue'),
-            meta: { title: '商品詳情' }
-          },
-          {
-            path: 'shop/cart',
-            name: 'FrontCart',
-            component: () => import('@/views/frontend/shop/Cart.vue'),
-            meta: { title: '購物車', requiresAuth: true }
-          },
-          {
-            path: 'shop/checkout',
-            name: 'FrontCheckout',
-            component: () => import('@/views/frontend/shop/Checkout.vue'),
-            meta: { title: '結帳', requiresAuth: true }
-          },
-          {
-            path: 'shop/orders',
-            name: 'FrontOrderList',
-            component: () => import('@/views/frontend/shop/OrderList.vue'),
-            meta: { title: '我的訂單', requiresAuth: true }
-          },
-          {
-            path: 'shop/orders/:id',
-            name: 'FrontOrderDetail',
-            component: () => import('@/views/frontend/shop/OrderDetail.vue'),
-            meta: { title: '訂單詳情', requiresAuth: true }
-          }
-        ]
+            {
+                path: "",
+                name: "HomePage",
+                component: HomePage,
+                meta: { title: "首頁" },
+            },
+            {
+                path: "courses",
+                name: "Courses",
+                component: Courses,
+                meta: { title: "課程" },
+            },
+            // 前台商城路由
+            {
+                path: "shop/products",
+                name: "FrontProductList",
+                component: () => import("@/views/frontend/shop/ProductList.vue"),
+                meta: { title: "商品列表" },
+            },
+            {
+                path: "shop/products/:id",
+                name: "FrontProductDetail",
+                component: () => import("@/views/frontend/shop/ProductDetail.vue"),
+                meta: { title: "商品詳情" },
+            },
+            {
+                path: "shop/cart",
+                name: "FrontCart",
+                component: () => import("@/views/frontend/shop/Cart.vue"),
+                meta: { title: "購物車", requiresAuth: true },
+            },
+            {
+                path: "shop/checkout",
+                name: "FrontCheckout",
+                component: () => import("@/views/frontend/shop/Checkout.vue"),
+                meta: { title: "結帳", requiresAuth: true },
+            },
+            {
+                path: "shop/orders",
+                name: "FrontOrderList",
+                component: () => import("@/views/frontend/shop/OrderList.vue"),
+                meta: { title: "我的訂單", requiresAuth: true },
+            },
+            {
+                path: "shop/orders/:id",
+                name: "FrontOrderDetail",
+                component: () => import("@/views/frontend/shop/OrderDetail.vue"),
+                meta: { title: "訂單詳情", requiresAuth: true },
+            },
+            {
+                path: "user/login",
+                name: "FrontLogin",
+                component: () => import("@/views/frontend/member/LoginPage.vue"),
+                meta: { title: "會員登入" },
+            },
+            {
+                path: "user/register",
+                name: "FrontRegister",
+                component: () => import("@/views/frontend/member/RegisterPage.vue"),
+                meta: { title: "會員註冊" },
+            },
+            {
+                path: "user/profile",
+                name: "FrontProfile",
+                component: () => import("@/views/frontend/member/ProfileView.vue"),
+                meta: { title: "會員中心", requiresAuth: true },
+            },
+            {
+                path: "user/orders",
+                redirect: "shop/orders",
+            },
+            {
+                path: "user/orders/:id",
+                redirect: (to) => {
+                    // 重定向到對應的訂單詳情頁
+                    const { id } = to.params;
+                    return `/shop/orders/${id}`;
+                },
+            },
+            {
+                path: "user/courses",
+                redirect: "courses",
+            },
+            {
+                path: "user/fitness",
+                redirect: "/",
+            },
+        ],
     },
     {
         path: "/gym",

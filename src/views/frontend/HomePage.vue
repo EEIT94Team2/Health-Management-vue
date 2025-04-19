@@ -484,7 +484,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { getProducts } from "@/api/shop";
+import { getProducts, addItemToCart } from "@/api/shop";
 import Sidebar from "@/components/Layouts/frontend/Sidebar.vue";
 import {
     Menu,
@@ -674,87 +674,74 @@ export default {
         const fetchPopularProducts = async () => {
             try {
                 isLoading.value = true;
-                const response = await getProducts({ sort: "popular", limit: 4 });
+                // 移除limit參數，獲取所有商品
+                const response = await getProducts({ sort: "popular" });
                 console.log("商品數據:", response);
 
                 // 確保即使沒有數據也不會出錯
-                if (response && response.data && response.data.length > 0) {
-                    popularProducts.value = response.data.slice(0, 4);
+                if (response && response.data) {
+                    // 檢查不同格式的數據結構
+                    if (Array.isArray(response.data)) {
+                        popularProducts.value = response.data;
+                    } else if (response.data.content && Array.isArray(response.data.content)) {
+                        popularProducts.value = response.data.content;
+                    } else if (response.data.data && Array.isArray(response.data.data)) {
+                        popularProducts.value = response.data.data;
+                    } else {
+                        console.warn("未識別的API響應格式:", response.data);
+                        useExampleProducts();
+                    }
                 } else {
-                    // 如果API暫時不可用，使用示例數據
-                    popularProducts.value = [
-                        {
-                            id: 1,
-                            name: "蛋白粉",
-                            description: "乳清蛋白粉，巧克力口味",
-                            price: 1200,
-                            image: null,
-                        },
-                        {
-                            id: 2,
-                            name: "健身手套",
-                            description: "防滑透氣健身手套",
-                            price: 450,
-                            image: null,
-                        },
-                        {
-                            id: 3,
-                            name: "瑜伽墊",
-                            description: "加厚防滑瑜伽墊",
-                            price: 800,
-                            image: null,
-                        },
-                        {
-                            id: 4,
-                            name: "啞鈴組",
-                            description: "可調節重量啞鈴組",
-                            price: 2500,
-                            image: null,
-                        },
-                    ];
+                    console.warn("API未返回有效數據");
+                    useExampleProducts();
                 }
             } catch (error) {
                 console.error("獲取熱門商品失敗:", error);
                 ElMessage.error("無法載入熱門商品，使用示例數據");
-
-                // 使用示例數據作為備用
-                popularProducts.value = [
-                    {
-                        id: 1,
-                        name: "蛋白粉",
-                        description: "乳清蛋白粉，巧克力口味",
-                        price: 1200,
-                        image: null,
-                    },
-                    {
-                        id: 2,
-                        name: "健身手套",
-                        description: "防滑透氣健身手套",
-                        price: 450,
-                        image: null,
-                    },
-                    {
-                        id: 3,
-                        name: "瑜伽墊",
-                        description: "加厚防滑瑜伽墊",
-                        price: 800,
-                        image: null,
-                    },
-                    {
-                        id: 4,
-                        name: "啞鈴組",
-                        description: "可調節重量啞鈴組",
-                        price: 2500,
-                        image: null,
-                    },
-                ];
+                useExampleProducts();
             } finally {
                 isLoading.value = false;
             }
         };
 
+        // 使用示例數據的輔助函數
+        const useExampleProducts = () => {
+            popularProducts.value = [
+                {
+                    id: 1,
+                    name: "蛋白粉",
+                    description: "乳清蛋白粉，巧克力口味",
+                    price: 1200,
+                    image: null,
+                },
+                {
+                    id: 2,
+                    name: "健身手套",
+                    description: "防滑透氣健身手套",
+                    price: 450,
+                    image: null,
+                },
+                {
+                    id: 3,
+                    name: "瑜伽墊",
+                    description: "加厚防滑瑜伽墊",
+                    price: 800,
+                    image: null,
+                },
+                {
+                    id: 4,
+                    name: "啞鈴組",
+                    description: "可調節重量啞鈴組",
+                    price: 2500,
+                    image: null,
+                },
+            ];
+        };
+
         // 獲取商品圖片URL的方法，處理各種可能的URL格式
         const getProductImageUrl = (product) => {
+            if (!product) return "https://placehold.co/400x300/4CAF50/ffffff?text=Product";
+
             // 檢查各種可能的圖片URL屬性
             if (product.imageUrl) {
                 // 檢查是否為完整URL還是相對路徑
@@ -762,8 +749,7 @@ export default {
                     return product.imageUrl;
                 } else {
                     // 假設是相對路徑，添加後端基礎URL
-                    // 根據後端API配置調整這個基礎URL
-                    return `${process.env.VUE_APP_API_URL || ""}${product.imageUrl}`;
+                    return `http://localhost:8080${product.imageUrl}`;
                 }
             }
 
@@ -771,25 +757,11 @@ export default {
                 if (product.image.startsWith("http") || product.image.startsWith("https")) {
                     return product.image;
                 } else {
-                    return `${process.env.VUE_APP_API_URL || ""}${product.image}`;
+                    return `http://localhost:8080${product.image}`;
                 }
             }
 
-            if (product.img || product.imgUrl) {
-                const imgPath = product.img || product.imgUrl;
-                if (imgPath.startsWith("http") || imgPath.startsWith("https")) {
-                    return imgPath;
-                } else {
-                    return `${process.env.VUE_APP_API_URL || ""}${imgPath}`;
-                }
-            }
-
-            // 如果所有嘗試都失敗，使用默認圖片
-            return getDefaultProductImage(product.name);
-        };
-
-        // 根據產品名稱生成默認產品圖片
-        const getDefaultProductImage = (productName) => {
+            // 如果沒有找到有效的圖片URL，根據產品類別或名稱生成佔位圖
             // 根據產品名稱生成不同顏色的佔位圖
             const colors = {
                 蛋白粉: "4CAF50",
@@ -802,11 +774,38 @@ export default {
                 水壺: "FFC107",
             };
 
+            // 嘗試根據類別生成顏色
+            if (product.category) {
+                const categoryColors = {
+                    protein: "4CAF50",
+                    equipment: "FF5722",
+                    nutrition: "FFC107",
+                    yoga: "3F51B5",
+                    creatine: "2196F3",
+                    accessories: "9C27B0",
+                    preworkout: "FF9800",
+                };
+
+                const color = categoryColors[product.category.toLowerCase()] || "4CAF50";
+                return `https://placehold.co/400x300/${color}/ffffff?text=${encodeURIComponent(
+                    product.name
+                )}`;
+            }
+
             // 從產品名稱提取關鍵詞，查看它是否匹配顏色字典中的任何鍵
-            const keyword = Object.keys(colors).find((key) => productName.includes(key));
+            const keyword = Object.keys(colors).find(
+                (key) => product.name && product.name.includes(key)
+            );
             const color = keyword ? colors[keyword] : "4CAF50"; // 默認綠色
 
             return `https://placehold.co/400x300/${color}/ffffff?text=${encodeURIComponent(
+                product.name || "Product"
+            )}`;
+        };
+
+        // 獲取默認商品圖片
+        const getDefaultProductImage = (productName = "Product") => {
+            return `https://placehold.co/400x300/4CAF50/ffffff?text=${encodeURIComponent(
                 productName
             )}`;
         };
@@ -814,18 +813,16 @@ export default {
         // 添加商品到購物車
         const addProductToCart = async (product) => {
             try {
-                await import("@/api/shop").then(({ addToCart }) => {
-                    addToCart({
-                        productId: product.id,
-                        quantity: 1,
-                    }).then(() => {
-                        ElMessage.success("已成功加入購物車");
-                    });
-                });
+                const cartItem = {
+                    productId: product.id,
+                    quantity: 1,
+                };
+
+                await addItemToCart(cartItem);
+                ElMessage.success("已加入購物車");
             } catch (error) {
                 console.error("加入購物車失敗:", error);
-                ElMessage.error("加入購物車失敗，請先登入");
-                router.push("/backpage/member/login");
+                ElMessage.error("加入購物車失敗，請稍後再試");
             }
         };
 
@@ -916,9 +913,10 @@ export default {
             router.push(`/shop/products/${productId}`);
         };
 
-        // 在setup函數中添加一個計算屬性，限制只顯示前4個商品
+        // 在setup函數中更新
+        // 將displayProducts改為初始顯示12個商品
         const displayProducts = computed(() => {
-            return popularProducts.value.slice(0, 4);
+            return popularProducts.value.slice(0, 12);
         });
 
         return {
@@ -1067,14 +1065,14 @@ export default {
         font-weight: 700;
         margin-bottom: 1rem;
         color: var(--text-primary);
-        text-align: center;  /* 確保標題居中 */
+        text-align: center; /* 確保標題居中 */
     }
 
     p {
         font-size: 1.25rem;
         color: var(--text-secondary);
         margin-bottom: 2rem;
-        text-align: center;  /* 確保段落居中 */
+        text-align: center; /* 確保段落居中 */
     }
 
     .hero-buttons {

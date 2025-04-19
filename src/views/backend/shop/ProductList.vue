@@ -207,7 +207,7 @@ import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Grid, List, Search, Plus, ShoppingCart } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores/auth";
-import { getProducts, searchProducts, getProductsByPriceRange, addToCart } from "@/api/shop";
+import { getProducts, searchProducts, getProductsByPriceRange, addItemToCart } from "@/api/shop";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -408,7 +408,7 @@ const quickAddToCart = async (product) => {
         };
 
         console.log("添加到购物车:", cartItem);
-        const response = await addToCart(cartItem, userId);
+        const response = await addItemToCart(cartItem);
 
         // 更全面地處理各種可能的成功響應格式
         if (response && response.status === 200) {
