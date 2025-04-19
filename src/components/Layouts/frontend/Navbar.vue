@@ -68,13 +68,59 @@
                 </div>
             </div>
         </div>
-    </header>
+
+        <nav class="main-nav">
+        <ul>
+          <li
+            v-for="menu in filteredMenus"
+            :key="menu.label"
+            class="nav-item"
+            @mouseenter="menu.open = true"
+            @mouseleave="menu.open = false">
+            <a href="#" @click.prevent="menu.hash ? handleNavClick(menu) : null">
+              {{ menu.label }}
+              <span class="arrow" :class="{ open: menu.open }">▼</span>
+            </a>
+            <ul v-if="menu.children" class="dropdown horizontal" :class="{ show: menu.open }">
+              <li v-for="child in menu.children" :key="child.label">
+                <a href="#" @click.prevent="handleNavClick(child)">
+                  {{ child.label }}
+                </a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+        <!-- 未登錄 -->
+        <div class="header-buttons" v-if="!isAuthenticated">
+          <el-button size="medium" @click="handleLogin">登入</el-button> <el-button type="primary" size="medium" @click="handleRegister">免費註冊</el-button>
+        </div>
+        
+        <!-- 已登錄 -->
+        <div class="user-dropdown" v-else @mouseenter="userMenuOpen = true" @mouseleave="userMenuOpen = false">
+          <div class="user-dropdown-toggle">
+            <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" /> {{ userInfo?.name || '用戶' }} <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
+          </div>
+          <ul class="dropdown" :class="{ show: userMenuOpen }">
+            <li><router-link to="/user/profile">會員中心</router-link></li>
+            <li><router-link to="/user/courses">我的課程</router-link></li>
+            <li><router-link to="/user/orders">我的訂單</router-link></li>
+            <li><router-link to="/shop/cart">購物車</router-link></li>
+            <li><router-link to="/user/fitness">健身成效</router-link></li>
+            <li><router-link to="/user/profile">我的檔案</router-link></li>
+            <li><a href="#" @click.prevent="handleLogout">登出</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
 </template>
 
 <script setup>
-import { reactive, ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
+import { reactive, ref, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+
 
 const route = useRoute();
 const router = useRouter();
@@ -85,79 +131,85 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
 const userInfo = computed(() => authStore.getUserInfo);
 const userMenuOpen = ref(false);
 
-const isHomepage = computed(() => route.path === "/");
+
+const isHomepage = computed(() => route.path === '/');
 
 const handleLogoClick = (event) => {
-    if (isHomepage.value) {
-        event.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  if (isHomepage.value) {
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 };
 
 const handleLogin = () => {
-    router.push("/user/login");
+  router.push('/user/login');
 };
 
 const handleRegister = () => {
-    router.push("/user/register");
+  router.push('/user/register');
 };
 
 const handleLogout = () => {
-    authStore.logout();
-    router.push("/");
+  authStore.logout();
+  router.push('/');
 };
 
 const menus = reactive([
-    {
-        label: "課程管理",
-        children: [{ label: "課程列表", hash: "#courses" }],
-        open: false,
-    },
-    {
-        label: "商城",
-        children: [
-            { label: "商品列表", path: "/shop/products" },
-            { label: "購物車", path: "/shop/cart" },
-            { label: "我的訂單", path: "/shop/orders" },
-        ],
-        open: false,
-    },
-    {
-        label: "追蹤成效",
-        children: [
-            { label: "運動紀錄管理", hash: "#workout-tracking" },
-            { label: "身體數據管理", hash: "#body-data" },
-            { label: "報告與數據分析", hash: "#report" },
-        ],
-        open: false,
-    },
-    {
-        label: "社群論壇",
-        children: [
-            { label: "論壇首頁", hash: "#forum-home" },
-            { label: "文章列表", hash: "#articles" },
-            { label: "發表文章", hash: "#post" },
-        ],
-        open: false,
-    },
+  {
+    label: '課程管理',
+    children: [
+      { label: '課程列表', hash: '#courses' },
+    ],
+    open: false,
+  },
+  {
+    label: '商城',
+    children: [
+      { label: '商品列表', path: '/shop/products' },
+      { label: '購物車', path: '/shop/cart' },
+      { label: '我的訂單', path: '/shop/orders' },
+    ],
+    open: false,
+  },
+  {
+    label: '追蹤成效',
+    children: [
+      { label: '運動紀錄管理', hash: '#workout-tracking' },
+      { label: '身體數據管理', hash: '#body-data' },
+      { label: '報告與數據分析', hash: '#report' },
+    ],
+    open: false,
+  },
+  {
+    label: '社群論壇',
+    children: [
+      { label: '論壇首頁', hash: '#forum-home' },
+      { label: '文章列表', hash: '#articles' },
+      { label: '發表文章', hash: '#post' },
+    ],
+    open: false,
+  },
+
 ]);
 
 // 过滤掉会员中心菜单
 const filteredMenus = computed(() => menus);
 
 const handleNavClick = (menuItem) => {
-    if (menuItem.path) {
-        router.push(menuItem.path);
-    } else if (menuItem.hash) {
-        if (isHomepage.value) {
-            const element = document.querySelector(menuItem.hash);
-            if (element) {
-                element.scrollIntoView({ behavior: "smooth" });
-            }
-        } else {
-            router.push({ path: "/", hash: menuItem.hash });
-        }
+
+  if (menuItem.path) {
+    router.push(menuItem.path);
+  } else if (menuItem.hash) {
+    if (isHomepage.value) {
+      const element = document.querySelector(menuItem.hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      router.push({ path: '/', hash: menuItem.hash });
     }
+  }
+
 };
 </script>
 
@@ -372,43 +424,80 @@ const handleNavClick = (menuItem) => {
         }
     }
 
-    .dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        width: 180px;
-        background-color: #10202b;
-        border: 1px solid rgba(67, 164, 120, 0.2);
-        border-radius: 4px;
-        padding: 10px 0;
-        margin-top: 5px;
-        list-style: none;
-        z-index: 1001;
 
-        opacity: 0;
-        transform: translateY(-10px);
-        pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-
-        &.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-
-        li {
-            a {
-                display: block;
-                padding: 8px 15px;
-                color: #f5f5f5;
-                text-decoration: none;
-
-                &:hover {
-                    background-color: rgba(67, 164, 120, 0.1);
-                    color: var(--highlight-color);
-                }
-            }
-        }
+/* 用戶下拉菜單樣式 */
+.user-dropdown {
+  position: relative;
+  
+  .user-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #f5f5f5;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
     }
+    
+    &:hover {
+      background-color: rgba(67, 164, 120, 0.1);
+    }
+    
+    .arrow {
+      font-size: 0.75rem;
+      transition: transform 0.3s ease;
+      
+      &.open {
+        transform: rotate(180deg);
+      }
+    }
+  }
+  
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 180px;
+    background-color: #10202B;
+    border: 1px solid rgba(67, 164, 120, 0.2);
+    border-radius: 4px;
+    padding: 10px 0;
+    margin-top: 5px;
+    list-style: none;
+    z-index: 1001;
+    
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    
+    &.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    
+    li {
+      a {
+        display: block;
+        padding: 8px 15px;
+        color: #f5f5f5;
+        text-decoration: none;
+        
+        &:hover {
+          background-color: rgba(67, 164, 120, 0.1);
+          color: var(--highlight-color);
+        }
+      }
+    }
+  }
 }
 </style>
+

@@ -51,94 +51,107 @@ const routes = [
         path: "/",
         component: FrontendLayout,
         children: [
-            {
-                path: "",
-                name: "HomePage",
-                component: HomePage,
-                meta: { title: "首頁" },
-            },
-            {
-                path: "courses",
-                name: "Courses",
-                component: Courses,
-                meta: { title: "課程" },
-            },
-            // 前台商城路由
-            {
-                path: "shop/products",
-                name: "FrontProductList",
-                component: () => import("@/views/frontend/shop/ProductList.vue"),
-                meta: { title: "商品列表" },
-            },
-            {
-                path: "shop/products/:id",
-                name: "FrontProductDetail",
-                component: () => import("@/views/frontend/shop/ProductDetail.vue"),
-                meta: { title: "商品詳情" },
-            },
-            {
-                path: "shop/cart",
-                name: "FrontCart",
-                component: () => import("@/views/frontend/shop/Cart.vue"),
-                meta: { title: "購物車", requiresAuth: true },
-            },
-            {
-                path: "shop/checkout",
-                name: "FrontCheckout",
-                component: () => import("@/views/frontend/shop/Checkout.vue"),
-                meta: { title: "結帳", requiresAuth: true },
-            },
-            {
-                path: "shop/orders",
-                name: "FrontOrderList",
-                component: () => import("@/views/frontend/shop/OrderList.vue"),
-                meta: { title: "我的訂單", requiresAuth: true },
-            },
-            {
-                path: "shop/orders/:id",
-                name: "FrontOrderDetail",
-                component: () => import("@/views/frontend/shop/OrderDetail.vue"),
-                meta: { title: "訂單詳情", requiresAuth: true },
-            },
-            {
-                path: "user/login",
-                name: "FrontLogin",
-                component: () => import("@/views/frontend/member/LoginPage.vue"),
-                meta: { title: "會員登入" },
-            },
-            {
-                path: "user/register",
-                name: "FrontRegister",
-                component: () => import("@/views/frontend/member/RegisterPage.vue"),
-                meta: { title: "會員註冊" },
-            },
-            {
-                path: "user/profile",
-                name: "FrontProfile",
-                component: () => import("@/views/frontend/member/ProfileView.vue"),
-                meta: { title: "會員中心", requiresAuth: true },
-            },
-            {
-                path: "user/orders",
-                redirect: "shop/orders",
-            },
-            {
-                path: "user/orders/:id",
-                redirect: (to) => {
-                    // 重定向到對應的訂單詳情頁
-                    const { id } = to.params;
-                    return `/shop/orders/${id}`;
-                },
-            },
-            {
-                path: "user/courses",
-                redirect: "courses",
-            },
-            {
-                path: "user/fitness",
-                redirect: "/",
-            },
-        ],
+
+          {
+            path: '',
+            name: 'HomePage',
+            component: HomePage,
+            meta: { title: '首頁' }
+          },
+          {
+            path: 'courses',
+            name: 'Courses',
+            component: Courses,
+            meta: { title: '課程' }
+          },
+          // 前台商城路由
+          {
+            path: 'shop/products',
+            name: 'FrontProductList',
+            component: () => import('@/views/frontend/shop/ProductList.vue'),
+            meta: { title: '商品列表' }
+          },
+          {
+            path: 'shop/products/:id',
+            name: 'FrontProductDetail',
+            component: () => import('@/views/frontend/shop/ProductDetail.vue'),
+            meta: { title: '商品詳情' }
+          },
+          {
+            path: 'shop/cart',
+            name: 'FrontCart',
+            component: () => import('@/views/frontend/shop/Cart.vue'),
+            meta: { title: '購物車', requiresAuth: true }
+          },
+          {
+            path: 'shop/checkout',
+            name: 'FrontCheckout',
+            component: () => import('@/views/frontend/shop/Checkout.vue'),
+            meta: { title: '結帳', requiresAuth: true }
+          },
+          {
+            path: 'shop/orders',
+            name: 'FrontOrderList',
+            component: () => import('@/views/frontend/shop/OrderList.vue'),
+            meta: { title: '我的訂單', requiresAuth: true }
+          },
+          {
+            path: 'shop/orders/:id',
+            name: 'FrontOrderDetail',
+            component: () => import('@/views/frontend/shop/OrderDetail.vue'),
+            meta: { title: '訂單詳情', requiresAuth: true }
+          },
+          {
+            path: 'user/login',
+            name: 'FrontLogin',
+            component: () => import('@/views/frontend/member/LoginPage.vue'),
+            meta: { title: '會員登入' }
+          },
+          {
+            path: 'user/register',
+            name: 'FrontRegister',
+            component: () => import('@/views/frontend/member/RegisterPage.vue'),
+            meta: { title: '會員註冊' }
+          },
+          {
+            path: 'user/forgot-password',
+            name: 'ForgotPassword',
+            component: () => import('@/views/frontend/member/ForgotPasswordView.vue'),
+            meta: { title: '忘記密碼' }
+          },
+          {
+            path: 'user/reset-password',
+            name: 'ResetPassword',
+            component: () => import('@/views/frontend/member/ResetPasswordView.vue'),
+            meta: { title: '重設密碼' }
+          },
+          {
+            path: 'user/profile',
+            name: 'FrontProfile',
+            component: () => import('@/views/frontend/member/ProfileView.vue'),
+            meta: { title: '會員中心', requiresAuth: true }
+          },
+          {
+            path: "forum",
+            name: "FrontendForum",
+            component: () => import("@/views/frontend/social/Forum.vue"),
+            meta: { title: "健康討論區" }
+        },
+        {
+            path: "UserSocialProfile",
+            name: "UserSocialProfile",
+            component: () => import("@/views/frontend/social/UserSocialProfile.vue"),
+            meta: { title: "個人檔案" }
+        },
+        ]
+
+    },
+    // 添加重設密碼直接路徑
+    {
+        path: '/reset-password',
+        name: 'DirectResetPassword',
+        component: () => import('@/views/frontend/member/ResetPasswordView.vue'),
+        meta: { title: '重設密碼' }
     },
     {
         path: "/gym",
