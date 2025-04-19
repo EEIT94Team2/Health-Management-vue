@@ -6,7 +6,7 @@ import Layout from "@/components/Layouts/backend/index.vue";
 import BackPage from "@/views/backend/BackPage.vue";
 
 // 前端
-import FrontendLayout from"@/components/Layouts/frontend/index.vue";
+import FrontendLayout from "@/components/Layouts/frontend/index.vue";
 import HomePage from "@/views/frontend/HomePage.vue";
 import GymHomePage from "@/views/frontend/GymHomePage.vue";
 import GymPage from "@/views/frontend/GymPage.vue";
@@ -48,9 +48,10 @@ import Forbidden403 from "@/views/403.vue";
 import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
-        path: '/',
-        component: FrontendLayout, 
+        path: "/",
+        component: FrontendLayout,
         children: [
+
           {
             path: '',
             name: 'HomePage',
@@ -143,6 +144,7 @@ const routes = [
             meta: { title: "個人檔案" }
         },
         ]
+
     },
     // 添加重設密碼直接路徑
     {
