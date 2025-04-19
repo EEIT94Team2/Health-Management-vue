@@ -130,6 +130,18 @@ const routes = [
             component: () => import('@/views/frontend/member/ProfileView.vue'),
             meta: { title: '會員中心', requiresAuth: true }
           },
+          {
+            path: "forum",
+            name: "FrontendForum",
+            component: () => import("@/views/frontend/social/Forum.vue"),
+            meta: { title: "健康討論區" }
+        },
+        {
+            path: "UserSocialProfile",
+            name: "UserSocialProfile",
+            component: () => import("@/views/frontend/social/UserSocialProfile.vue"),
+            meta: { title: "個人檔案" }
+        },
         ]
     },
     // 添加重設密碼直接路徑
