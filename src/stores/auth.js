@@ -204,9 +204,10 @@ export const useAuthStore = defineStore("auth", {
                 console.log('Setting userInfo in authStore:', userInfo);
                 
                 // 確保名稱字段存在
-                if (!userInfo.name && userInfo.email) {
-                    userInfo.name = 'User_' + userInfo.id;
-                    console.log('Generated name from user id:', userInfo.name);
+                if (!userInfo.name && userInfo.id) {
+                    // 不再使用User_前綴，使用實際姓名或友好顯示名稱
+                    userInfo.name = userInfo.realName || '會員_' + userInfo.id;
+                    console.log('Generated friendly name for user:', userInfo.name);
                 }
                 
                 // 總是保存或更新 userName 到 localStorage

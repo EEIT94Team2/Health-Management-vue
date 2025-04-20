@@ -22,12 +22,6 @@
           <el-icon><User /></el-icon>
           <span>會員中心</span>
         </template>
-        <el-menu-item index="/backpage/member/register">
-          <span>會員註冊</span>
-        </el-menu-item>
-        <el-menu-item index="/backpage/member/profile">
-          <span>會員資料</span>
-        </el-menu-item>
         <el-menu-item
           index="/backpage/member/management"
           v-if="userRole === 'admin'"
@@ -204,12 +198,6 @@ const handleSelect = (index, indexPath) => {
       break;
     case "/backpage/member/login":
       title = "會員登入";
-      break;
-    case "/backpage/member/register":
-      title = "會員註冊";
-      break;
-    case "/backpage/member/profile":
-      title = "會員資料";
       break;
     case "/backpage/member/management":
       title = "會員總管";
