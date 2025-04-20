@@ -1,21 +1,41 @@
 <template>
-  <el-card class="user-diet-records-container">
+  <el-card class="diet-data-management-container">
     <template #header>
-      <div class="user-diet-records-header">
-        <span>我的飲食記錄</span>
-        <el-button type="info" size="small" @click="openAddDialog"
-          >新增記錄</el-button
-        >
+      <div class="diet-data-management-header">
+        <div class="search-and-add">
+          <el-form :inline="true" :model="searchForm" class="search-form">
+            <el-form-item label="餐別">
+              <el-select v-model="searchForm.mealtime" placeholder="選擇餐別">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="早餐" value="早餐"></el-option>
+                <el-option label="午餐" value="午餐"></el-option>
+                <el-option label="晚餐" value="晚餐"></el-option>
+                <el-option label="點心" value="點心"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="日期範圍">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="daterange"
+                range-separator="-"
+                start-placeholder="開始日期"
+                end-placeholder="結束日期"
+                value-format="YYYY-MM-DD"
+              ></el-date-picker>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch">查詢</el-button>
+              <el-button @click="resetSearchForm">重置</el-button>
+            </el-form-item>
+          </el-form>
+          <el-button type="info" @click="$emit('open-edit-dialog', null)"
+            >新增資料</el-button
+          >
+        </div>
       </div>
     </template>
 
-    <el-table
-      :data="dietData"
-      border
-      style="width: 100%"
-      sort-by="recordDate"
-      sort-order="descending"
-    >
+    <el-table :data="dietData" border style="width: 100%">
       <el-table-column prop="mealtime" label="餐別"></el-table-column>
       <el-table-column prop="foodName" label="食物內容"></el-table-column>
       <el-table-column prop="calories" label="總熱量 (大卡)"></el-table-column>
@@ -27,102 +47,89 @@
           {{ formatDate(scope.row.recordDate) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="100">
+      <el-table-column label="操作" width="150">
         <template #default="scope">
-          <el-button size="small" @click="openEditDialog(scope.row)"
+          <el-button size="small" @click="$emit('open-edit-dialog', scope.row)"
             >編輯</el-button
           >
           <el-button
             size="small"
             type="danger"
-            @click="handleDelete(scope.row.recordId)"
+            @click="$emit('delete', scope.row.recordId)"
             >刪除</el-button
           >
         </template>
       </el-table-column>
     </el-table>
 
-    <div class="no-data" v-if="dietData.length === 0">
-      <el-empty description="暫無飲食記錄，請新增"></el-empty>
+    <div class="pagination">
+      <el-pagination
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="$emit('update:pageSize', $event)"
+        @current-change="$emit('update:currentPage', $event)"
+      />
     </div>
-
-    <el-dialog
-      :title="editForm.recordId ? '編輯飲食記錄' : '新增飲食記錄'"
-      v-model="editDialogVisible"
-    >
-      <el-form :model="editForm" label-width="120px">
-        <el-form-item label="餐別">
-          <el-select v-model="editForm.mealtime" placeholder="請選擇餐別">
-            <el-option label="早餐" value="早餐"></el-option>
-            <el-option label="午餐" value="午餐"></el-option>
-            <el-option label="晚餐" value="晚餐"></el-option>
-            <el-option label="點心" value="點心"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="食物內容">
-          <el-input v-model="editForm.foodName" type="textarea"></el-input>
-        </el-form-item>
-        <el-form-item label="總熱量 (大卡)">
-          <el-input-number
-            v-model="editForm.calories"
-            :min="0"
-          ></el-input-number>
-        </el-form-item>
-        <el-form-item label="蛋白質 (克)">
-          <el-input-number
-            v-model="editForm.protein"
-            :min="0"
-          ></el-input-number>
-        </el-form-item>
-        <el-form-item label="碳水化合物 (克)">
-          <el-input-number v-model="editForm.carbs" :min="0"></el-input-number>
-        </el-form-item>
-        <el-form-item label="脂肪 (克)">
-          <el-input-number v-model="editForm.fats" :min="0"></el-input-number>
-        </el-form-item>
-        <el-form-item label="記錄時間">
-          <el-date-picker
-            v-model="editForm.recordDate"
-            type="datetime"
-            placeholder="選擇日期時間"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            format="YYYY-MM-DD HH:mm"
-          ></el-date-picker>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveEdit">儲存</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </el-card>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
-import axios from "axios";
-import { ElMessage } from "element-plus";
+import { reactive, defineProps, defineEmits } from "vue";
+import { useAuthStore } from "@/stores/auth"; // 假設您使用 Pinia 進行狀態管理
 
-const dietData = ref([]);
-const editDialogVisible = ref(false);
-const editForm = reactive({
-  recordId: null,
-  mealtime: "",
-  foodName: "",
-  calories: null,
-  protein: null,
-  carbs: null,
-  fats: null,
-  recordDate: null,
-});
+const authStore = useAuthStore();
 
-const getAuthHeaders = () => ({
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+const props = defineProps({
+  dietData: {
+    type: Array,
+    required: true,
+  },
+  total: {
+    type: Number,
+    required: true,
+  },
+  currentPage: {
+    type: Number,
+    required: true,
+  },
+  pageSize: {
+    type: Number,
+    required: true,
   },
 });
+
+const emit = defineEmits([
+  "search",
+  "reset-search",
+  "open-edit-dialog",
+  "delete",
+  "update:currentPage",
+  "update:pageSize",
+]);
+
+const searchForm = reactive({
+  dateRange: null,
+  mealtime: "",
+});
+
+const handleSearch = () => {
+  const searchParams = {
+    dateRange: searchForm.dateRange,
+    mealtime: searchForm.mealtime,
+    userId: authStore.user?.id, // 確保在搜尋時也帶上當前用戶的 ID
+  };
+  emit("search", searchParams);
+};
+
+const resetSearchForm = () => {
+  searchForm.dateRange = null;
+  searchForm.mealtime = "";
+  // 重置搜尋時，通知父組件重新載入所有屬於當前使用者的資料
+  emit("reset-search");
+};
 
 const formatDate = (dateTimeString) => {
   if (!dateTimeString) {
@@ -136,106 +143,38 @@ const formatDate = (dateTimeString) => {
   const minutes = date.getMinutes().toString().padStart(2, "0");
   return `${year}/${month}/${day} ${hours}:${minutes}`;
 };
-
-const fetchMyDietData = async () => {
-  try {
-    const response = await axios.get(
-      "/api/tracking/nutrition/me",
-      getAuthHeaders()
-    );
-    dietData.value = response.data;
-  } catch (error) {
-    console.error("獲取我的飲食數據失敗", error);
-    ElMessage.error("獲取我的飲食數據失敗");
-  }
-};
-
-const openAddDialog = () => {
-  Object.keys(editForm).forEach((key) => (editForm[key] = null));
-  editForm.recordDate =
-    new Date().toISOString().slice(0, 16).replace("T", " ") + ":00";
-  editDialogVisible.value = true;
-};
-
-const openEditDialog = (row) => {
-  Object.assign(editForm, {
-    ...row,
-    recordDate: row.recordDate
-      ? row.recordDate.replace(" ", "T").slice(0, 16)
-      : null,
-  });
-  editDialogVisible.value = true;
-};
-
-const saveEdit = async () => {
-  try {
-    const payload = { ...editForm };
-    payload.recordDate = payload.recordDate ? payload.recordDate + ":00" : null;
-    let response;
-    if (editForm.recordId) {
-      response = await axios.put(
-        `/api/tracking/nutrition/${editForm.recordId}`,
-        payload,
-        getAuthHeaders()
-      );
-      ElMessage.success("飲食數據更新成功");
-    } else {
-      response = await axios.post(
-        "/api/tracking/nutrition/add",
-        payload,
-        getAuthHeaders()
-      );
-      ElMessage.success("飲食數據新增成功");
-    }
-    editDialogVisible.value = false;
-    fetchMyDietData();
-  } catch (error) {
-    console.error(
-      editForm.recordId ? "更新飲食數據失敗" : "新增飲食數據失敗",
-      error
-    );
-    ElMessage.error(
-      editForm.recordId ? "更新飲食數據失敗" : "新增飲食數據失敗"
-    );
-  }
-};
-
-const handleDelete = async (recordId) => {
-  try {
-    await axios.delete(`/api/tracking/nutrition/${recordId}`, getAuthHeaders());
-    ElMessage.success("飲食數據刪除成功");
-    fetchMyDietData();
-  } catch (error) {
-    console.error("刪除飲食數據失敗", error);
-    ElMessage.error("刪除飲食數據失敗");
-  }
-};
-
-onMounted(() => {
-  fetchMyDietData();
-});
 </script>
 
 <style scoped>
-.user-diet-records-container {
-  max-width: 800px;
+.diet-data-management-container {
+  max-width: 1200px;
   margin: 20px auto;
 }
 
-.user-diet-records-header {
+.diet-data-management-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
 
-.no-data {
-  margin-top: 20px;
+.search-and-add {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
-.dialog-footer button {
+.search-form {
+  margin-right: 10px;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.el-button {
   margin-left: 5px;
 }
 </style>

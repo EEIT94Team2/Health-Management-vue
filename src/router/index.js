@@ -146,6 +146,42 @@ const routes = [
           import("@/views/frontend/social/UserSocialProfile.vue"),
         meta: { title: "個人檔案" },
       },
+      {
+        path: "user/fitness",
+        name: "Fitness",
+        component: () => import("@/views/frontend/fitness/Fitness.vue"),
+        meta: { title: "健身成效" },
+      },
+      {
+        path: "user/achievements",
+        name: "UserAchievements",
+        component: () => import("@/views/frontend/fitness/Achievements.vue"),
+        meta: { title: "我的獎章" },
+      },
+      {
+        path: "user/body-data",
+        name: "UserBodyData",
+        component: () => import("@/views/frontend/fitness/BodyData.vue"),
+        meta: { title: "我的身體數據" },
+      },
+      {
+        path: "user/diet-records",
+        name: "UserDietRecords",
+        component: () => import("@/views/frontend/fitness/DietRecords.vue"),
+        meta: { title: "我的飲食記錄" },
+      },
+      {
+        path: "user/workouts",
+        name: "UserWorkoutRecords",
+        component: () => import("@/views/frontend/fitness/WorkoutRecords.vue"),
+        meta: { title: "我的運動記錄" },
+      },
+      {
+        path: "user/goals",
+        name: "UserGoalsProgress",
+        component: () => import("@/views/frontend/fitness/GoalsProgress.vue"),
+        meta: { title: "我的健身目標" },
+      },
     ],
   },
   // 添加重設密碼直接路徑
