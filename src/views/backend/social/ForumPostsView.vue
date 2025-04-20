@@ -128,7 +128,7 @@ const filteredComments = (postId) => {
 
 const loadPosts = async () => {
     try {
-        const res = await axios.get("/posts");
+        const res = await axios.get("/api/posts");
         posts.value = res.data;
     } catch (err) {
         ElMessage.error("文章載入失敗");
@@ -137,7 +137,7 @@ const loadPosts = async () => {
 
 const loadComments = async (postId) => {
     try {
-        const res = await axios.get(`/comments/post/${postId}`);
+        const res = await axios.get(`/api/comments/post/${postId}`);
         comments[postId] = res.data;
     } catch (err) {
         ElMessage.error("留言載入失敗");
@@ -151,7 +151,7 @@ const submitComment = async (postId) => {
         return;
     }
     try {
-        await axios.post(`/comments/post/${postId}`, { content });
+        await axios.post(`/api/comments/post/${postId}`, { content });
         ElMessage.success("留言成功");
         newComments[postId] = "";
         await loadComments(postId);
@@ -169,7 +169,7 @@ const startEdit = (comment) => {
 
 const submitEdit = async (commentId) => {
     try {
-        await axios.put(`/comments/${commentId}`, {
+        await axios.put(`/api/comments/${commentId}`, {
             content: editedCommentContent.value,
         });
         ElMessage.success("留言更新成功");
@@ -183,7 +183,7 @@ const submitEdit = async (commentId) => {
 
 const deleteComment = async (commentId) => {
     try {
-        await axios.delete(`/comments/${commentId}`);
+        await axios.delete(`/api/comments/${commentId}`);
         ElMessage.success("留言刪除成功");
         await loadComments(activePostId.value);
     } catch (err) {

@@ -74,12 +74,11 @@ const menus = reactive([
     open: false,
   },
   {
-    label: '商城管理',
+    label: '商城',
     children: [
-      { label: '商品列表', hash: '#products' },
-      { label: '商品管理後台', hash: '#product-admin' },
-      { label: '購物車管理', hash: '#cart' },
-      { label: '訂單管理', hash: '#orders' },
+      { label: '商品列表', path: '/shop/products' },
+      { label: '購物車', path: '/shop/cart' },
+      { label: '我的訂單', path: '/shop/orders' },
     ],
     open: false,
   },
