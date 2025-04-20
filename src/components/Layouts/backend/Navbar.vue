@@ -22,11 +22,12 @@
           <el-dropdown-menu>
             <el-dropdown-item>
               <el-icon><UserFilled /></el-icon>
-              <span>使用者：{{ loggedInAccount }}</span>
+              <span>使用者：{{ displayName }}</span>
             </el-dropdown-item>
+            
             <el-dropdown-item>
               <el-icon><UserFilled /></el-icon>
-              <span>暱稱：{{ loggedInNickname }}</span>
+              <span>權限：{{ displayRole }}</span>
             </el-dropdown-item>
             <el-dropdown-item divided @click="logout">
               <el-icon><SwitchButton /></el-icon>
@@ -45,7 +46,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
   ElAvatar,
@@ -56,6 +57,7 @@ import {
 } from "element-plus";
 import { UserFilled, SwitchButton } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores/auth";
+import axios from 'axios';
 
 // 导入图片
 import userAvatarImg from "@/assets/images/user.jpg";
@@ -71,14 +73,98 @@ const props = defineProps({
   },
 });
 
-const loggedInAccount = ref("admin");
-const loggedInNickname = ref("哈囉");
 const userAvatarUrl = ref(userAvatarImg);
 const isSidebarCollapsed = ref(false);
+
+// 計算用戶顯示名稱
+const displayName = computed(() => {
+  // 直接從localStorage中獲取userName，這樣即使authStore中的userInfo不完整也能正確顯示
+  const userName = localStorage.getItem('userName');
+  
+  // 獲取authStore中的用戶信息作為備選
+  const userInfo = authStore.getUserInfo;
+  
+  // 輸出調試信息
+  console.log('後台顯示名稱計算:', {
+    localStorage_userName: userName,
+    authStore_name: userInfo?.name,
+    authStore_info: userInfo
+  });
+  
+  // 優先使用localStorage中的userName，然後是authStore中的name，最後使用默認值
+  return userName || (userInfo?.name) || '未知';
+});
+
+// 計算用戶暱稱
+const userNickname = computed(() => {
+  return localStorage.getItem('userNickname') || '未知';
+});
+
+// 計算用戶角色顯示
+const displayRole = computed(() => {
+  const role = authStore.getUserRole;
+  
+  // 根據角色返回對應的中文名稱
+  switch(role) {
+    case 'admin':
+      return '管理員';
+    case 'manager':
+      return '經理';
+    case 'user':
+      return '一般用戶';
+    default:
+      return role || '未知';
+  }
+});
+
+// 刷新用戶名稱
+const refreshUserName = async () => {
+  try {
+    // 確認有token
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const response = await axios.get('/api/users/userinfo');
+    
+    if (response.data && response.data.data && response.data.data.name) {
+      const apiUser = response.data.data;
+      
+      // 更新 localStorage
+      localStorage.setItem('userName', apiUser.name);
+      
+      // 更新 userInfo
+      if (authStore.getUserInfo) {
+        const updatedInfo = { ...authStore.getUserInfo, name: apiUser.name };
+        localStorage.setItem("userInfo", JSON.stringify(updatedInfo));
+        authStore.setUserInfo(updatedInfo);
+      }
+      
+      console.log('後台成功刷新用戶名稱:', apiUser.name);
+    }
+  } catch (error) {
+    console.error('後台獲取用戶名稱失敗:', error);
+  }
+};
+
+// 在組件掛載時獲取最新用戶信息
+onMounted(async () => {
+  if (authStore.isAuthenticated) {
+    try {
+      await refreshUserName();
+    } catch (error) {
+      console.error('後台刷新用戶信息失敗:', error);
+    }
+  }
+});
 
 const logout = () => {
   console.log("登出");
   authStore.logout();
+  // 強制頁面刷新以確保UI更新正確
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 100);
 };
 
 const toggleSidebar = () => {
