@@ -12,7 +12,7 @@
         <nav class="main-nav">
         <ul>
           <li
-            v-for="menu in menus"
+            v-for="menu in filteredMenus"
             :key="menu.label"
             class="nav-item"
             @mouseenter="menu.open = true"
@@ -31,8 +31,27 @@
           </li>
         </ul>
       </nav>
-        <div class="header-buttons">
-          <el-button size="medium">登入</el-button> <el-button type="primary" size="medium">免費註冊</el-button>
+        <!-- 未登錄 -->
+        <div class="header-buttons" v-if="!isAuthenticated">
+          <el-button size="medium" @click="handleLogin">登入</el-button> <el-button type="primary" size="medium" @click="handleRegister">免費註冊</el-button>
+        </div>
+        
+        <!-- 已登錄 -->
+        <div class="user-dropdown" v-else @mouseenter="userMenuOpen = true" @mouseleave="userMenuOpen = false">
+          <div class="user-dropdown-toggle">
+            <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" /> 
+            <span class="user-name" :title="userInfo?.name">{{ displayName }}</span>
+            <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
+          </div>
+          <ul class="dropdown" :class="{ show: userMenuOpen }">
+            <li><router-link to="/user/profile">會員中心</router-link></li>
+            <li><router-link to="/user/courses">我的課程</router-link></li>
+            <li><router-link to="/user/orders">我的訂單</router-link></li>
+            <li><router-link to="/shop/cart">購物車</router-link></li>
+            <li><router-link to="/user/fitness">健身成效</router-link></li>
+            <li><router-link to="/user/profile">我的檔案</router-link></li>
+            <li><a href="#" @click.prevent="handleLogout">登出</a></li>
+          </ul>
         </div>
       </div>
     </div>
@@ -40,32 +59,109 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
-import { useRoute, useRouter } from 'vue-router'
-import { computed } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import axios from 'axios';
 
-const route = useRoute()
-const router = useRouter()
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
 
-const isHomepage = computed(() => route.path === '/')
+// 用户登录状态
+const isAuthenticated = computed(() => authStore.isAuthenticated);
+const userInfo = computed(() => {
+  console.log('Current userInfo in Navbar:', authStore.getUserInfo);
+  return authStore.getUserInfo;
+});
+const userMenuOpen = ref(false);
+
+// 計算顯示名稱
+const displayName = computed(() => {
+  // 直接從localStorage中獲取userName，這樣即使authStore中的userInfo不完整也能正確顯示
+  const userName = localStorage.getItem('userName');
+  
+  // 獲取authStore中的用戶信息作為備選
+  const info = userInfo.value;
+  
+  // 輸出調試信息
+  console.log('顯示名稱計算:', {
+    localStorage_userName: userName,
+    authStore_name: info?.name,
+    authStore_info: info
+  });
+  
+  // 優先使用localStorage中的userName，然後是authStore中的name，最後使用默認值
+  return userName || (info?.name) || '用戶';
+});
+
+// 在組件掛載時獲取最新用戶信息
+onMounted(async () => {
+  if (isAuthenticated.value) {
+    try {
+      await refreshUserName();
+    } catch (error) {
+      console.error('刷新用戶名稱失敗:', error);
+    }
+  }
+});
+
+// 刷新用戶名稱
+const refreshUserName = async () => {
+  try {
+    // 確認有token
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const response = await axios.get('/api/users/userinfo');
+    
+    if (response.data && response.data.data && response.data.data.name) {
+      const apiUser = response.data.data;
+      
+      // 更新 localStorage
+      localStorage.setItem('userName', apiUser.name);
+      
+      // 更新 userInfo
+      if (userInfo.value) {
+        const updatedInfo = { ...userInfo.value, name: apiUser.name };
+        localStorage.setItem("userInfo", JSON.stringify(updatedInfo));
+        authStore.setUserInfo(updatedInfo);
+      }
+      
+      console.log('成功刷新用戶名稱:', apiUser.name);
+    }
+  } catch (error) {
+    console.error('獲取用戶名稱失敗:', error);
+  }
+};
+
+const isHomepage = computed(() => route.path === '/');
 
 const handleLogoClick = (event) => {
   if (isHomepage.value) {
-    event.preventDefault()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-}
+};
+
+const handleLogin = () => {
+  router.push('/user/login');
+};
+
+const handleRegister = () => {
+  router.push('/user/register');
+};
+
+const handleLogout = () => {
+  authStore.logout();
+  // 強制頁面刷新以確保UI更新正確
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 100);
+};
 
 const menus = reactive([
-  {
-    label: '會員中心',
-    children: [
-      { label: '會員註冊', hash: '#register' },
-      { label: '會員資料', hash: '#profile' },
-      { label: '會員總管', hash: '#member-admin' },
-    ],
-    open: false,
-  },
   {
     label: '課程管理',
     children: [
@@ -102,6 +198,23 @@ const menus = reactive([
   },
 ]);
 
+// 过滤掉会员中心菜单
+const filteredMenus = computed(() => menus);
+
+const handleNavClick = (menuItem) => {
+  if (menuItem.path) {
+    router.push(menuItem.path);
+  } else if (menuItem.hash) {
+    if (isHomepage.value) {
+      const element = document.querySelector(menuItem.hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      router.push({ path: '/', hash: menuItem.hash });
+    }
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -280,4 +393,86 @@ const menus = reactive([
   }
 }
 
+/* 用戶下拉菜單樣式 */
+.user-dropdown {
+  position: relative;
+  
+  .user-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #f5f5f5;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    
+    .user-name {
+      max-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+    
+    &:hover {
+      background-color: rgba(67, 164, 120, 0.1);
+    }
+    
+    .arrow {
+      font-size: 0.75rem;
+      transition: transform 0.3s ease;
+      
+      &.open {
+        transform: rotate(180deg);
+      }
+    }
+  }
+  
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 180px;
+    background-color: #10202B;
+    border: 1px solid rgba(67, 164, 120, 0.2);
+    border-radius: 4px;
+    padding: 10px 0;
+    margin-top: 5px;
+    list-style: none;
+    z-index: 1001;
+    
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    
+    &.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    
+    li {
+      a {
+        display: block;
+        padding: 8px 15px;
+        color: #f5f5f5;
+        text-decoration: none;
+        
+        &:hover {
+          background-color: rgba(67, 164, 120, 0.1);
+          color: var(--highlight-color);
+        }
+      }
+    }
+  }
+}
 </style>

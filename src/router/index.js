@@ -101,7 +101,66 @@ const routes = [
         component: () => import("@/views/frontend/shop/OrderDetail.vue"),
         meta: { title: "訂單詳情", requiresAuth: true },
       },
+      {
+        path: "user/login",
+        name: "FrontLogin",
+        component: () => import("@/views/frontend/member/LoginPage.vue"),
+        meta: { title: "會員登入" },
+      },
+      {
+        path: "user/register",
+        name: "FrontRegister",
+        component: () => import("@/views/frontend/member/RegisterPage.vue"),
+        meta: { title: "會員註冊" },
+      },
+      {
+        path: "user/forgot-password",
+        name: "ForgotPassword",
+        component: () =>
+          import("@/views/frontend/member/ForgotPasswordView.vue"),
+        meta: { title: "忘記密碼" },
+      },
+      {
+        path: "user/reset-password",
+        name: "ResetPassword",
+        component: () =>
+          import("@/views/frontend/member/ResetPasswordView.vue"),
+        meta: { title: "重設密碼" },
+      },
+      {
+        path: "user/profile",
+        name: "FrontProfile",
+        component: () => import("@/views/frontend/member/ProfileView.vue"),
+        meta: { title: "會員中心", requiresAuth: true },
+      },
+      {
+        path: "forum",
+        name: "FrontendForum",
+        component: () => import("@/views/frontend/social/Forum.vue"),
+        meta: { title: "健康討論區" },
+      },
+      {
+        path: "UserSocialProfile",
+        name: "UserSocialProfile",
+        component: () =>
+          import("@/views/frontend/social/UserSocialProfile.vue"),
+        meta: { title: "個人檔案" },
+      },
     ],
+  },
+  // 添加重設密碼直接路徑
+  {
+    path: "/reset-password",
+    name: "DirectResetPassword",
+    component: () => import("@/views/frontend/member/ResetPasswordView.vue"),
+    meta: { title: "重設密碼" },
+  },
+  // 添加OAuth回調路由
+  {
+    path: "/oauth/callback",
+    name: "OAuthCallback",
+    component: () => import("@/views/oauth/OAuthCallback.vue"),
+    meta: { title: "OAuth登入處理" },
   },
   {
     path: "/gym",
