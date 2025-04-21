@@ -12,7 +12,7 @@
         <section v-if="loading" class="content-section">
             <div class="section-container">
                 <div class="loading-container">
-                    <el-skeleton :rows="10" animated />
+                    <el-skeleton animated :count="skeletonRows" />
                 </div>
             </div>
         </section>
@@ -38,11 +38,11 @@
                 <!-- 功能欄 -->
                 <div class="function-bar">
                     <div class="filter-group">
-                        <el-radio-group v-model="statusFilter" size="large" @change="filterOrders">
-                            <el-radio-button value="all">全部</el-radio-button>
-                            <el-radio-button value="pending">待付款</el-radio-button>
-                            <el-radio-button value="processing">處理中</el-radio-button>
-                            <el-radio-button value="completed">已完成</el-radio-button>
+                        <el-radio-group v-model="activeStatus" @change="handleStatusChange">
+                            <el-radio-button value="all">全部訂單</el-radio-button>
+                            <el-radio-button value="PENDING">待付款</el-radio-button>
+                            <el-radio-button value="PROCESSING">處理中</el-radio-button>
+                            <el-radio-button value="COMPLETED">已完成</el-radio-button>
                         </el-radio-group>
                     </div>
                 </div>
@@ -163,10 +163,12 @@ export default {
         const router = useRouter();
         const orders = ref([]);
         const loading = ref(true);
-        const statusFilter = ref("all");
+        const activeStatus = ref("all");
         const filteredOrders = ref([]);
         const currentPage = ref(1);
-        const pageSize = ref(10);
+        const pageSize = ref(5);
+        const total = ref(0);
+        const skeletonRows = ref(4);
 
         // 獲取用戶訂單
         const fetchOrders = async () => {
@@ -339,18 +341,18 @@ export default {
                 return;
             }
 
-            if (statusFilter.value === "all") {
+            if (activeStatus.value === "all") {
                 filteredOrders.value = [...orders.value];
             } else {
                 filteredOrders.value = orders.value.filter((order) => {
                     if (!order.status) return false;
 
                     const status = order.status.toLowerCase();
-                    if (statusFilter.value === "pending") {
+                    if (activeStatus.value === "pending") {
                         return status.includes("pending") || status === "pending_payment";
-                    } else if (statusFilter.value === "processing") {
+                    } else if (activeStatus.value === "processing") {
                         return status.includes("process") || status === "processing";
-                    } else if (statusFilter.value === "completed") {
+                    } else if (activeStatus.value === "completed") {
                         return (
                             status.includes("complet") ||
                             status === "completed" ||
@@ -430,13 +432,13 @@ export default {
 
         // 獲取訂單狀態樣式
         const getStatusType = (status) => {
-            if (!status) return "info";
+            if (!status) return "";
 
             const statusLower = status.toLowerCase();
             if (statusLower.includes("pending") || statusLower === "pending_payment") {
                 return "warning";
             } else if (statusLower.includes("process") || statusLower === "processing") {
-                return "primary";
+                return "";
             } else if (statusLower.includes("complet") || statusLower === "completed") {
                 return "success";
             } else if (statusLower.includes("cancel") || statusLower === "cancelled") {
@@ -445,7 +447,7 @@ export default {
                 return "success";
             }
 
-            return "info";
+            return "";
         };
 
         // 獲取訂單狀態文本
@@ -512,23 +514,25 @@ export default {
             });
         };
 
-        // 監聽狀態過濾器變化
-        watch(statusFilter, () => {
+        // 處理狀態過濾器變化
+        const handleStatusChange = () => {
             filterOrders();
-        });
+        };
 
         onMounted(() => {
             fetchOrders();
         });
 
         return {
-            orders,
             loading,
-            statusFilter,
+            orders,
             filteredOrders,
-            displayOrders,
+            activeStatus,
             currentPage,
             pageSize,
+            total,
+            skeletonRows,
+            displayOrders,
             totalPages,
             getProductImage,
             calculateOrderTotal,
@@ -540,6 +544,7 @@ export default {
             goToPayment,
             filterOrders,
             formatDate,
+            handleStatusChange,
         };
     },
 };

@@ -201,16 +201,14 @@ const statusOptions = [
 ];
 
 // 獲取狀態顯示類型
-function getStatusType(status) {
-    if (!status) return "info";
+const getStatusType = (status) => {
+    if (!status) return "";
 
-    // 統一轉為小寫比較
     const statusLower = status.toLowerCase();
-
     if (statusLower.includes("pending") || statusLower === "pending_payment") {
         return "warning";
     } else if (statusLower.includes("process") || statusLower === "processing") {
-        return "primary";
+        return "";
     } else if (statusLower.includes("complet") || statusLower === "completed") {
         return "success";
     } else if (statusLower.includes("cancel") || statusLower === "cancelled") {
@@ -218,8 +216,9 @@ function getStatusType(status) {
     } else if (statusLower.includes("paid") || statusLower === "paid") {
         return "success";
     }
-    return "info";
-}
+
+    return "";
+};
 
 // 獲取用戶友好的狀態文本
 function getStatusLabel(status) {

@@ -15,12 +15,16 @@
                     <el-input
                         v-model="keyword"
                         placeholder="搜尋商品名稱"
-                        :prefix-icon="Search"
                         clearable
                         @keyup.enter="searchProducts"
                     >
+                        <template #prefix>
+                            <el-icon><Search /></el-icon>
+                        </template>
                         <template #append>
-                            <el-button :icon="Search" @click="searchProducts" />
+                            <el-button @click="searchProducts">
+                                <el-icon><Search /></el-icon>
+                            </el-button>
                         </template>
                     </el-input>
                     <el-button type="primary" @click="goToCart">
@@ -35,7 +39,7 @@
             <div class="section-container">
                 <!-- 加載中狀態 -->
                 <div v-if="loading" class="loading-container">
-                    <el-skeleton :rows="1" animated>
+                    <el-skeleton animated>
                         <template #template>
                             <div style="display: flex; justify-content: space-between; gap: 20px">
                                 <el-skeleton-item

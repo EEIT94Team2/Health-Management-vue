@@ -16,10 +16,10 @@
         </section>
 
         <!-- 加載中 -->
-        <section v-if="loading" class="content-section">
+        <section v-if="isLoading" class="content-section">
             <div class="section-container">
                 <div class="loading-container">
-                    <el-skeleton :rows="10" animated />
+                    <el-skeleton :rows="4" animated />
                 </div>
             </div>
         </section>
@@ -259,9 +259,8 @@ export default {
         const router = useRouter();
         const orderId = ref(route.params.id || "");
         const orderData = ref(null);
-        const loading = ref(true);
-        const paymentId = ref("");
         const isLoading = ref(true);
+        const paymentId = ref("");
 
         // 判斷是否為移動設備
         const isMobile = computed(() => {
@@ -276,7 +275,7 @@ export default {
                 return;
             }
 
-            loading.value = true;
+            isLoading.value = true;
 
             try {
                 // 檢查用戶是否登入
@@ -323,7 +322,7 @@ export default {
                 ElMessage.error("獲取訂單詳情失敗: " + (error.message || "未知錯誤"));
                 orderData.value = null;
             } finally {
-                loading.value = false;
+                isLoading.value = false;
             }
         };
 
@@ -457,13 +456,13 @@ export default {
 
         // 獲取訂單狀態樣式
         const getStatusType = (status) => {
-            if (!status) return "info";
+            if (!status) return "";
 
             const statusLower = status.toLowerCase();
             if (statusLower.includes("pending") || statusLower === "pending_payment") {
                 return "warning";
             } else if (statusLower.includes("process") || statusLower === "processing") {
-                return "primary";
+                return "";
             } else if (statusLower.includes("complet") || statusLower === "completed") {
                 return "success";
             } else if (statusLower.includes("cancel") || statusLower === "cancelled") {
@@ -472,7 +471,7 @@ export default {
                 return "success";
             }
 
-            return "info";
+            return "";
         };
 
         // 獲取訂單狀態文本
@@ -531,9 +530,7 @@ export default {
         return {
             orderId,
             orderData,
-            loading,
             isLoading,
-            paymentId,
             isMobile,
             getProductImage,
             calculateItemTotal,
