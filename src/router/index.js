@@ -7,7 +7,6 @@ import BackPage from "@/views/backend/BackPage.vue";
 
 // 前端
 import FrontendLayout from "@/components/Layouts/frontend/index.vue";
-import FrontendLayout from "@/components/Layouts/frontend/index.vue";
 import HomePage from "@/views/frontend/HomePage.vue";
 import GymHomePage from "@/views/frontend/GymHomePage.vue";
 import GymPage from "@/views/frontend/GymPage.vue";

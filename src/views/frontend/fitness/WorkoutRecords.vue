@@ -34,7 +34,7 @@
       <el-button type="info" @click="openAddDialog">新增運動記錄</el-button>
     </div>
 
-    <el-table :data="workouts" border style="width: 100%">
+    <el-table :data="workouts" border style="width: 100%; margin-top: 15px">
       <el-table-column prop="exerciseType" label="運動類型" />
       <el-table-column prop="exerciseDuration" label="持續時間 (分鐘)" />
       <el-table-column prop="caloriesBurned" label="燃燒卡路里" />
@@ -321,7 +321,7 @@ watch(
 
 <style scoped>
 .workouts-management {
-  padding: 20px;
+  /* 移除容器的內邊距，讓父組件 el-card 控制 */
 }
 
 .search-and-add {
@@ -339,5 +339,28 @@ watch(
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+:deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: linear-gradient(135deg, #10202b, #234567);
+  color: #fff;
+}
+
+:deep(.el-table thead th:first-child) {
+  border-top-left-radius: 12px;
+}
+:deep(.el-table thead th:last-child) {
+  border-top-right-radius: 12px;
+}
+
+:deep(.el-table__body-wrapper) {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  overflow: hidden;
 }
 </style>

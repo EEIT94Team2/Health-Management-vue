@@ -1,13 +1,17 @@
 <template>
-  <div class="body-data-container">
-    <div class="body-data-header">
+  <div class="body-data-manager">
+    <div class="card-header">
       <h2>身體數據</h2>
-      <el-button type="info" size="small" @click="$emit('open-add-body-data')"
-        >新增數據</el-button
+      <el-button
+        type="primary"
+        size="small"
+        @click="$emit('open-add-body-data')"
       >
+        新增數據
+      </el-button>
     </div>
 
-    <div id="body-data-chart" style="width: 100%; height: 400px"></div>
+    <div class="body-data-chart"></div>
 
     <el-button style="margin-top: 20px" @click="showDataTable = !showDataTable">
       {{ showDataTable ? "隱藏數據列表" : "查看數據列表" }}
@@ -65,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import * as echarts from "echarts";
 
 const props = defineProps({
@@ -89,13 +93,14 @@ const showDataTable = ref(false);
 let bodyDataChartInstance = null;
 
 const renderBodyDataChart = () => {
-  const chartDom = document.getElementById("body-data-chart");
+  const chartDom = document.querySelector(".body-data-chart");
   if (chartDom) {
     bodyDataChartInstance = echarts.init(chartDom);
     if (props.bodyData && props.bodyData.length > 0) {
       const dates = props.bodyData.map((item) => item.dateRecorded);
       const weights = props.bodyData.map((item) => item.weight);
       const bodyFats = props.bodyData.map((item) => item.bodyFat);
+      const muscleMasses = props.bodyData.map((item) => item.muscleMass); // 假設後端有提供肌肉量
 
       const option = {
         title: {
@@ -105,7 +110,7 @@ const renderBodyDataChart = () => {
           trigger: "axis",
         },
         legend: {
-          data: ["體重", "體脂率"],
+          data: ["體重", "體脂率", "肌肉量"], // 包含肌肉量
         },
         grid: {
           left: "3%",
@@ -144,6 +149,7 @@ const renderBodyDataChart = () => {
             name: "體脂率 (%)",
             position: "right",
             alignTicks: true,
+            offset: 80, // 調整偏移量，避免與其他 Y 軸重疊
             axisLine: {
               show: true,
               lineStyle: {
@@ -152,6 +158,21 @@ const renderBodyDataChart = () => {
             },
             axisLabel: {
               formatter: "{value} %",
+            },
+          },
+          {
+            type: "value",
+            name: "肌肉量 (kg)",
+            position: "right",
+            alignTicks: true,
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: "#74add1",
+              },
+            },
+            axisLabel: {
+              formatter: "{value} kg",
             },
           },
         ],
@@ -168,11 +189,16 @@ const renderBodyDataChart = () => {
             data: bodyFats,
             yAxisIndex: 1,
           },
+          {
+            name: "肌肉量",
+            type: "line",
+            data: muscleMasses,
+            yAxisIndex: 2,
+          },
         ],
       };
       bodyDataChartInstance.setOption(option);
     } else {
-      // 清空圖表或顯示無數據的訊息
       bodyDataChartInstance.clear();
     }
   }
@@ -182,28 +208,40 @@ watch(() => props.bodyData, renderBodyDataChart, {
   deep: true,
   immediate: true,
 });
+
+onMounted(() => {
+  renderBodyDataChart();
+});
 </script>
 
 <style scoped>
-.body-data-container {
-  padding: 20px;
+.body-data-manager {
+  /* 移除容器的內邊距，讓父組件的 el-card 控制 */
 }
 
-.body-data-header {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
 
-h2 {
+.card-header h2 {
   margin: 0;
+  font-size: 1.5rem; /* 與健身追蹤頁面 el-card header 的 h2 一致 */
+  color: var(--text-primary); /* 假設您有定義這個變數 */
+}
+
+.body-data-chart {
+  width: 100%;
+  height: 400px;
 }
 
 .no-data {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+  color: var(--text-secondary); /* 假設您有定義這個變數 */
 }
 
 .loading {
@@ -211,5 +249,25 @@ h2 {
   display: flex;
   justify-content: center;
   color: #999;
+}
+
+/* 可以根據需要調整表格樣式，例如延用獎章頁面的樣式 */
+:deep(.el-table) {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+:deep(.el-table td.el-table__cell) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 查看數據列表按鈕樣式 */
+.el-button {
+  /* 可以添加與新增按鈕一致的樣式 */
 }
 </style>

@@ -1,26 +1,31 @@
 <template>
-  <el-card class="user-achievements-container">
-    <template #header>
-      <div class="user-achievements-header">
-        <span>我的獎章</span>
+  <div class="achievements-view">
+    <div class="achievements-container">
+      <div class="page-header">
+        <h1>我的獎章</h1>
       </div>
-    </template>
 
-    <el-table :data="achievements" border style="width: 100%">
-      <el-table-column prop="achievementType" label="類型"></el-table-column>
-      <el-table-column prop="title" label="標題"></el-table-column>
-      <el-table-column prop="description" label="描述"></el-table-column>
-      <el-table-column prop="achievedDate" label="獲得日期">
-        <template #default="scope">
-          {{ formatDate(scope.row.achievedDate) }}
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-card class="achievements-card">
+        <el-table :data="achievements" style="width: 100%">
+          <el-table-column
+            prop="achievementType"
+            label="類型"
+          ></el-table-column>
+          <el-table-column prop="title" label="標題"></el-table-column>
+          <el-table-column prop="description" label="描述"></el-table-column>
+          <el-table-column prop="achievedDate" label="獲得日期">
+            <template #default="scope">
+              {{ formatDate(scope.row.achievedDate) }}
+            </template>
+          </el-table-column>
+        </el-table>
 
-    <div class="no-data" v-if="achievements.length === 0">
-      <el-empty description="暫無獎章"></el-empty>
+        <div class="no-data" v-if="achievements.length === 0">
+          <el-empty description="暫無獎章"></el-empty>
+        </div>
+      </el-card>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -56,20 +61,59 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-achievements-container {
-  max-width: 800px;
-  margin: 20px auto;
+.achievements-view {
+  min-height: 100vh;
+  padding: 100px 0 50px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-.user-achievements-header {
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 20px;
+.achievements-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.page-header {
+  margin-bottom: 30px;
+  text-align: center;
+
+  h1 {
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+}
+
+.achievements-card {
+  border-radius: 12px;
+  background-color: var(--card-bg);
+  border: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* 可以根據需要調整表格樣式 */
+:deep(.el-table) {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+:deep(.el-table td.el-table__cell) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .no-data {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+
+  :deep(.el-empty__description) {
+    color: var(--text-secondary);
+  }
 }
 </style>

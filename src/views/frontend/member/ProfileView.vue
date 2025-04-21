@@ -223,6 +223,21 @@ const passwordRules = {
     { required: true, message: "請確認新密碼", trigger: "blur" },
     {
       validator: (rule, value, callback) => {
+        if (!/[A-Z]/.test(value)) {
+          callback(new Error("密碼必須包含至少一個大寫字母"));
+        } else if (!/[a-z]/.test(value)) {
+          callback(new Error("密碼必須包含至少一個小寫字母"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur",
+    },
+  ],
+  confirmPassword: [
+    { required: true, message: "請確認新密碼", trigger: "blur" },
+    {
+      validator: (rule, value, callback) => {
         if (value !== passwordForm.newPassword) {
           callback(new Error("兩次輸入的密碼不一致"));
         } else {

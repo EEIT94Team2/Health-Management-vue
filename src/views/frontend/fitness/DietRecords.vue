@@ -1,43 +1,50 @@
 <template>
-  <el-card class="diet-data-management-container">
-    <template #header>
-      <div class="diet-data-management-header">
-        <div class="search-and-add">
-          <el-form :inline="true" :model="searchForm" class="search-form">
-            <el-form-item label="餐別">
-              <el-select v-model="searchForm.mealtime" placeholder="選擇餐別">
-                <el-option label="全部" value=""></el-option>
-                <el-option label="早餐" value="早餐"></el-option>
-                <el-option label="午餐" value="午餐"></el-option>
-                <el-option label="晚餐" value="晚餐"></el-option>
-                <el-option label="點心" value="點心"></el-option>
-              </el-select>
-            </el-form-item>
-            <el-form-item label="日期範圍">
-              <el-date-picker
-                v-model="searchForm.dateRange"
-                type="daterange"
-                range-separator="-"
-                start-placeholder="開始日期"
-                end-placeholder="結束日期"
-                value-format="YYYY-MM-DD"
-              ></el-date-picker>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="handleSearch">查詢</el-button>
-              <el-button @click="resetSearchForm">重置</el-button>
-            </el-form-item>
-          </el-form>
-          <el-button type="info" @click="openEditDialog(null)"
-            >新增資料</el-button
-          >
-        </div>
+  <div class="diet-data-management">
+    <div class="card-header">
+      <h2>飲食記錄</h2>
+      <div class="header-actions">
+        <el-button type="info" @click="openEditDialog(null)"
+          >新增資料</el-button
+        >
       </div>
-    </template>
+    </div>
 
-    <el-table :data="dietData" border style="width: 100%">
+    <div class="search-form-container">
+      <el-form :inline="true" :model="searchForm" class="search-form">
+        <el-form-item label="餐別">
+          <el-select v-model="searchForm.mealtime" placeholder="選擇餐別">
+            <el-option label="全部" value=""></el-option>
+            <el-option label="早餐" value="早餐"></el-option>
+            <el-option label="午餐" value="午餐"></el-option>
+            <el-option label="晚餐" value="晚餐"></el-option>
+            <el-option label="點心" value="點心"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="日期範圍">
+          <el-date-picker
+            v-model="searchForm.dateRange"
+            type="daterange"
+            range-separator="-"
+            start-placeholder="開始日期"
+            end-placeholder="結束日期"
+            value-format="YYYY-MM-DD"
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查詢</el-button>
+          <el-button @click="resetSearchForm">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <el-table :data="dietData" border style="width: 100%; margin-top: 15px">
       <el-table-column prop="mealtime" label="餐別"></el-table-column>
-      <el-table-column prop="foodName" label="食物內容"></el-table-column>
+      <el-table-column
+        prop="foodName"
+        label="食物內容"
+        width="200"
+        show-overflow-tooltip
+      ></el-table-column>
       <el-table-column prop="calories" label="總熱量 (大卡)"></el-table-column>
       <el-table-column prop="protein" label="蛋白質 (克)"></el-table-column>
       <el-table-column prop="carbs" label="碳水化合物 (克)"></el-table-column>
@@ -141,7 +148,7 @@
         </span>
       </template>
     </el-dialog>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -341,26 +348,27 @@ watch(
 </script>
 
 <style scoped>
-.diet-data-management-container {
-  max-width: 1200px;
-  margin: 20px auto;
+.diet-data-management {
+  /* 可以根據需要添加飲食記錄管理容器的樣式 */
 }
 
-.diet-data-management-header {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
 
-.search-and-add {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.header-actions {
+  /* 可以根據需要添加頭部操作按鈕的樣式 */
+}
+
+.search-form-container {
+  margin-bottom: 15px;
 }
 
 .search-form {
-  margin-right: 10px;
+  /* 可以根據需要添加搜索表單的樣式 */
 }
 
 .pagination {
@@ -369,7 +377,28 @@ watch(
   justify-content: flex-end;
 }
 
-.el-button {
-  margin-left: 5px;
+/* 統一應用 el-table 的樣式 */
+:deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: linear-gradient(135deg, #10202b, #234567);
+  color: #fff;
+}
+
+:deep(.el-table thead th:first-child) {
+  border-top-left-radius: 12px;
+}
+:deep(.el-table thead th:last-child) {
+  border-top-right-radius: 12px;
+}
+
+:deep(.el-table__body-wrapper) {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  overflow: hidden;
 }
 </style>

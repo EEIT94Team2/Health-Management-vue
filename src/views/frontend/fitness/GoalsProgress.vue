@@ -1,89 +1,77 @@
 <template>
-  <el-card class="goals-progress-management-container">
-    <template #header>
-      <div class="goals-progress-management-header">
-        <div class="search-and-add">
-          <el-form :inline="true" :model="searchForm" class="search-form">
-            <el-form-item label="日期範圍">
-              <el-date-picker
-                v-model="searchForm.startDateRange"
-                type="daterange"
-                range-separator="-"
-                start-placeholder="開始日期"
-                end-placeholder="結束日期"
-                value-format="YYYY-MM-DD"
-              ></el-date-picker>
-            </el-form-item>
-
-            <el-form-item label="目標類型">
-              <el-select
-                v-model="searchForm.goalType"
-                placeholder="選擇目標類型"
-                style="width: 180px"
-              >
-                <el-option label="全部" value=""></el-option>
-
-                <el-option label="減重" value="減重"></el-option>
-
-                <el-option label="減脂" value="減脂"></el-option>
-
-                <el-option label="增肌" value="增肌"></el-option>
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="狀態" style="width: 150px">
-              <el-select v-model="searchForm.status" placeholder="選擇狀態">
-                <el-option label="全部" value=""></el-option>
-
-                <el-option label="進行中" value="進行中"></el-option>
-
-                <el-option label="已完成" value="已完成"></el-option>
-
-                <el-option label="未達成" value="未達成"></el-option>
-              </el-select>
-            </el-form-item>
-
-            <el-form-item>
-              <el-button type="primary" @click="fetchGoalsProgress"
-                >查詢</el-button
-              >
-
-              <el-button @click="resetSearchForm">重置</el-button>
-            </el-form-item>
-          </el-form>
-
-          <el-button type="info" @click="openEditDialog(null)"
-            >新增目標</el-button
-          >
-        </div>
+  <div class="goals-progress-management">
+    <div class="card-header">
+      <h2>健身目標</h2>
+      <div class="header-actions">
+        <el-button type="info" @click="openEditDialog(null)"
+          >新增目標</el-button
+        >
       </div>
-    </template>
+    </div>
 
-    <el-table :data="goalsProgress" border style="width: 100%">
+    <div class="search-form-container">
+      <el-form :inline="true" :model="searchForm" class="search-form">
+        <el-form-item label="日期範圍">
+          <el-date-picker
+            v-model="searchForm.startDateRange"
+            type="daterange"
+            range-separator="-"
+            start-placeholder="開始日期"
+            end-placeholder="結束日期"
+            value-format="YYYY-MM-DD"
+          ></el-date-picker>
+        </el-form-item>
+
+        <el-form-item label="目標類型">
+          <el-select
+            v-model="searchForm.goalType"
+            placeholder="選擇目標類型"
+            style="width: 180px"
+          >
+            <el-option label="全部" value=""></el-option>
+            <el-option label="減重" value="減重"></el-option>
+            <el-option label="減脂" value="減脂"></el-option>
+            <el-option label="增肌" value="增肌"></el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="狀態" style="width: 150px">
+          <el-select v-model="searchForm.status" placeholder="選擇狀態">
+            <el-option label="全部" value=""></el-option>
+            <el-option label="進行中" value="進行中"></el-option>
+            <el-option label="已完成" value="已完成"></el-option>
+            <el-option label="未達成" value="未達成"></el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button type="primary" @click="fetchGoalsProgress">查詢</el-button>
+          <el-button @click="resetSearchForm">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <el-table
+      :data="goalsProgress"
+      border
+      style="width: 100%; margin-top: 15px"
+    >
       <el-table-column prop="goalType" label="目標類型"></el-table-column>
-
       <el-table-column prop="targetValue" label="目標值"></el-table-column>
-
       <el-table-column prop="unit" label="單位"></el-table-column>
-
       <el-table-column prop="currentProgress" label="目前進度">
         <template #default="{ row }">
           {{ formatProgress(row.currentProgress) }}%
-        </template></el-table-column
-      >
-
+        </template>
+      </el-table-column>
       <el-table-column prop="startDate" label="開始日期"></el-table-column>
-
       <el-table-column prop="endDate" label="結束日期"></el-table-column>
-
       <el-table-column prop="status" label="狀態"></el-table-column>
-
       <el-table-column label="操作" width="150">
         <template #default="scope">
           <el-button size="small" @click="openEditDialog(scope.row)"
             >編輯</el-button
           >
-
           <el-button
             size="small"
             type="danger"
@@ -114,20 +102,16 @@
         <el-form-item label="目標類型">
           <el-select v-model="editForm.goalType" placeholder="選擇目標類型">
             <el-option label="減重" value="減重"></el-option>
-
             <el-option label="增肌" value="增肌"></el-option>
-
             <el-option label="減脂" value="減脂"></el-option>
           </el-select>
         </el-form-item>
-
         <el-form-item label="目標值">
           <el-input-number
             v-model="editForm.targetValue"
             :min="0"
           ></el-input-number>
         </el-form-item>
-
         <el-form-item label="單位">
           <el-select v-model="editForm.unit" placeholder="選擇單位">
             <el-option
@@ -138,7 +122,6 @@
             ></el-option>
           </el-select>
         </el-form-item>
-
         <el-form-item label="開始日期">
           <el-date-picker
             v-model="editForm.startDate"
@@ -146,7 +129,6 @@
             value-format="YYYY-MM-DD"
           ></el-date-picker>
         </el-form-item>
-
         <el-form-item label="結束日期">
           <el-date-picker
             v-model="editForm.endDate"
@@ -154,35 +136,28 @@
             value-format="YYYY-MM-DD"
           ></el-date-picker>
         </el-form-item>
-
         <el-form-item label="狀態">
           <el-select v-model="editForm.status">
             <el-option label="進行中" value="進行中"></el-option>
-
             <el-option label="已完成" value="已完成"></el-option>
-
             <el-option label="已取消" value="已取消"></el-option>
           </el-select>
         </el-form-item>
-
         <el-form-item label="使用最近數據">
           <el-checkbox v-model="editForm.useLatestData"></el-checkbox>
         </el-form-item>
-
         <el-form-item
           v-if="!editForm.useLatestData && editForm.goalType === '減重'"
           label="起始體重 (公斤)"
         >
           <el-input-number v-model="editForm.startWeight"></el-input-number>
         </el-form-item>
-
         <el-form-item
           v-if="!editForm.useLatestData && editForm.goalType === '減脂'"
           label="起始體脂率 (%)"
         >
           <el-input-number v-model="editForm.startBodyFat"></el-input-number>
         </el-form-item>
-
         <el-form-item
           v-if="!editForm.useLatestData && editForm.goalType === '增肌'"
           label="起始肌肉量 (公斤)"
@@ -190,11 +165,9 @@
           <el-input-number v-model="editForm.startMuscleMass"></el-input-number>
         </el-form-item>
       </el-form>
-
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="editDialogVisible = false">取消</el-button>
-
           <el-button type="primary" @click="saveEdit" :loading="isSaving"
             >儲存</el-button
           >
@@ -204,11 +177,9 @@
 
     <el-dialog v-model="confirmDeleteVisible" title="確認刪除">
       <span>您確定要刪除此目標嗎？</span>
-
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="confirmDeleteVisible = false">取消</el-button>
-
           <el-button
             type="danger"
             @click="handleDeleteConfirmed"
@@ -218,16 +189,16 @@
         </span>
       </template>
     </el-dialog>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
-import { useAuthStore } from "@/stores/auth"; // 確保您已導入 useAuthStore
+import { useAuthStore } from "@/stores/auth";
 
-const authStore = useAuthStore(); // 取得 authStore 實例
+const authStore = useAuthStore();
 
 const goalsProgress = ref([]);
 const total = ref(0);
@@ -313,7 +284,6 @@ const fetchGoalsProgress = async () => {
     const response = await axios.get(
       `/api/tracking/fitnessgoals/user/${currentUserId}`,
       {
-        // 使用正確的 API 端點
         params,
         headers: { Authorization: `Bearer ${authStore.getToken}` },
       }
@@ -330,7 +300,7 @@ const resetSearchForm = () => {
   searchForm.goalType = "";
   searchForm.status = "";
   currentPage.value = 1;
-  fetchGoalsProgress(); // 重置後重新獲取資料，會使用當前用戶 ID
+  fetchGoalsProgress();
 };
 onMounted(() => {
   console.log("onMounted - authStore.userInfo?.id:", authStore.userInfo?.id);
@@ -451,31 +421,55 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.goals-progress-management-container {
-  max-width: 1200px;
-  margin: 20px auto;
+.goals-progress-management {
+  /* 移除最大寬度和外邊距，讓父組件 el-card 控制 */
 }
 
-.goals-progress-management-header {
+.card-header {
+  margin-bottom: 15px;
+}
+
+.search-form-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* 讓搜索表單靠左，新增按鈕靠右 */
   align-items: center;
   margin-bottom: 15px;
 }
 
-.search-and-add {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.search-form {
+  margin-right: auto; /* 讓搜索表單佔據剩餘空間並靠左 */
 }
 
-.search-form {
-  margin-right: 10px;
+.header-actions {
+  /* 讓新增按鈕靠右 */
 }
 
 .pagination {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+:deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: linear-gradient(135deg, #10202b, #234567);
+  color: #fff;
+}
+
+:deep(.el-table thead th:first-child) {
+  border-top-left-radius: 12px;
+}
+:deep(.el-table thead th:last-child) {
+  border-top-right-radius: 12px;
+}
+
+:deep(.el-table__body-wrapper) {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  overflow: hidden;
 }
 </style>
