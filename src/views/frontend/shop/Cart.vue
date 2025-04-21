@@ -218,6 +218,7 @@ import {
     addItemToCart,
     getProducts,
     fetchProductForCartItem,
+    createOrderFromCart,
 } from "@/api/shop";
 
 export default {
@@ -233,11 +234,57 @@ export default {
         const recommendedProducts = ref([]);
         const freeShipping = ref(false);
 
+        // 輔助函數：獲取當前用戶ID
+        const getUserId = () => {
+            let userId = null;
+
+            // 嘗試多種可能的存儲位置
+            // 1. localStorage中的userInfo
+            try {
+                const userInfo = localStorage.getItem("userInfo");
+                if (userInfo) {
+                    const parsedInfo = JSON.parse(userInfo);
+                    userId = parsedInfo?.id || parsedInfo?.userId;
+                    if (userId) return userId;
+                }
+            } catch (e) {
+                console.error("從userInfo獲取userId失敗:", e);
+            }
+
+            // 2. localStorage中的authStore
+            try {
+                const authStore = localStorage.getItem("authStore");
+                if (authStore) {
+                    const parsedStore = JSON.parse(authStore);
+                    userId = parsedStore?.userInfo?.id || parsedStore?.userId;
+                    if (userId) return userId;
+                }
+            } catch (e) {
+                console.error("從authStore獲取userId失敗:", e);
+            }
+
+            // 3. 直接從localStorage中的userId
+            try {
+                userId = localStorage.getItem("userId");
+                if (userId) return userId;
+            } catch (e) {
+                console.error("從userId獲取失敗:", e);
+            }
+
+            return null;
+        };
+
+        // 檢查當前用戶是否已登入
+        const isUserLoggedIn = () => {
+            return !!localStorage.getItem("authToken");
+        };
+
         // 獲取購物車項目
         const fetchCartItems = async () => {
             try {
                 loading.value = true;
                 const response = await getCartItems();
+                console.log("購物車API響應:", response);
 
                 if (response && response.data) {
                     // 處理後端返回的數據
@@ -251,37 +298,46 @@ export default {
                         items = response.data.data;
                     }
 
-                    // 濾除無效的購物車項目
-                    cartItems.value = items.filter(
-                        (item) => item && (item.product || item.productId)
-                    );
+                    console.log("原始購物車項目:", items);
 
-                    // 如果購物車項目缺少product信息但有productId，嘗試從商品API獲取
-                    const missingProductItems = cartItems.value.filter(
-                        (item) => !item.product || !item.product.name
-                    );
+                    // 簡化過濾邏輯 - 只要有id就視為有效項目
+                    cartItems.value = items.filter((item) => item && (item.id || item.cartItemId));
+                    console.log("過濾後的購物車項目:", cartItems.value);
 
-                    if (missingProductItems.length > 0) {
-                        console.log(
-                            `發現${missingProductItems.length}個缺少商品信息的購物車項目，嘗試獲取商品詳情`
+                    // 如果購物車有項目，但缺少商品信息，試著獲取
+                    if (cartItems.value.length > 0) {
+                        const missingProductItems = cartItems.value.filter(
+                            (item) => !item.product || !item.product.name
                         );
 
-                        // 並行獲取所有缺少的商品信息
-                        const promises = missingProductItems.map((item) =>
-                            fetchProductForCartItem(item)
-                        );
-                        await Promise.allSettled(promises);
+                        if (missingProductItems.length > 0) {
+                            console.log(
+                                `有${missingProductItems.length}個項目缺少商品信息，嘗試獲取`
+                            );
+                            const promises = missingProductItems.map((item) =>
+                                fetchProductForCartItem(item)
+                            );
+                            await Promise.allSettled(promises);
+                            cartItems.value = [...cartItems.value]; // 強制更新引用
+                        }
 
-                        // 更新購物車顯示
-                        cartItems.value = [...cartItems.value];
+                        // 無論是否有完整信息，都將購物車項目保存到localStorage
+                        localStorage.setItem("cart", JSON.stringify(cartItems.value));
                     }
                 } else {
-                    // 使用本地儲存的購物車數據，如果有的話
+                    // 嘗試從localStorage讀取購物車
                     const localCart = localStorage.getItem("cart");
                     if (localCart) {
                         try {
-                            cartItems.value = JSON.parse(localCart);
+                            const parsedCart = JSON.parse(localCart);
+                            if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+                                cartItems.value = parsedCart;
+                                console.log("從localStorage載入購物車:", cartItems.value);
+                            } else {
+                                cartItems.value = [];
+                            }
                         } catch (e) {
+                            console.error("解析localStorage購物車數據錯誤:", e);
                             cartItems.value = [];
                         }
                     } else {
@@ -297,11 +353,24 @@ export default {
                 console.error("Failed to fetch cart items:", error);
                 if (error.response && error.response.status === 401) {
                     ElMessage.warning("請先登入後查看購物車");
-                    router.push("/backpage/member/login");
+                    router.push("/user/login");
                 } else {
                     ElMessage.error(error.displayMessage || "獲取購物車失敗");
+
+                    // 嘗試從本地存儲加載
+                    const localCart = localStorage.getItem("cart");
+                    if (localCart) {
+                        try {
+                            const parsedCart = JSON.parse(localCart);
+                            if (Array.isArray(parsedCart)) {
+                                cartItems.value = parsedCart;
+                                console.log("API錯誤，從localStorage載入購物車:", cartItems.value);
+                            }
+                        } catch (e) {
+                            cartItems.value = [];
+                        }
+                    }
                 }
-                cartItems.value = [];
             } finally {
                 loading.value = false;
             }
@@ -507,20 +576,32 @@ export default {
 
         // 計算商品小計
         const calculateSubtotal = (item) => {
-            if (!item || !item.product || !item.product.price || !item.quantity) {
-                return "0";
+            if (!item) return "0";
+
+            // 處理產品信息不完整的情況
+            let price = 0;
+            if (item.product && item.product.price) {
+                price = Number(item.product.price);
+            } else if (item.price) {
+                // 直接從項目獲取價格
+                price = Number(item.price);
+            } else if (item.unitPrice) {
+                price = Number(item.unitPrice);
             }
-            return (Number(item.product.price) * Number(item.quantity)).toFixed(0);
+
+            // 確保數量是有效數字
+            const quantity = item.quantity ? Number(item.quantity) : 1;
+
+            return (price * quantity).toFixed(0);
         };
 
         // 計算總額
         const totalAmount = computed(() => {
             return cartItems.value
                 .reduce((total, item) => {
-                    if (!item || !item.product || !item.product.price) {
-                        return total;
-                    }
-                    return total + Number(calculateSubtotal(item));
+                    // 使用calculateSubtotal來獲取每個項目的小計
+                    const subtotal = parseFloat(calculateSubtotal(item)) || 0;
+                    return total + subtotal;
                 }, 0)
                 .toFixed(0);
         });
@@ -561,7 +642,7 @@ export default {
                 console.error("Failed to add to cart:", error);
                 if (error.response && error.response.status === 401) {
                     ElMessage.warning("請先登入後再加入購物車");
-                    router.push("/backpage/member/login");
+                    router.push("/user/login");
                 } else {
                     ElMessage.error(error.displayMessage || "加入購物車失敗");
                 }
@@ -595,37 +676,118 @@ export default {
         };
 
         // 結帳處理
-        const checkoutHandler = () => {
-            if (cartItems.value.length === 0) {
+        const checkoutHandler = async () => {
+            // 調試購物車狀態
+            console.log("購物車內容：", cartItems.value);
+            console.log("購物車物品數量：", cartItems.value.length);
+
+            if (!cartItems.value || cartItems.value.length === 0) {
                 ElMessage.warning("購物車是空的，請先加入商品");
                 return;
             }
 
             try {
                 // 確保用戶已登入
-                const authToken = localStorage.getItem("authToken");
-                if (!authToken) {
+                if (!isUserLoggedIn()) {
                     ElMessage.warning("請先登入後再進行結帳");
-                    router.push("/backpage/member/login");
+                    router.push("/user/login");
                     return;
                 }
 
-                // 檢查購物車數據有效性
-                const validItems = cartItems.value.filter(
-                    (item) => item && item.product && item.product.price
-                );
+                // 保存購物車數據到localStorage作為備份
+                localStorage.setItem("checkoutCart", JSON.stringify(cartItems.value));
+                localStorage.setItem("cartTotal", totalAmount.value);
+                localStorage.setItem("cartGrandTotal", grandTotal.value);
+                localStorage.setItem("cartShipping", shipping.value.toString());
 
-                if (validItems.length !== cartItems.value.length) {
-                    ElMessage.warning("購物車中存在無效商品，請移除後再結帳");
-                    return;
+                console.log(`結帳流程開始，購物車共有 ${cartItems.value.length} 件商品`);
+                console.log(`總金額: ${totalAmount.value}`);
+
+                // 顯示加載消息
+                loading.value = true;
+                ElMessage.info("正在準備訂單...");
+
+                try {
+                    // 獲取用戶ID
+                    const userId = getUserId();
+
+                    // 如果無法獲取用戶ID，請求登入
+                    if (!userId) {
+                        ElMessage.warning("無法獲取用戶信息，請重新登入");
+                        router.push("/user/login");
+                        loading.value = false;
+                        return;
+                    }
+
+                    console.log(`嘗試創建訂單，用戶ID: ${userId}`);
+
+                    // 創建訂單
+                    const response = await createOrderFromCart(userId);
+                    console.log("創建訂單響應:", response);
+
+                    // 處理API成功響應
+                    if (response && response.data) {
+                        let orderId = null;
+
+                        // 處理不同格式的響應
+                        if (response.data.success && response.data.data && response.data.data.id) {
+                            orderId = response.data.data.id;
+                        } else if (response.data.id) {
+                            orderId = response.data.id;
+                        } else if (response.data.orderId) {
+                            orderId = response.data.orderId;
+                        }
+
+                        if (orderId) {
+                            // 訂單創建成功
+                            ElMessage.success("訂單創建成功，即將跳轉到訂單詳情");
+
+                            // 清空購物車
+                            cartItems.value = [];
+                            localStorage.removeItem("cart"); // 清除localStorage中的購物車
+
+                            // 延遲一下再跳轉
+                            setTimeout(() => {
+                                // 跳轉到訂單詳情頁
+                                router.push(`/shop/orders/${orderId}`);
+                            }, 1000);
+                            return;
+                        }
+                    }
+
+                    // 如果上面的代碼沒有成功處理訂單創建，則回退到舊的結帳行為
+                    console.log("使用備選結帳邏輯 - 嘗試跳轉到結帳頁面");
+
+                    // 檢查是否有/shop/checkout路由
+                    router.push("/shop/checkout").catch((error) => {
+                        console.error("導航到結帳頁面失敗:", error);
+                        // 如果沒有checkout頁面，顯示提示
+                        ElMessage.error("結帳頁面不存在，請聯繫管理員");
+                    });
+                } catch (error) {
+                    console.error("創建訂單失敗:", error);
+
+                    // 判斷錯誤類型
+                    if (error.response && error.response.status === 401) {
+                        ElMessage.warning("登入狀態已過期，請重新登入");
+                        router.push("/user/login");
+                        return;
+                    }
+
+                    ElMessage.error("訂單創建失敗，正在嘗試備選結帳流程");
+
+                    // 因訂單創建失敗，仍嘗試跳轉到結帳頁面
+                    router.push("/shop/checkout").catch((error) => {
+                        console.error("導航到結帳頁面失敗:", error);
+                        ElMessage.error("無法完成結帳，請稍後再試");
+                    });
+                } finally {
+                    loading.value = false;
                 }
-
-                // 正確導航到結帳頁面
-                console.log("導航到結帳頁面");
-                router.push("/shop/checkout");
             } catch (error) {
                 console.error("結帳過程發生錯誤:", error);
                 ElMessage.error("結帳過程發生錯誤，請稍後再試");
+                loading.value = false;
             }
         };
 

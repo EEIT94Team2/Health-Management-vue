@@ -503,9 +503,10 @@ export const getOrdersByUserId = async (userId, params = {}) => {
     }
 
     try {
-        // 將userId添加到參數中，並調用getOrders函數
-        const queryParams = { ...params, userId };
-        return await getOrders(queryParams);
+        // 這裡直接使用用戶ID來獲取訂單，不使用getOrders函數
+        console.log(`正在獲取用戶${userId}的訂單`);
+        const url = `/api/orders/user/${userId}`;
+        return await axios.get(url);
     } catch (error) {
         console.error(`獲取用戶${userId}的訂單失敗:`, error);
         throw error;
