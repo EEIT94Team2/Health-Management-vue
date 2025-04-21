@@ -32,5 +32,20 @@ onMounted(() => {
     
     // 初始設置主題
     setThemeByRoute(route.path);
+    
+    // 添加事件監聽，以便在localStorage變更時更新登錄狀態
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'authToken') {
+        if (event.newValue) {
+          // 有新token
+          authStore.autoLogin();
+        } else {
+          // token被移除
+          authStore.token = null;
+          authStore.userRole = null;
+          authStore.userInfo = null;
+        }
+      }
+    });
 });
 </script>

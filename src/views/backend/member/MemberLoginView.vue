@@ -1,19 +1,28 @@
 <template>
     <div class="member-login-view">
-        <h1>會員登入</h1>
-        <el-form :model="loginForm" label-width="80px">
-            <el-form-item label="電子郵件">
-                <el-input v-model="loginForm.email" />
-            </el-form-item>
-            <el-form-item label="密碼">
-                <el-input type="password" v-model="loginForm.password" />
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="login" :loading="isLoading">登入</el-button>
-            </el-form-item>
-            <p v-if="loginError" style="color: red">{{ loginError }}</p>
-        </el-form>
-        <p>還沒有帳號？<router-link to="/backpage/member/register">立即註冊</router-link></p>
+        <!-- 登入表單 -->
+        <div class="login-container">
+            <h1 class="title">後台管理登入</h1>
+            <div class="form-container">
+                <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-position="top">
+                    <el-form-item label="電子郵件" prop="email">
+                        <el-input v-model="loginForm.email" placeholder="請輸入您的電子郵件" />
+                    </el-form-item>
+                    <el-form-item label="密碼" prop="password">
+                        <el-input 
+                            v-model="loginForm.password" 
+                            type="password" 
+                            placeholder="請輸入您的密碼"
+                            show-password 
+                        />
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" class="login-button" @click="login" :loading="isLoading">登入系統</el-button>
+                    </el-form-item>
+                    <p v-if="loginError" class="error-message">{{ loginError }}</p>
+                </el-form>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -26,19 +35,35 @@ import { useAuthStore } from "@/stores/auth";
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const loginFormRef = ref(null);
 
 const loginForm = ref({
     email: "",
     password: "",
 });
+
+const rules = {
+    email: [
+        { required: true, message: '請輸入電子郵件', trigger: 'blur' },
+        { type: 'email', message: '請輸入有效的電子郵件格式', trigger: 'blur' }
+    ],
+    password: [
+        { required: true, message: '請輸入密碼', trigger: 'blur' },
+        { min: 6, message: '密碼長度至少為6個字符', trigger: 'blur' }
+    ]
+};
+
 const loginError = ref("");
 const isLoading = ref(false);
 
 const login = async () => {
     loginError.value = "";
-    isLoading.value = true;
-
+    
     try {
+        // 表單驗證
+        await loginFormRef.value.validate();
+        
+        isLoading.value = true;
         const result = await authStore.login(loginForm.value);
 
         if (result.success) {
@@ -66,23 +91,106 @@ const login = async () => {
 
 <style scoped>
 .member-login-view {
-    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     min-height: 100vh;
     width: 100%;
-    background-color: #f0f2f5;
+    background-color: #1a2a3a;
+    background-image: linear-gradient(135deg, #1a2a3a 0%, #162536 100%);
+    position: relative;
+    padding-top: 0;
 }
-h1 {
-    margin-bottom: 20px;
+
+/* 登入表單容器樣式 */
+.login-container {
+    width: 100%;
+    max-width: 480px;
+    padding: 40px;
+    border-radius: 0 0 10px 10px;
+    background-color: #ffffff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    margin-top: 0;
+    border: 3px solid #43a478;
+    border-top-width: 3px;
+    position: relative;
+    padding-bottom: 20px;
 }
-.el-form {
-    width: 300px;
-    background-color: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+
+/* 移除突兀的頂部漸變背景 */
+.login-container::before {
+    display: none;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-align: center;
+    color: #1a2a3a;
+    position: relative;
+}
+
+.title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: #43a478;
+}
+
+.form-container {
+    margin-top: 20px;
+}
+
+:deep(.el-form-item__label) {
+    color: #1a2a3a;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+:deep(.el-input__inner) {
+    height: 48px;
+    border-radius: 6px;
+}
+
+:deep(.el-input__wrapper) {
+    box-shadow: 0 0 0 1px #d0d7de !important;
+}
+
+:deep(.el-input__wrapper:hover) {
+    box-shadow: 0 0 0 1px #43a478 !important;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+    box-shadow: 0 0 0 1px #43a478 !important;
+}
+
+.login-button {
+    width: 100%;
+    height: 48px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background-color: #43a478;
+    border: none;
+    margin-top: 15px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.login-button:hover {
+    background-color: #368e68;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 164, 120, 0.3);
+}
+
+.error-message {
+    color: #ef4444;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 0.9rem;
 }
 </style>

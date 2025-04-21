@@ -153,6 +153,13 @@ const routes = [
         component: () => import('@/views/frontend/member/ResetPasswordView.vue'),
         meta: { title: '重設密碼' }
     },
+    // 添加OAuth回調路由
+    {
+        path: '/oauth/callback',
+        name: 'OAuthCallback',
+        component: () => import('@/views/oauth/OAuthCallback.vue'),
+        meta: { title: 'OAuth登入處理' }
+    },
     {
         path: "/gym",
         name: "GymHomePage",
