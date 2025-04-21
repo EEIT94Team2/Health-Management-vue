@@ -17,6 +17,7 @@
                 type="password" 
                 placeholder="請輸入您的密碼" 
                 show-password
+
                 @input="checkPasswordStrength"
               />
               <div class="password-strength-container" v-if="registerForm.password">
@@ -32,6 +33,7 @@
                   ></div>
                 </div>
               </div>
+
             </el-form-item>
             <el-form-item label="性別" prop="gender">
               <el-radio-group v-model="registerForm.gender">
@@ -63,7 +65,9 @@
 </template>
 
 <script setup>
+
 import { ref, computed } from 'vue';
+
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import axios from 'axios';
@@ -80,6 +84,7 @@ const registerForm = ref({
   gender: 'M',
   bio: ''
 });
+
 
 // 密碼強度相關
 const passwordScore = ref(0);
@@ -147,6 +152,7 @@ const rules = {
   ],
   password: [
     { required: true, message: '請輸入密碼', trigger: 'blur' },
+
     { min: 8, message: '密碼長度至少為8個字符', trigger: 'blur' },
     { 
       validator: (rule, value, callback) => {
@@ -160,6 +166,7 @@ const rules = {
       }, 
       trigger: 'blur' 
     }
+
   ],
   gender: [
     { required: true, message: '請選擇性別', trigger: 'change' }
@@ -361,6 +368,7 @@ const handleRegister = async () => {
   color: var(--highlight-color);
 }
 
+
 /* 密碼強度樣式 */
 .password-strength-container {
   margin-top: 8px;
@@ -387,4 +395,5 @@ const handleRegister = async () => {
   border-radius: 4px;
   transition: all 0.3s ease;
 }
+
 </style> 
