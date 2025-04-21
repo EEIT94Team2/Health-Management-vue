@@ -273,6 +273,15 @@ const filteredUnitOptions = computed(() => {
   return unitOptions.value;
 });
 watch(
+  () => authStore.userInfo?.id,
+  (newUserId) => {
+    console.log("watch - authStore.user?.id changed to:", newUserId);
+    if (newUserId) {
+      fetchGoalsProgress();
+    }
+  }
+);
+watch(
   () => editForm.goalType,
   (newGoalType) => {
     if (newGoalType === "減重") {
@@ -291,23 +300,24 @@ watch(
 );
 const fetchGoalsProgress = async () => {
   const token = localStorage.getItem("authToken");
-  const currentUserId = authStore.user?.id; // 從 authStore 取得當前用戶 ID
+  const currentUserId = authStore.userInfo?.id;
   const params = {
     page: currentPage.value - 1,
     size: pageSize.value,
-    userId: currentUserId, // 強制使用當前用戶 ID
     startDate: searchForm.startDateRange ? searchForm.startDateRange[0] : null,
     endDate: searchForm.startDateRange ? searchForm.startDateRange[1] : null,
     goalType: searchForm.goalType || null,
     status: searchForm.status || null,
   };
   try {
-    const response = await axios.get(`/api/tracking/fitnessgoals`, {
-      params,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axios.get(
+      `/api/tracking/fitnessgoals/user/${currentUserId}`,
+      {
+        // 使用正確的 API 端點
+        params,
+        headers: { Authorization: `Bearer ${authStore.getToken}` },
+      }
+    );
     goalsProgress.value = response.data.content;
     total.value = response.data.totalElements;
   } catch (error) {
@@ -323,7 +333,10 @@ const resetSearchForm = () => {
   fetchGoalsProgress(); // 重置後重新獲取資料，會使用當前用戶 ID
 };
 onMounted(() => {
-  fetchGoalsProgress(); // 初次載入時也使用當前用戶 ID
+  console.log("onMounted - authStore.userInfo?.id:", authStore.userInfo?.id);
+  if (authStore.userInfo?.id) {
+    fetchGoalsProgress();
+  }
 });
 const openEditDialog = (row) => {
   if (row) {
@@ -339,7 +352,7 @@ const openEditDialog = (row) => {
   } else {
     Object.assign(editForm, {
       goalId: null,
-      userId: null,
+      userId: authStore.userInfo?.id,
       goalType: "",
       targetValue: null,
       unit: "",

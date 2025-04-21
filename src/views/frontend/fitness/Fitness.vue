@@ -4,20 +4,7 @@
 
     <el-tabs type="border-card">
       <el-tab-pane label="運動記錄">
-        <WorkoutRecordsManagement
-          :workouts="workouts"
-          :exercise-types="exerciseTypes"
-          :workout-current-page="workoutCurrentPage"
-          :workout-page-size="workoutPageSize"
-          :workout-total="workoutTotal"
-          @open-add-workout="openWorkoutDialog(null)"
-          @open-edit-workout="openWorkoutDialog"
-          @delete-workout="deleteWorkout"
-          @workout-size-change="handleWorkoutSizeChange"
-          @workout-current-change="handleWorkoutCurrentChange"
-          @search-workouts="fetchWorkoutData"
-          @reset-workout-search="resetWorkoutSearchForm"
-        />
+        <WorkoutRecordsManagement />
       </el-tab-pane>
 
       <el-tab-pane label="身體數據">
@@ -41,33 +28,11 @@
       </el-tab-pane>
 
       <el-tab-pane label="飲食記錄">
-        <DietRecordsManagement
-          :diet-data="dietRecordsData"
-          :total="dietRecordsTotal"
-          :current-page="dietRecordsCurrentPage"
-          :page-size="dietRecordsPageSize"
-          @search="fetchDietRecordsData"
-          @reset-search="resetDietSearchForm"
-          @open-edit-dialog="openDietEditDialog"
-          @delete="deleteDietRecord"
-          @update:currentPage="dietRecordsCurrentPage = $event"
-          @update:pageSize="dietRecordsPageSize = $event"
-        />
+        <DietRecordsManagement />
       </el-tab-pane>
 
       <el-tab-pane label="健身目標">
-        <GoalsProgressManagement
-          :goals-progress="goalsProgressData"
-          :total="goalsProgressTotal"
-          :current-page="goalsProgressCurrentPage"
-          :page-size="goalsProgressPageSize"
-          @search="fetchGoalsProgressData"
-          @reset-search="resetGoalsSearchForm"
-          @open-edit-dialog="openGoalsEditDialog"
-          @delete="deleteGoalProgress"
-          @update:currentPage="goalsProgressCurrentPage = $event"
-          @update:pageSize="goalsProgressPageSize = $event"
-        />
+        <GoalsProgressManagement />
       </el-tab-pane>
     </el-tabs>
 
@@ -82,7 +47,7 @@
         <el-form-item label="運動類型">
           <el-select v-model="workoutForm.type" placeholder="請選擇運動類型">
             <el-option
-              v-for="type in exerciseTypes"
+              v-for="type in exerciseTypes.value"
               :key="type"
               :label="type"
               :value="type"
@@ -94,7 +59,7 @@
         </el-form-item>
         <el-form-item label="日期">
           <el-date-picker
-            v-model="workoutForm.startTime"
+            v-model="workoutForm.value.startTime"
             type="date"
             value-format="YYYY-MM-DD"
           />
@@ -420,7 +385,14 @@ const workouts = ref([]);
 const bodyData = ref([]);
 const overviewData = ref(null);
 const dietRecordsData = ref([]);
-const goalsProgressData = ref([]);
+// 添加這些響應式變數
+const loadingDiet = ref(false);
+const errorDiet = ref(null);
+const dietRecords = ref([]);
+
+const errorGoals = ref(null);
+const goalsProgress = ref([]);
+const errorWorkouts = ref(null);
 
 // 載入狀態
 const loadingWorkouts = ref(false);
@@ -429,7 +401,6 @@ const loadingOverviewChart = ref(false);
 const loadingWorkoutChart = ref(false);
 const loadingBodyDataChart = ref(false);
 const loadingDietRecords = ref(false);
-const loadingGoalsProgress = ref(false);
 const isSavingGoals = ref(false);
 const isDeletingGoal = ref(false);
 const isDeletingDiet = ref(false);
@@ -445,12 +416,15 @@ const workoutCurrentPage = ref(1);
 const workoutPageSize = ref(10);
 const workoutDialogVisible = ref(false);
 const workoutDialogTitle = ref("");
+const userId = computed(() => authStore.userInfo?.id);
+console.log("Computed userId:", userId.value);
+const token = computed(() => authStore.getToken);
 const workoutForm = ref({
   id: null,
   type: "",
   duration: null,
   startTime: null,
-  userId: authStore.user?.id,
+  userId: authStore.userInfo?.id,
 });
 
 // 身體數據相關
@@ -465,13 +439,34 @@ const bodyDataForm = ref({
   waistCircumference: null,
   hipCircumference: null,
   muscleMass: null,
-  userId: authStore.user?.id,
+  userId: authStore.userInfo?.id,
 });
 const viewBodyDataDialogVisible = ref(false);
 const viewBodyData = ref({});
 
 // 其他數據
-const exerciseTypes = ref([]);
+const exerciseTypes = ref([
+  "跑步",
+  "游泳",
+  "騎自行車",
+  "跳繩",
+  "瑜珈",
+  "健身房器械",
+  "徒手健身",
+  "高強度間歇訓練 (HIIT)",
+  "快走",
+  "爬山",
+  "滑雪",
+  "舞蹈",
+  "划船機",
+  "重訓",
+  "橢圓機",
+  "腳踏車競賽",
+  "打籃球",
+  "踢足球",
+  "攀岩",
+  "健走",
+]);
 
 // 飲食記錄相關
 const dietRecordsTotal = ref(0);
@@ -480,7 +475,7 @@ const dietRecordsPageSize = ref(10);
 const dietEditDialogVisible = ref(false);
 const dietEditForm = reactive({
   recordId: null,
-  userId: authStore.user?.id,
+  userId: authStore.userInfo?.id,
   name: "",
   mealtime: "",
   foodName: "",
@@ -500,7 +495,7 @@ const goalsProgressPageSize = ref(10);
 const goalsEditDialogVisible = ref(false);
 const goalsEditForm = reactive({
   goalId: null,
-  userId: authStore.user?.id,
+  userId: authStore.userInfo?.id,
   goalType: "",
   targetValue: null,
   unit: "",
@@ -544,135 +539,32 @@ watch(
 
 // 監聽 authStore.user 的變化，以便在用戶 ID 可用時獲取數據
 watch(
-  () => authStore.user?.id,
-  (newUserId) => {
-    if (newUserId) {
-      fetchWorkoutData();
+  () => authStore.userInfo?.id,
+  (newUserInfo) => {
+    if (newUserInfo?.id) {
+      console.log("userInfo became available in FitnessView:", newUserInfo.id);
       fetchBodyData();
       fetchOverviewData();
-      fetchDietRecordsData();
-      fetchGoalsProgressData();
-    } else {
-      // 如果用戶登出，清空數據
-      workouts.value = [];
-      bodyData.value = [];
-      overviewData.value = null;
-      dietRecordsData.value = [];
-      goalsProgressData.value = [];
+    } else if (authStore.isAuthenticated) {
+      console.warn(
+        "userInfo is still null or undefined after auth is authenticated."
+      );
+      // 可以嘗試再次觸發刷新用戶資訊的操作
+      authStore.refreshUserInfo();
     }
   },
   { immediate: true }
 );
 
-// 獲取運動類型列表
-const fetchExerciseTypes = async () => {
-  try {
-    const response = await axios.get("/api/tracking/exercise-types");
-    exerciseTypes.value = response.data;
-  } catch (error) {
-    console.error("獲取運動類型失敗", error);
-    ElMessage.error("獲取運動類型失敗");
-  }
-};
-
-// 獲取運動數據
-const fetchWorkoutData = async (searchParams = {}) => {
-  if (!authStore.user?.id) return;
-  loadingWorkouts.value = true;
-  try {
-    const params = {
-      page: workoutCurrentPage.value - 1,
-      size: workoutPageSize.value,
-      userId: authStore.user.id,
-      ...searchParams,
-      startDate: searchParams.dateRange ? searchParams.dateRange[0] : undefined,
-      endDate: searchParams.dateRange ? searchParams.dateRange[1] : undefined,
-    };
-    delete params.dateRange; // 移除 dateRange，因為 startDate 和 endDate 已經存在
-    const response = await axios.get("/api/tracking/exercise-records", {
-      params,
-    });
-    workouts.value = response.data.content;
-    workoutTotal.value = response.data.totalElements;
-  } catch (error) {
-    console.error("獲取運動數據失敗", error);
-    ElMessage.error("獲取運動數據失敗");
-  } finally {
-    loadingWorkouts.value = false;
-  }
-};
-
-const handleWorkoutSizeChange = (newSize) => {
-  workoutPageSize.value = newSize;
-  fetchWorkoutData();
-};
-
-const handleWorkoutCurrentChange = (newPage) => {
-  workoutCurrentPage.value = newPage;
-  fetchWorkoutData();
-};
-
-const openWorkoutDialog = (row) => {
-  if (row) {
-    workoutDialogTitle.value = "編輯運動記錄";
-    workoutForm.value = { ...row };
-  } else {
-    workoutDialogTitle.value = "新增運動記錄";
-    workoutForm.value = {
-      id: null,
-      type: "",
-      duration: null,
-      startTime: new Date().toISOString().slice(0, 10),
-      userId: authStore.user?.id,
-    };
-  }
-  workoutDialogVisible.value = true;
-};
-
-const saveWorkout = async () => {
-  try {
-    if (workoutForm.value.id) {
-      await axios.put(
-        `/api/tracking/exercise-records/${workoutForm.value.id}`,
-        workoutForm.value
-      );
-      ElMessage.success("運動記錄更新成功");
-    } else {
-      await axios.post("/api/tracking/exercise-records", workoutForm.value);
-      ElMessage.success("運動記錄新增成功");
-    }
-    workoutDialogVisible.value = false;
-    fetchWorkoutData();
-  } catch (error) {
-    console.error("保存運動記錄失敗", error);
-    ElMessage.error("保存運動記錄失敗");
-  }
-};
-
-const deleteWorkout = async (id) => {
-  try {
-    await axios.delete(`/api/tracking/exercise-records/${id}`);
-    ElMessage.success("運動記錄刪除成功");
-    fetchWorkoutData();
-  } catch (error) {
-    console.error("刪除運動記錄失敗", error);
-    ElMessage.error("刪除運動記錄失敗");
-  }
-};
-
-const resetWorkoutSearchForm = () => {
-  workoutSearchForm.type = "";
-  workoutSearchForm.dateRange = null;
-  fetchWorkoutData();
-};
-
-// 獲取身體數據
 const fetchBodyData = async () => {
-  if (!authStore.user?.id) return;
+  if (!authStore.userInfo?.id) return;
   loadingBodyData.value = true;
   try {
     const response = await axios.get(
-      `/api/tracking/body-metrics/user/${authStore.user.id}`
+      `/api/tracking/body-metrics/user/${authStore.userInfo?.id}`,
+      {
+        headers: { Authorization: `Bearer ${authStore.getToken}` },
+      }
     );
     bodyData.value = response.data;
     nextTick(renderBodyDataChart);
@@ -695,7 +587,7 @@ const openAddBodyDataDialog = () => {
     waistCircumference: null,
     hipCircumference: null,
     muscleMass: null,
-    userId: authStore.user?.id,
+    userId: authStore.userInfo?.id,
   };
   bodyDataDialogVisible.value = true;
 };
@@ -708,14 +600,21 @@ const openEditBodyDataDialog = (data) => {
 
 const saveBodyData = async () => {
   try {
+    const payload = {
+      ...bodyDataForm.value,
+      dateRecorded: bodyDataForm.value.date, // 將前端的 'date' 映射到後端的 'dateRecorded'
+    };
+    delete payload.date; // 移除前端的 'date' 欄位 (可選)
+
+    let response;
     if (bodyDataForm.value.id) {
       await axios.put(
         `/api/tracking/body-metrics/${bodyDataForm.value.id}`,
-        bodyDataForm.value
+        payload
       );
       ElMessage.success("身體數據更新成功");
     } else {
-      await axios.post("/api/tracking/body-metrics", bodyDataForm.value);
+      await axios.post("/api/tracking/body-metrics", payload);
       ElMessage.success("身體數據新增成功");
     }
     bodyDataDialogVisible.value = false;
@@ -746,113 +645,178 @@ const renderBodyDataChart = () => {
   const chartDom = document.getElementById("body-data-chart");
   if (chartDom) {
     bodyDataChartInstance = echarts.init(chartDom);
-    const dates = bodyData.value.map((item) => item.date);
-    const weights = bodyData.value.map((item) => item.weight);
-    const bodyFats = bodyData.value.map((item) => item.bodyFat);
+    if (bodyData.value && bodyData.value.length > 0) {
+      const dates = bodyData.value.map((item) => item.date);
+      const weights = bodyData.value.map((item) => item.weight);
+      const bodyFats = bodyData.value.map((item) => item.bodyFat);
+      const muscleMasses = bodyData.value.map((item) => item.muscleMass);
 
-    const option = {
-      title: {
-        text: "身體數據變化",
-      },
-      tooltip: {
-        trigger: "axis",
-      },
-      legend: {
-        data: ["體重", "體脂率"],
-      },
-      grid: {
-        left: "3%",
-        right: "4%",
-        bottom: "3%",
-        containLabel: true,
-      },
-      toolbox: {
-        feature: {
-          saveAsImage: {},
+      const dataCount = dates.length;
+      const isSmallData = dataCount <= 3; // 判斷數據是否很少
+      const isMediumData = dataCount <= 7; // 判斷數據是否中等
+
+      const option = {
+        title: {
+          text: "身體數據變化",
         },
-      },
-      xAxis: {
-        type: "category",
-        boundaryGap: false,
-        data: dates,
-      },
-      yAxis: [
-        {
-          type: "value",
-          name: "體重 (kg)",
-          position: "left",
-          alignTicks: true,
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: "#5470c6",
+        tooltip: {
+          trigger: "axis",
+          position: function (point, params, dom, rect, size) {
+            let x = point[0];
+            let y = point[1];
+            let tooltipWidth = size.contentSize[0];
+            let tooltipHeight = size.contentSize[1];
+            let screenWidth = size.viewSize[0];
+            let screenHeight = size.viewSize[1];
+
+            if (x + tooltipWidth > screenWidth) {
+              x = x - tooltipWidth;
+            }
+            if (x < 0) {
+              x = Math.abs(x) + 10;
+            }
+            return [x + 10, y + 10];
+          },
+        },
+        legend: {
+          data: ["體重", "體脂率", "肌肉量"],
+          orient: "vertical",
+          left: "right",
+          top: "center",
+          align: "left",
+        },
+        grid: {
+          left: "3%",
+          right: "4%",
+          bottom: "3%",
+          containLabel: true,
+        },
+        toolbox: {
+          feature: {
+            saveAsImage: {},
+          },
+        },
+        xAxis: {
+          type: "category",
+          data: dates,
+          boundaryGap: dataCount <= 3 ? ["20%", "20%"] : false,
+          axisLabel: {
+            interval: dataCount <= 7 ? 0 : "auto",
+            rotate: dates.some((date) => date.length > 8) ? 45 : 0, // 如果有較長的日期則旋轉
+            overflow: "breakAll",
+          },
+        },
+        yAxis: [
+          {
+            type: "value",
+            name: "體重 (kg)",
+            position: "left",
+            alignTicks: true,
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: "#5470c6",
+              },
+            },
+            axisLabel: {
+              formatter: "{value} kg",
             },
           },
-          axisLabel: {
-            formatter: "{value} kg",
-          },
-        },
-        {
-          type: "value",
-          name: "體脂率 (%)",
-          position: "right",
-          alignTicks: true,
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: "#91cc75",
+          {
+            type: "value",
+            name: "體脂率 (%)",
+            position: "right",
+            alignTicks: true,
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: "#91cc75",
+              },
+            },
+            axisLabel: {
+              formatter: "{value} %",
             },
           },
-          axisLabel: {
-            formatter: "{value} %",
+          {
+            type: "value",
+            name: "肌肉量 (kg)",
+            position: "right",
+            offset: 80,
+            alignTicks: true,
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: "#74add1",
+              },
+            },
+            axisLabel: {
+              formatter: "{value} kg",
+            },
           },
-        },
-      ],
-      series: [
-        {
-          name: "體重",
-          type: "line",
-          data: weights,
-          markPoint: {
-            data: [
-              { type: "max", name: "Max" },
-              { type: "min", name: "Min" },
-            ],
+        ],
+        series: [
+          {
+            name: "體重",
+            type: "line",
+            data: weights,
+            yAxisIndex: 0,
+            markPoint: {
+              data: [
+                { type: "max", name: "Max" },
+                { type: "min", name: "Min" },
+              ],
+            },
+            markLine: {
+              data: [{ type: "average", name: "Avg" }],
+            },
           },
-          markLine: {
-            data: [{ type: "average", name: "Avg" }],
+          {
+            name: "體脂率",
+            type: "line",
+            data: bodyFats,
+            yAxisIndex: 1,
+            markPoint: {
+              data: [
+                { type: "max", name: "Max" },
+                { type: "min", name: "Min" },
+              ],
+            },
+            markLine: {
+              data: [{ type: "average", name: "Avg" }],
+            },
           },
-          yAxisIndex: 0,
-        },
-        {
-          name: "體脂率",
-          type: "line",
-          data: bodyFats,
-          yAxisIndex: 1,
-          markPoint: {
-            data: [
-              { type: "max", name: "Max" },
-              { type: "min", name: "Min" },
-            ],
+          {
+            name: "肌肉量",
+            type: "line",
+            data: muscleMasses,
+            yAxisIndex: 2,
+            markPoint: {
+              data: [
+                { type: "max", name: "Max" },
+                { type: "min", name: "Min" },
+              ],
+            },
+            markLine: {
+              data: [{ type: "average", name: "Avg" }],
+            },
           },
-          markLine: {
-            data: [{ type: "average", name: "Avg" }],
-          },
-        },
-      ],
-    };
+        ],
+      };
 
-    bodyDataChartInstance.setOption(option);
+      bodyDataChartInstance.setOption(option);
+    } else {
+      bodyDataChartInstance.clear();
+    }
   }
 };
 
 // 獲取概覽數據
 const fetchOverviewData = async () => {
-  if (!authStore.user?.id) return;
+  if (!authStore.userInfo?.id) return;
   loadingOverviewChart.value = true;
   try {
     const response = await axios.get(
-      `/api/tracking/overview/user/${authStore.user.id}`
+      `/api/tracking/overview/user/${authStore.userInfo?.id}`
     );
     overviewData.value = response.data;
     nextTick(renderOverviewChart);
@@ -907,41 +871,6 @@ const renderOverviewChart = () => {
   }
 };
 
-// 獲取飲食記錄數據
-const fetchDietRecordsData = async (searchParams = {}) => {
-  if (!authStore.user?.id) return;
-  loadingDietRecords.value = true;
-  try {
-    const params = {
-      page: dietRecordsCurrentPage.value - 1,
-      size: dietRecordsPageSize.value,
-      userId: searchParams.userId || null,
-      name: searchParams.name || null,
-      startDate: searchParams.dateRange
-        ? searchParams.dateRange[0] + "T00:00:00"
-        : null,
-      endDate: searchParams.dateRange
-        ? searchParams.dateRange[1] + "T23:59:59"
-        : null,
-      mealtime: searchParams.mealtime || null,
-    };
-    const response = await axios.get(`/api/tracking/nutrition/search`, {
-      params,
-    });
-    dietRecordsData.value = response.data.content;
-    dietRecordsTotal.value = response.data.totalElements;
-  } catch (error) {
-    console.error("獲取飲食數據失敗", error);
-    ElMessage.error("獲取飲食數據失敗");
-  } finally {
-    loadingDietRecords.value = false;
-  }
-};
-
-const resetDietSearchForm = () => {
-  fetchDietRecordsData();
-};
-
 const openDietEditDialog = (row) => {
   if (row) {
     Object.assign(dietEditForm, {
@@ -951,7 +880,7 @@ const openDietEditDialog = (row) => {
   } else {
     Object.assign(dietEditForm, {
       recordId: null,
-      userId: authStore.user?.id,
+      userId: authStore.userInfo?.id,
       name: "",
       mealtime: "",
       foodName: "",
@@ -966,207 +895,17 @@ const openDietEditDialog = (row) => {
   dietEditDialogVisible.value = true;
 };
 
-const saveDietEdit = async () => {
-  try {
-    const payload = {
-      userId: dietEditForm.userId,
-      mealtime: dietEditForm.mealtime,
-      foodName: dietEditForm.foodName,
-      calories: dietEditForm.calories,
-      protein: dietEditForm.protein,
-      carbs: dietEditForm.carbs,
-      fats: dietEditForm.fats,
-      recordDate: dietEditForm.recordDate
-        ? dietEditForm.recordDate.replace(" ", "T")
-        : null,
-    };
-    const apiEndpoint = dietEditForm.recordId
-      ? `/api/tracking/nutrition/${dietEditForm.recordId}`
-      : "/api/tracking/nutrition/add";
-    const httpMethod = dietEditForm.recordId ? "put" : "post";
-    await axios[httpMethod](apiEndpoint, payload);
-    ElMessage.success(`飲食記錄${dietEditForm.recordId ? "更新" : "新增"}成功`);
-    dietEditDialogVisible.value = false;
-    fetchDietRecordsData();
-  } catch (error) {
-    console.error(
-      `飲食記錄${dietEditForm.recordId ? "更新" : "新增"}失敗`,
-      error
-    );
-    ElMessage.error(`飲食記錄${dietEditForm.recordId ? "更新" : "新增"}失敗`);
-  }
-};
-
-const deleteDietRecord = (id) => {
-  deletingDietRecordId.value = id;
-  confirmDeleteDietVisible.value = true;
-};
-
-const handleDeleteDietConfirmed = async () => {
-  isDeletingDiet.value = true;
-  try {
-    await axios.delete(`/api/tracking/nutrition/${deletingDietRecordId.value}`);
-    ElMessage.success("飲食記錄刪除成功");
-    confirmDeleteDietVisible.value = false;
-    fetchDietRecordsData();
-  } catch (error) {
-    console.error("刪除飲食記錄失敗", error);
-    ElMessage.error("刪除飲食記錄失敗");
-  } finally {
-    isDeletingDiet.value = false;
-    deletingDietRecordId.value = null;
-  }
-};
-
-// 獲取健身目標數據
-const fetchGoalsProgressData = async (searchParams = {}) => {
-  if (!authStore.user?.id) return;
-  loadingGoalsProgress.value = true;
-  try {
-    const params = {
-      page: goalsProgressCurrentPage.value - 1,
-      size: goalsProgressPageSize.value,
-      userId: searchParams.userId || authStore.user.id,
-      name: searchParams.name || null,
-      startDate: searchParams.startDateRange
-        ? searchParams.startDateRange[0]
-        : null,
-      endDate: searchParams.startDateRange
-        ? searchParams.startDateRange[1]
-        : null,
-      goalType: searchParams.goalType || null,
-      status: searchParams.status || null,
-    };
-    const response = await axios.get(`/api/tracking/fitnessgoals`, { params });
-    goalsProgressData.value = response.data.content;
-    goalsProgressTotal.value = response.data.totalElements;
-  } catch (error) {
-    console.error("獲取健身目標失敗", error);
-    ElMessage.error("獲取健身目標失敗");
-  } finally {
-    loadingGoalsProgress.value = false;
-  }
-};
-
-const resetGoalsSearchForm = () => {
-  fetchGoalsProgressData();
-};
-
-const openGoalsEditDialog = (row) => {
-  if (row) {
-    Object.assign(goalsEditForm, row);
-    goalsEditForm.useLatestData = !(
-      row.startWeight !== null &&
-      row.startWeight !== undefined &&
-      row.startBodyFat !== null &&
-      row.startBodyFat !== undefined &&
-      row.startMuscleMass !== null &&
-      row.startMuscleMass !== undefined
-    );
-  } else {
-    Object.assign(goalsEditForm, {
-      goalId: null,
-      userId: authStore.user?.id,
-      goalType: "",
-      targetValue: null,
-      unit: "",
-      currentProgress: null,
-      startDate: null,
-      endDate: null,
-      status: "進行中",
-      useLatestData: true,
-      startWeight: null,
-      startBodyFat: null,
-      startMuscleMass: null,
-    });
-  }
-  goalsEditDialogVisible.value = true;
-};
-
-const saveGoalsEdit = async () => {
-  isSavingGoals.value = true;
-  try {
-    const payload = {
-      userId: goalsEditForm.userId,
-      goalType: goalsEditForm.goalType,
-      targetValue: goalsEditForm.targetValue,
-      unit: goalsEditForm.unit,
-      currentProgress: goalsEditForm.currentProgress,
-      startDate: goalsEditForm.startDate,
-      endDate: goalsEditForm.endDate,
-      status: goalsEditForm.status,
-    };
-
-    if (!goalsEditForm.useLatestData) {
-      payload.startWeight = goalsEditForm.startWeight;
-      payload.startBodyFat = goalsEditForm.startBodyFat;
-      payload.startMuscleMass = goalsEditForm.startMuscleMass;
-    }
-
-    const apiEndpoint = goalsEditForm.goalId
-      ? `/api/tracking/fitnessgoals/${goalsEditForm.goalId}`
-      : "/api/tracking/fitnessgoals";
-    const httpMethod = goalsEditForm.goalId ? "put" : "post";
-
-    await axios[httpMethod](apiEndpoint, payload);
-    ElMessage.success(`健身目標${goalsEditForm.goalId ? "更新" : "新增"}成功`);
-    goalsEditDialogVisible.value = false;
-    fetchGoalsProgressData();
-  } catch (error) {
-    console.error(
-      `健身目標${goalsEditForm.goalId ? "更新" : "新增"}失敗`,
-      error
-    );
-    ElMessage.error(`健身目標${goalsEditForm.goalId ? "更新" : "新增"}失敗`);
-  } finally {
-    isSavingGoals.value = false;
-  }
-};
-
-const deleteGoalProgress = (id) => {
-  deletingGoalId.value = id;
-  confirmDeleteGoalVisible.value = true;
-};
-
-const handleDeleteGoalConfirmed = async () => {
-  isDeletingGoal.value = true;
-  try {
-    await axios.delete(`/api/tracking/fitnessgoals/${deletingGoalId.value}`);
-    ElMessage.success("健身目標已刪除");
-    confirmDeleteGoalVisible.value = false;
-    fetchGoalsProgressData();
-  } catch (error) {
-    console.error("刪除健身目標失敗", error);
-    ElMessage.error("刪除健身目標失敗");
-  } finally {
-    isDeletingGoal.value = false;
-    deletingGoalId.value = null;
-  }
-};
-
-const handleDietSizeChange = (newSize) => {
-  dietRecordsPageSize.value = newSize;
-  fetchDietRecordsData();
-};
-
-const handleDietCurrentChange = (newPage) => {
-  dietRecordsCurrentPage.value = newPage;
-  fetchDietRecordsData();
-};
-
-const handleGoalsSizeChange = (newSize) => {
-  goalsProgressPageSize.value = newSize;
-  fetchGoalsProgressData();
-};
-
-const handleGoalsCurrentChange = (newPage) => {
-  goalsProgressCurrentPage.value = newPage;
-  fetchGoalsProgressData();
-};
-
 onMounted(() => {
-  fetchExerciseTypes();
-  // 數據在 authStore.user 變化時獲取
+  console.log("Initial workouts:", workouts.value);
+  console.log("Initial userId:", userId.value);
+  console.log("Initial token:", token.value);
+  if (userId.value) {
+    fetchBodyData();
+    fetchOverviewData();
+  } else {
+    console.warn("User ID is not available yet, skipping data fetching.");
+    // 可以添加一些處理邏輯，例如顯示載入中狀態或在用戶 ID 可用後再觸發數據獲取
+  }
 });
 </script>
 
