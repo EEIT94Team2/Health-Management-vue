@@ -204,6 +204,7 @@ const passwordRules = {
   ],
   newPassword: [
     { required: true, message: "請輸入新密碼", trigger: "blur" },
+
     { min: 8, message: "密碼長度至少為 8 個字符", trigger: "blur" },
     {
       validator: (rule, value, callback) => {

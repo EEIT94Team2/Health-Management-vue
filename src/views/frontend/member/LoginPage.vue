@@ -20,6 +20,7 @@
               <el-button type="primary" class="login-button" @click="handleLogin" :loading="isLoading">登入</el-button>
             </el-form-item>
             <div class="links">
+
               <router-link to="/user/register" class="register-link">還沒有帳號？立即註冊</router-link>
               <div class="separator"></div>
               <a href="http://localhost:8080/oauth2/authorization/google" class="google-login-link">
@@ -30,6 +31,7 @@
               </a>
               <div class="separator"></div>
               <router-link to="/user/forgot-password" class="forgot-password-link">忘記密碼？</router-link>
+
             </div>
             <p v-if="loginError" class="error-message">{{ loginError }}</p>
           </el-form>
@@ -199,16 +201,19 @@ const handleLogin = async () => {
 .links {
   margin-top: 20px;
   text-align: center;
+
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .register-link, .forgot-password-link {
+
   color: var(--highlight-color);
   font-weight: 500;
   text-decoration: none;
   transition: all 0.3s ease;
+
 }
 
 .register-link:hover, .forgot-password-link:hover {
@@ -220,6 +225,7 @@ const handleLogin = async () => {
   height: 1px;
   background-color: rgba(255, 255, 255, 0.1);
   margin: 5px 0;
+
 }
 
 .google-btn {
