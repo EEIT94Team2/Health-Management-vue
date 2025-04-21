@@ -78,7 +78,7 @@ import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ShoppingCart } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores/auth";
-import { getProductById, addToCart as addProductToCart } from "@/api/shop";
+import { getProductById, addItemToCart } from "@/api/shop";
 
 const route = useRoute();
 const router = useRouter();
@@ -132,7 +132,7 @@ const addToCart = async () => {
         };
 
         const userId = authStore.userInfo?.id;
-        await addProductToCart(cartItem, userId);
+        await addItemToCart(cartItem);
         ElMessage.success("成功加入購物車");
     } catch (error) {
         console.error("加入購物車失敗:", error);
