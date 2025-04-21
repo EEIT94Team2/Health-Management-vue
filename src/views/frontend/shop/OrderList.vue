@@ -96,7 +96,7 @@
                                             }}
                                         </div>
                                         <div class="product-price">
-                                            NT$ {{ item.product?.price || item.price || 0 }} x
+                                            x
                                             {{ item.quantity }}
                                         </div>
                                     </div>
@@ -348,11 +348,11 @@ export default {
                     if (!order.status) return false;
 
                     const status = order.status.toLowerCase();
-                    if (activeStatus.value === "pending") {
+                    if (activeStatus.value === "PENDING") {
                         return status.includes("pending") || status === "pending_payment";
-                    } else if (activeStatus.value === "processing") {
+                    } else if (activeStatus.value === "PROCESSING") {
                         return status.includes("process") || status === "processing";
-                    } else if (activeStatus.value === "completed") {
+                    } else if (activeStatus.value === "COMPLETED") {
                         return (
                             status.includes("complet") ||
                             status === "completed" ||
@@ -551,6 +551,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+span {
+    color: #9ca3af;
+}
 .order-list-page {
     background-color: #111827;
     color: #f5f5f5;
@@ -666,6 +669,7 @@ export default {
         .order-id {
             font-weight: 600;
             margin-bottom: 0.25rem;
+            color: #f3f4f6;
         }
 
         .order-date {
