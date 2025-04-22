@@ -36,22 +36,20 @@
             :key="achievement.achievementId"
             class="achievement-item"
             :title="achievement.title"
-            @mouseover="hoveredAchievement = achievement"
-            @mouseleave="hoveredAchievement = null"
           >
-            <img
-              :src="getAchievementImage(achievement.achievementType)"
-              :alt="achievement.title"
-              class="achievement-image"
-            />
             <el-tooltip
-              v-if="hoveredAchievement === achievement"
               placement="bottom"
-              :content="`${hoveredAchievement.title} - ${
+              :content="`${achievement.title} - ${
                 achievement.description || '無描述'
               }`"
             >
-              <div style="display: inline-block"></div>
+              <img
+                :src="getAchievementImage(achievement.achievementType)"
+                :alt="achievement.title"
+                class="achievement-image"
+                @mouseover="hoveredAchievement = achievement"
+                @mouseleave="hoveredAchievement = null"
+              />
             </el-tooltip>
           </div>
           <div v-if="userAchievements.length === 0" class="no-achievements">
@@ -514,67 +512,69 @@ const fetchUserAchievements = async () => {
 const getAchievementImage = (achievementType) => {
   switch (achievementType) {
     case "FIRST_WORKOUT":
-      return "/static-images/1_workouts.png";
+      return "http://localhost:8080/static-images/1_workouts.png";
     case "5_WORKOUTS":
-      return "/static-images/5_workouts.png";
+      return "http://localhost:8080/static-images/5_workouts.png";
     case "10_WORKOUTS":
-      return "/static-images/10_workouts.png";
-    case "LOGIN_1_DAY":
-      return "/static-images/LOGIN_1_DAY.png";
-    case "LOGIN_3_DAYS":
-      return "/static-images/LOGIN_3_DAYS.png";
-    case "LOGIN_7_DAYS":
-      return "/static-images/LOGIN_7_DAYS.png";
-    case "GOAL_CREATED":
-      return "/static-images/GOAL_CREATED.png";
-    case "GOAL_COMPLETED_1":
-      return "/static-images/GOAL_COMPLETED_1.png";
-    case "GOAL_COMPLETED_5":
-      return "/static-images/GOAL_COMPLETED_5.png";
-    case "FIRST_BODY_DATA":
-      return "/static-images/FIRST_BODY_DATA.png";
-    case "10_BODY_DATA":
-      return "/static-images/10_BODY_DATA.png";
-    case "FIRST_DIET_LOG":
-      return "/static-images/FIRST_DIET_LOG.png";
-    case "10_DIET_LOGS":
-      return "/static-images/10_DIET_LOGS.png";
-    case "FIRST_POST":
-      return "/static-images/FIRST_POST.png";
-    case "5_POSTS":
-      return "/static-images/5_POSTS.png";
-    case "FIRST_COMMENT":
-      return "/static-images/FIRST_COMMENT.png";
-    case "5_COMMENTS":
-      return "/static-images/5_COMMENTS.png";
+      return "http://localhost:8080/static-images/10_workouts.png";
     case "25_WORKOUTS":
-      return "/static-images/25_workouts.png";
+      return "http://localhost:8080/static-images/25_workouts.png";
     case "50_WORKOUTS":
-      return "/static-images/50_workouts.png";
-    case "LOGIN_30_DAYS":
-      return "/static-images/LOGIN_30_DAYS.png";
-    case "LOGIN_90_DAYS":
-      return "/static-images/LOGIN_90_DAYS.png";
-    case "GOAL_COMPLETED_10":
-      return "/static-images/GOAL_COMPLETED_10.png";
-    case "GOAL_COMPLETED_25":
-      return "/static-images/GOAL_COMPLETED_25.png";
-    case "25_BODY_DATA":
-      return "/static-images/25_BODY_DATA.png";
-    case "25_DIET_LOGS":
-      return "/static-images/25_DIET_LOGS.png";
-    case "10_POSTS":
-      return "/static-images/10_POSTS.png";
-    case "10_COMMENTS":
-      return "/static-images/10_COMMENTS.png";
+      return "http://localhost:8080/static-images/50_workouts.png";
     case "ULTIMATE_FITNESS":
-      return "/static-images/ULTIMATE_FITNESS.png";
+      return "http://localhost:8080/static-images/ULTIMATE_FITNESS.png";
+    case "LOGIN_1_DAY":
+      return "http://localhost:8080/static-images/LOGIN_1_DAY.png";
+    case "LOGIN_3_DAYS":
+      return "http://localhost:8080/static-images/LOGIN_3_DAYS.png";
+    case "LOGIN_7_DAYS":
+      return "http://localhost:8080/static-images/LOGIN_7_DAYS.png";
+    case "LOGIN_30_DAYS":
+      return "http://localhost:8080/static-images/LOGIN_30_DAYS.png";
+    case "LOGIN_90_DAYS":
+      return "http://localhost:8080/static-images/LOGIN_90_DAYS.png";
     case "EARLY_BIRD":
-      return "/static-images/EARLY_BIRD.png";
+      return "http://localhost:8080/static-images/EARLY_BIRD.png";
     case "WEEKLY_WARRIOR":
-      return "/static-images/WEEKLY_WARRIOR.png";
+      return "http://localhost:8080/static-images/WEEKLY_WARRIOR.png";
+    case "GOAL_CREATED":
+      return "http://localhost:8080/static-images/GOAL_CREATED.png";
+    case "GOAL_COMPLETED_1":
+      return "http://localhost:8080/static-images/GOAL_COMPLETED_1.png";
+    case "GOAL_COMPLETED_5":
+      return "http://localhost:8080/static-images/GOAL_COMPLETED_5.png";
+    case "GOAL_COMPLETED_10":
+      return "http://localhost:8080/static-images/GOAL_COMPLETED_10.png";
+    case "GOAL_COMPLETED_25":
+      return "http://localhost:8080/static-images/GOAL_COMPLETED_25.png";
+    case "FIRST_BODY_DATA":
+      return "http://localhost:8080/static-images/FIRST_BODY_DATA.png";
+    case "10_BODY_DATA":
+      return "http://localhost:8080/static-images/10_BODY_DATA.png";
+    case "25_BODY_DATA":
+      return "http://localhost:8080/static-images/25_BODY_DATA.png";
+    case "FIRST_DIET_LOG":
+      return "http://localhost:8080/static-images/FIRST_DIET_LOG.png";
+    case "10_DIET_LOGS":
+      return "http://localhost:8080/static-images/10_DIET_LOGS.png";
+    case "25_DIET_LOGS":
+      return "http://localhost:8080/static-images/25_DIET_LOGS.png";
+    case "FIRST_POST":
+      return "http://localhost:8080/static-images/FIRST_POST.png";
+    case "5_POSTS":
+      return "http://localhost:8080/static-images/5_POSTS.png";
+    case "10_POSTS":
+      return "http://localhost:8080/static-images/10_POSTS.png";
+    case "FIRST_COMMENT":
+      return "http://localhost:8080/static-images/FIRST_COMMENT.png";
+    case "5_COMMENTS":
+      return "http://localhost:8080/static-images/5_COMMENTS.png";
+    case "10_COMMENTS":
+      return "http://localhost:8080/static-images/10_COMMENTS.png";
     case "SOCIAL_BUTTERFLY":
-      return "/static-images/SOCIAL_BUTTERFLY.png";
+      return "http://localhost:8080/static-images/SOCIAL_BUTTERFLY.png";
+    default:
+      return ""; // 如果有未知的獎章類型，返回空字串或一個預設圖片路徑
   }
 };
 // 頁面加載時同時獲取用戶資料和獎章
