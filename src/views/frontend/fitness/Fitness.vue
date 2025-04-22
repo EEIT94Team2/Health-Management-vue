@@ -5,24 +5,11 @@
         <h1>健身追蹤</h1>
       </div>
 
-      <el-tabs type="border-card">
-        <el-tab-pane label="運動記錄">
-          <el-card class="content-card">
-            <template #header>
-              <div class="card-header">
-                <h2>運動記錄</h2>
-              </div>
-            </template>
-            <WorkoutRecordsManagement />
-          </el-card>
-        </el-tab-pane>
-
+      <el-tabs type="border-card" @tab-change="handleTabChange">
         <el-tab-pane label="身體數據">
           <el-card class="content-card">
             <template #header>
-              <div class="card-header">
-                <h2>身體數據</h2>
-              </div>
+              <div class="card-header"></div>
             </template>
             <BodyDataManager
               :body-data="bodyData"
@@ -33,30 +20,89 @@
               @open-view-body-data="openViewBodyDataDialog"
             />
             <div id="body-data-chart" class="chart-container"></div>
+            <div style="margin-top: 20px; text-align: right">
+              <el-button
+                style="margin-top: 20px"
+                @click="showDataTable = !showDataTable"
+              >
+                {{ showDataTable ? "隱藏數據列表" : "查看數據列表" }}
+              </el-button>
+            </div>
+            <el-table
+              v-if="showDataTable"
+              :data="bodyData"
+              border
+              style="width: 100%; margin-top: 15px"
+              sort-by="dateRecorded"
+              sort-order="descending"
+            >
+              <el-table-column
+                prop="weight"
+                label="體重 (公斤)"
+              ></el-table-column>
+              <el-table-column
+                prop="bodyFat"
+                label="體脂率 (%)"
+              ></el-table-column>
+              <el-table-column
+                prop="height"
+                label="身高 (公分)"
+              ></el-table-column>
+              <el-table-column
+                prop="waistCircumference"
+                label="腰圍 (公分)"
+              ></el-table-column>
+              <el-table-column
+                prop="hipCircumference"
+                label="臀圍 (公分)"
+              ></el-table-column>
+              <el-table-column
+                prop="muscleMass"
+                label="肌肉量 (公斤)"
+              ></el-table-column>
+              <el-table-column
+                prop="dateRecorded"
+                label="測量日期"
+              ></el-table-column>
+              <el-table-column label="操作" width="100">
+                <template #default="scope">
+                  <el-button
+                    size="small"
+                    @click="openEditBodyDataDialog(scope.row)"
+                    >編輯</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="danger"
+                    @click="deleteBodyData(scope.row.id)"
+                    >刪除</el-button
+                  >
+                </template>
+              </el-table-column>
+            </el-table>
+            <div
+              class="no-data"
+              v-if="!loadingBodyData && bodyData.length === 0 && !showDataTable"
+            >
+              <el-empty description="暫無身體數據，請新增"></el-empty>
+            </div>
+            <div v-if="loadingBodyData" class="loading">載入身體數據中...</div>
           </el-card>
         </el-tab-pane>
 
-        <el-tab-pane label="概覽">
+        <el-tab-pane label="運動記錄">
           <el-card class="content-card">
             <template #header>
-              <div class="card-header">
-                <h2>概覽</h2>
-              </div>
+              <div class="card-header"></div>
             </template>
-            <OverviewSection
-              :overview-data="overviewData"
-              :loading-overview-chart="loadingOverviewChart"
-            />
-            <div id="overview-chart" class="chart-container"></div>
+            <WorkoutRecordsManagement />
           </el-card>
         </el-tab-pane>
 
         <el-tab-pane label="飲食記錄">
           <el-card class="content-card">
             <template #header>
-              <div class="card-header">
-                <h2>飲食記錄</h2>
-              </div>
+              <div class="card-header"></div>
             </template>
             <DietRecordsManagement />
           </el-card>
@@ -65,11 +111,22 @@
         <el-tab-pane label="健身目標">
           <el-card class="content-card">
             <template #header>
-              <div class="card-header">
-                <h2>健身目標</h2>
-              </div>
+              <div class="card-header"></div>
             </template>
             <GoalsProgressManagement />
+          </el-card>
+        </el-tab-pane>
+
+        <el-tab-pane label="概覽">
+          <el-card class="content-card">
+            <template #header>
+              <div class="card-header"></div>
+            </template>
+            <OverviewSection
+              :overview-data="overviewData"
+              :loading-overview-chart="loadingOverviewChart"
+            />
+            <div id="overview-chart" class="chart-container"></div>
           </el-card>
         </el-tab-pane>
       </el-tabs>
@@ -211,207 +268,20 @@
         </template>
       </el-dialog>
 
-      <el-dialog
-        :title="dietEditForm.recordId ? '編輯飲食數據' : '新增飲食數據'"
-        v-model="dietEditDialogVisible"
-      >
-        <el-form :model="dietEditForm" label-width="120px">
-          <el-form-item label="用戶 ID">
-            <el-input
-              v-model="dietEditForm.userId"
-              :disabled="dietEditForm.recordId"
-            ></el-input>
-          </el-form-item>
-          <el-form-item label="餐別">
-            <el-select v-model="dietEditForm.mealtime" placeholder="請選擇餐別">
-              <el-option label="早餐" value="早餐"></el-option>
-              <el-option label="午餐" value="午餐"></el-option>
-              <el-option label="晚餐" value="晚餐"></el-option>
-              <el-option label="點心" value="點心"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="食物內容">
-            <el-input
-              v-model="dietEditForm.foodName"
-              type="textarea"
-            ></el-input>
-          </el-form-item>
-          <el-form-item label="總熱量 (大卡)">
-            <el-input-number
-              v-model="dietEditForm.calories"
-              :min="0"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item label="蛋白質 (克)">
-            <el-input-number
-              v-model="dietEditForm.protein"
-              :min="0"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item label="碳水化合物 (克)">
-            <el-input-number
-              v-model="dietEditForm.carbs"
-              :min="0"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item label="脂肪 (克)">
-            <el-input-number
-              v-model="dietEditForm.fats"
-              :min="0"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item label="記錄日期時間">
-            <el-date-picker
-              v-model="dietEditForm.recordDate"
-              type="datetime"
-              placeholder="選擇日期時間"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              format="YYYY-MM-DD HH:mm"
-            ></el-date-picker>
-          </el-form-item>
-        </el-form>
+      <el-dialog v-model="confirmDeleteBodyDataVisible" title="確認刪除">
+        <span>您確定要刪除此身體數據嗎？</span>
         <template #footer>
           <span class="dialog-footer">
-            <el-button @click="dietEditDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveDietEdit">儲存</el-button>
-          </span>
-        </template>
-      </el-dialog>
-
-      <el-dialog
-        v-model="goalsEditDialogVisible"
-        :title="goalsEditForm.goalId ? '編輯目標' : '新增目標'"
-      >
-        <el-form :model="goalsEditForm" label-width="120px">
-          <el-form-item label="用戶 ID">
-            <el-input v-model="goalsEditForm.userId"></el-input>
-          </el-form-item>
-          <el-form-item label="目標類型">
-            <el-select
-              v-model="goalsEditForm.goalType"
-              placeholder="選擇目標類型"
-            >
-              <el-option label="減重" value="減重"></el-option>
-              <el-option label="增肌" value="增肌"></el-option>
-              <el-option label="減脂" value="減脂"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="目標值">
-            <el-input-number
-              v-model="goalsEditForm.targetValue"
-              :min="0"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item label="單位">
-            <el-select v-model="goalsEditForm.unit" placeholder="選擇單位">
-              <el-option
-                v-for="item in filteredUnitOptions"
-                :key="item"
-                :label="item"
-                :value="item"
-              ></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="開始日期">
-            <el-date-picker
-              v-model="goalsEditForm.startDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-            ></el-date-picker>
-          </el-form-item>
-          <el-form-item label="結束日期">
-            <el-date-picker
-              v-model="goalsEditForm.endDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-            ></el-date-picker>
-          </el-form-item>
-          <el-form-item label="狀態">
-            <el-select v-model="goalsEditForm.status">
-              <el-option label="進行中" value="進行中"></el-option>
-              <el-option label="已完成" value="已完成"></el-option>
-              <el-option label="已取消" value="已取消"></el-option>
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="使用最近數據">
-            <el-checkbox v-model="goalsEditForm.useLatestData"></el-checkbox>
-          </el-form-item>
-
-          <el-form-item
-            v-if="
-              !goalsEditForm.useLatestData && goalsEditForm.goalType === '減重'
-            "
-            label="起始體重 (公斤)"
-          >
-            <el-input-number
-              v-model="goalsEditForm.startWeight"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item
-            v-if="
-              !goalsEditForm.useLatestData && goalsEditForm.goalType === '減脂'
-            "
-            label="起始體脂率 (%)"
-          >
-            <el-input-number
-              v-model="goalsEditForm.startBodyFat"
-            ></el-input-number>
-          </el-form-item>
-          <el-form-item
-            v-if="
-              !goalsEditForm.useLatestData && goalsEditForm.goalType === '增肌'
-            "
-            label="起始肌肉量 (公斤)"
-          >
-            <el-input-number
-              v-model="goalsEditForm.startMuscleMass"
-            ></el-input-number>
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="goalsEditDialogVisible = false">取消</el-button>
-            <el-button
-              type="primary"
-              @click="saveGoalsEdit"
-              :loading="isSavingGoals"
-              >儲存</el-button
-            >
-          </span>
-        </template>
-      </el-dialog>
-
-      <el-dialog v-model="confirmDeleteGoalVisible" title="確認刪除">
-        <span>您確定要刪除此目標嗎？</span>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="confirmDeleteGoalVisible = false"
+            <el-button @click="confirmDeleteBodyDataVisible = false"
               >取消</el-button
             >
             <el-button
               type="danger"
-              @click="handleDeleteGoalConfirmed"
-              :loading="isDeletingGoal"
-              >確認</el-button
+              @click="handleDeleteBodyDataConfirmed"
+              :loading="isDeletingBodyData"
             >
-          </span>
-        </template>
-      </el-dialog>
-
-      <el-dialog v-model="confirmDeleteDietVisible" title="確認刪除">
-        <span>您確定要刪除此飲食記錄嗎？</span>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="confirmDeleteDietVisible = false"
-              >取消</el-button
-            >
-            <el-button
-              type="danger"
-              @click="handleDeleteDietConfirmed"
-              :loading="isDeletingDiet"
-              >確認</el-button
-            >
+              確認
+            </el-button>
           </span>
         </template>
       </el-dialog>
@@ -420,7 +290,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, reactive, computed } from "vue";
+import {
+  ref,
+  onMounted,
+  watch,
+  nextTick,
+  reactive,
+  computed,
+  onBeforeUnmount,
+} from "vue";
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
 import * as echarts from "echarts";
@@ -448,6 +326,7 @@ const dietRecords = ref([]);
 const errorGoals = ref(null);
 const goalsProgress = ref([]);
 const errorWorkouts = ref(null);
+const showDataTable = ref(false);
 
 // 載入狀態
 const loadingWorkouts = ref(false);
@@ -524,6 +403,9 @@ const exerciseTypes = ref([
 ]);
 
 // 飲食記錄相關
+const confirmDeleteBodyDataVisible = ref(false);
+const deletingBodyDataId = ref(null);
+const isDeletingBodyData = ref(false);
 const dietRecordsTotal = ref(0);
 const dietRecordsCurrentPage = ref(1);
 const dietRecordsPageSize = ref(10);
@@ -537,7 +419,7 @@ const dietEditForm = reactive({
   calories: null,
   protein: null,
   carbs: null,
-  fats: null, // 確保這裡有逗號
+  fats: null,
   recordDate: new Date().toISOString().slice(0, 16).replace("T", " ") + ":00",
 });
 const confirmDeleteDietVisible = ref(false);
@@ -622,12 +504,12 @@ const fetchBodyData = async () => {
       }
     );
     bodyData.value = response.data;
-    nextTick(renderBodyDataChart);
   } catch (error) {
     console.error("獲取身體數據失敗", error);
     ElMessage.error("獲取身體數據失敗");
   } finally {
     loadingBodyData.value = false;
+    nextTick(renderBodyDataChart);
   }
 };
 
@@ -680,14 +562,22 @@ const saveBodyData = async () => {
   }
 };
 
-const deleteBodyData = async (id) => {
+const handleDeleteBodyDataConfirmed = async () => {
+  isDeletingBodyData.value = true;
   try {
-    await axios.delete(`/api/tracking/body-metrics/${id}`);
+    await axios.delete(`/api/tracking/body-data/${deletingBodyDataId.value}`, {
+      headers: { Authorization: `Bearer ${authStore.getToken}` },
+    });
     ElMessage.success("身體數據刪除成功");
-    fetchBodyData();
+    confirmDeleteBodyDataVisible.value = false;
+    // 重新獲取身體數據以更新列表
+    fetchBodyData(); // 確保你有名為 fetchBodyData 的方法來獲取身體數據
   } catch (error) {
     console.error("刪除身體數據失敗", error);
     ElMessage.error("刪除身體數據失敗");
+  } finally {
+    isDeletingBodyData.value = false;
+    deletingBodyDataId.value = null;
   }
 };
 
@@ -695,29 +585,8 @@ const openViewBodyDataDialog = (data) => {
   viewBodyData.value = { ...data };
   viewBodyDataDialogVisible.value = true;
 };
-// 修改圖表容器樣式
-const chartStyles = `
-  .chart-container {
-    width: 100%;
-    height: 500px !important; /* 增加高度 */
-    margin-top: 30px;
-    margin-bottom: 30px;
-    padding: 20px;
-    overflow: visible !important; /* 確保內容不被截斷 */
-  }
-  
-  /* 確保圖表元素不被其他元素遮擋 */
-  .echarts-tooltip {
-    z-index: 1000 !important;
-  }
-`;
 
-// 在 head 中插入樣式
-const styleElement = document.createElement("style");
-styleElement.textContent = chartStyles;
-document.head.appendChild(styleElement);
-
-// 改進後的圖表渲染函數
+// 圖表渲染函數
 const renderBodyDataChart = () => {
   const chartDom = document.getElementById("body-data-chart");
 
@@ -733,12 +602,11 @@ const renderBodyDataChart = () => {
     bodyDataChartInstance.dispose();
   }
 
-  // 等待 DOM 更新後再初始化圖表
-  setTimeout(() => {
+  nextTick(() => {
     bodyDataChartInstance = echarts.init(chartDom);
 
     if (bodyData.value && bodyData.value.length > 0) {
-      const dates = bodyData.value.map((item) => item.date);
+      const dates = bodyData.value.map((item) => item.dateRecorded);
       const weights = bodyData.value.map((item) => item.weight);
       const bodyFats = bodyData.value.map((item) => item.bodyFat);
       const muscleMasses = bodyData.value.map((item) => item.muscleMass);
@@ -763,6 +631,7 @@ const renderBodyDataChart = () => {
           top: 0,
           textStyle: {
             fontSize: 18,
+            color: "white",
           },
         },
         tooltip: {
@@ -813,10 +682,10 @@ const renderBodyDataChart = () => {
 
               result += `<div style="display:flex;justify-content:space-between;align-items:center;margin:3px 0">
                 <span style="display:inline-block;margin-right:5px">
-                  <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${param.color};margin-right:5px"></span>
+                  <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:$lightgreen;margin-right:5px"></span>
                   ${param.seriesName}:
                 </span>
-                <span style="font-weight:bold">${param.value}${unit}</span>
+                <span style="font-weight:white">${param.value}${unit}</span>
               </div>`;
             });
 
@@ -824,7 +693,26 @@ const renderBodyDataChart = () => {
           },
         },
         legend: {
-          data: ["體重", "體脂率", "肌肉量"],
+          data: [
+            {
+              name: "體重",
+              textStyle: {
+                color: "#5470c6",
+              },
+            },
+            {
+              name: "體脂率",
+              textStyle: {
+                color: "#91cc75",
+              },
+            },
+            {
+              name: "肌肉量",
+              textStyle: {
+                color: "#FFA500",
+              },
+            },
+          ],
           orient: "horizontal",
           left: "center",
           top: 30,
@@ -878,13 +766,14 @@ const renderBodyDataChart = () => {
           data: dates,
           boundaryGap: true,
           axisLabel: {
-            interval: 0,
-            rotate: 45,
+            interval: "auto",
+            rotate: 90,
             margin: 15,
             fontSize: 12,
             formatter: function (value) {
               return value === "" ? "" : value; // 不顯示空字符串
             },
+            color: "#00b51a",
           },
           splitLine: {
             show: true,
@@ -910,7 +799,7 @@ const renderBodyDataChart = () => {
             },
             axisLabel: {
               formatter: "{value} kg",
-              margin: 10,
+              margin: 5,
             },
             splitLine: {
               show: true,
@@ -936,7 +825,7 @@ const renderBodyDataChart = () => {
             },
             axisLabel: {
               formatter: "{value} %",
-              margin: 10,
+              margin: 5,
             },
             splitLine: {
               show: false,
@@ -958,7 +847,7 @@ const renderBodyDataChart = () => {
             },
             axisLabel: {
               formatter: "{value} kg",
-              margin: 10,
+              margin: 5,
             },
             splitLine: {
               show: false,
@@ -976,12 +865,13 @@ const renderBodyDataChart = () => {
             lineStyle: {
               width: 3,
             },
-            connectNulls: true, // 連接空數據點
+            connectNulls: true,
             markPoint: {
               label: {
                 formatter: function (param) {
                   return param.name + ": " + param.value + " kg";
                 },
+                color: "white",
               },
               data: [
                 { type: "max", name: "最高" },
@@ -992,6 +882,8 @@ const renderBodyDataChart = () => {
             markLine: {
               label: {
                 formatter: "{b}: {c} kg",
+                color: "#ff9800",
+                position: "insideStart",
               },
               data: [{ type: "average", name: "平均" }],
             },
@@ -1016,6 +908,7 @@ const renderBodyDataChart = () => {
                 formatter: function (param) {
                   return param.name + ": " + param.value + " %";
                 },
+                color: "white",
               },
               data: [
                 { type: "max", name: "最高" },
@@ -1026,6 +919,8 @@ const renderBodyDataChart = () => {
             markLine: {
               label: {
                 formatter: "{b}: {c} %",
+                color: "#ff9800",
+                position: "insideStart",
               },
               data: [{ type: "average", name: "平均" }],
             },
@@ -1050,6 +945,7 @@ const renderBodyDataChart = () => {
                 formatter: function (param) {
                   return param.name + ": " + param.value + " kg";
                 },
+                color: "white",
               },
               data: [
                 { type: "max", name: "最高" },
@@ -1060,6 +956,8 @@ const renderBodyDataChart = () => {
             markLine: {
               label: {
                 formatter: "{b}: {c} kg",
+                color: "#ff9800",
+                position: "insideStart",
               },
               data: [{ type: "average", name: "平均" }],
             },
@@ -1075,12 +973,9 @@ const renderBodyDataChart = () => {
       bodyDataChartInstance.setOption(option);
 
       // 確保圖表正確渲染
-      setTimeout(() => {
-        bodyDataChartInstance.resize();
-      }, 200);
+      bodyDataChartInstance.resize(); // 直接調整大小
     }
-  }, 100);
-
+  });
   // 響應窗口大小變化
   window.addEventListener("resize", function () {
     if (bodyDataChartInstance) {
@@ -1149,6 +1044,24 @@ const renderOverviewChart = () => {
     overviewChartInstance.setOption(option);
   }
 };
+const handleTabChange = (tabName) => {
+  if (tabName === "身體數據") {
+    nextTick(() => {
+      renderBodyDataChart();
+      setTimeout(() => {
+        if (bodyDataChartInstance) {
+          bodyDataChartInstance.resize();
+        }
+      }, 300); // 增加一個小的延遲
+    });
+  }
+};
+onBeforeUnmount(() => {
+  if (bodyDataChartInstance) {
+    bodyDataChartInstance.dispose();
+    bodyDataChartInstance = null;
+  }
+});
 
 onMounted(() => {
   console.log("Initial workouts:", workouts.value);
@@ -1163,7 +1076,6 @@ onMounted(() => {
   }
 });
 </script>
-
 <style lang="scss" scoped>
 .fitness-view {
   min-height: 100vh;
@@ -1173,9 +1085,10 @@ onMounted(() => {
 }
 
 .fitness-container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 0 20px;
+  width: 100%; /* 確保在小螢幕上佔滿寬度 */
+  max-width: 1200px; /* 設定最大寬度為 1200px */
+  margin: 0 auto; /* 水平居中 */
+  padding: 0 40px; /* 左右留白 40px */
 }
 
 .page-header {
@@ -1204,10 +1117,58 @@ onMounted(() => {
 
     :deep(.el-card__body) {
       padding: 25px;
-      // 增加卡片內部的高度
-      min-height: 550px;
+      min-height: 550px; /* 增加卡片內部的高度 */
     }
   }
+}
+
+/* 修改頂部欄位樣式 */
+:deep(.el-tabs__nav-wrap),
+:deep(.el-tabs__header) {
+  background-color: #1e293b !important;
+  border-radius: 8px 8px 0 0;
+}
+
+:deep(.el-tabs__item) {
+  background-color: #1e293b !important;
+  color: #fff !important;
+  border: none !important;
+
+  &.is-active {
+    background-color: #2c3e50 !important;
+    border-bottom: 2px solid #3a8ee6 !important;
+  }
+}
+:deep(.el-tabs--border-card) {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+:deep(.el-tabs--border-card > .el-tabs__header .el-tabs__item) {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+
+  &:hover {
+    background-color: #2a3b52 !important;
+    color: #66ccff !important;
+  }
+
+  &.is-active {
+    background-color: #5ab2a6 !important;
+    border-bottom-color: transparent !important;
+    color: #3a8ee6 !important;
+  }
+}
+:deep(.el-tabs) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-card.content-card {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
 .card-header {
@@ -1222,44 +1183,95 @@ onMounted(() => {
   }
 }
 
-// 修改圖表容器的樣式
 .chart-container {
   width: 100%;
-  height: 500px !important; // 增加高度
+  height: 500px !important;
   margin-top: 30px;
   margin-bottom: 30px;
   position: relative;
-  overflow: visible !important; // 確保內容不被截斷
+  overflow: visible !important;
 
-  // 確保 ECharts 容器可以完整顯示
   :deep(.echarts) {
     width: 100% !important;
     height: 100% !important;
     overflow: visible !important;
   }
 
-  // 確保圖例顯示正確
   :deep(.echarts-legend) {
     overflow: visible !important;
     z-index: 100;
   }
 
-  // 確保提示框顯示正確
   :deep(.echarts-tooltip) {
     z-index: 9999 !important;
     pointer-events: none;
   }
 }
 
-/* 其他樣式保持不變 */
-/* ElForm、ElInput 等組件的樣式 */
+/* 表格通用樣式 */
+:deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: var(--card-bg, #fff);
+  color: var(--text-primary, #333);
+  margin-top: 15px; /* 確保與上方元素間距 */
+}
+
+/* 表格標頭文字顏色改為白色 */
+:deep(.el-table th.el-table__cell) {
+  background: linear-gradient(135deg, #10202b, #234567);
+  color: #fff !important;
+}
+
+:deep(.el-table thead th:first-child) {
+  border-top-left-radius: 12px;
+}
+
+:deep(.el-table thead th:last-child) {
+  border-top-right-radius: 12px;
+}
+
+:deep(.el-table__body-wrapper) {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  overflow: hidden;
+}
+
+/* 強制修改表格數據文字顏色為深灰色並加粗 */
+:deep(.el-table td.el-table__cell) {
+  color: #333 !important;
+  font-weight: bold !important;
+}
+
+/* 更進一步確保表格數據文字顏色 */
+:deep(.el-table__body tr td.el-table__cell > div) {
+  color: #333 !important;
+  font-weight: bold !important;
+}
+
+.no-data {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  color: var(--text-secondary, #666);
+}
+
+.loading {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  color: #999;
+}
+
 .el-form {
   :deep(.el-form-item) {
     margin-bottom: 20px;
   }
 
+  /* 修改 "運動類型" 和 "日期範圍" 標籤文字顏色為白色 */
   :deep(.el-form-item__label) {
-    color: var(--text-primary, #333);
+    color: #fff !important;
     font-size: 1rem;
     margin-bottom: 5px;
   }
@@ -1271,7 +1283,7 @@ onMounted(() => {
   :deep(.el-date-editor .el-input__inner) {
     background-color: #fff !important;
     border: 1px solid var(--highlight-color, #10b981);
-    color: #333;
+    color: var(--text-primary, #333) !important; /* 確保表單輸入框內文字顏色 */
     border-radius: 8px;
     height: 40px;
     line-height: 40px;
@@ -1307,6 +1319,51 @@ onMounted(() => {
   }
 }
 
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  color: #fff !important; /* 修改 "Total" 和 "Go to" 的文字顏色為白色 */
+}
+
+/* 修改分頁組件的數字顏色為白色 */
+:deep(.el-pagination__total),
+:deep(.el-pagination__jump),
+:deep(.el-pagination__pager li),
+:deep(.el-pagination__text) {
+  color: #fff !important;
+}
+
+/* 切換標籤 hover 效果 */
+:deep(.el-tabs__header) {
+  /* 可以根據需要調整標頭的整體樣式 */
+}
+
+:deep(.el-tabs__item) {
+  color: #fff; /* 預設標籤文字顏色為白色 */
+  transition: background-color 0.3s ease, color 0.3s ease; /* 添加過渡效果 */
+  background-color: transparent; /* 預設背景透明 */
+
+  &:hover {
+    background-color: rgba(
+      16,
+      185,
+      129,
+      0.15
+    ); /* 淡淡的綠色背景，調整 alpha 值控制透明度 */
+    color: #66ccff; /* 移入時的文字顏色，淺藍色 */
+  }
+
+  &.is-active {
+    color: #fff; /* 激活標籤的文字顏色 */
+    /* 可以根據需要添加激活標籤的樣式 */
+  }
+}
+
+:deep(.el-tabs__active-line) {
+  background-color: #fff; /* 激活指示線顏色 */
+}
+
 @media (max-width: 767px) {
   .fitness-container {
     padding: 0 15px;
@@ -1316,7 +1373,6 @@ onMounted(() => {
     font-size: 2rem;
   }
 
-  // 在移動端增加圖表高度
   .chart-container {
     height: 400px !important;
   }
@@ -1324,7 +1380,7 @@ onMounted(() => {
   .el-tabs {
     :deep(.el-tabs__header) {
       margin-bottom: 15px;
-      border-bottom: 1px solid var(--border-color, #e0e0e0);
+      border-bottom: 1px solid var(--border-color, #e0e0e0); /* 可能需要調整 */
     }
 
     :deep(.el-tabs__nav-wrap::after) {
@@ -1332,33 +1388,28 @@ onMounted(() => {
     }
 
     :deep(.el-tabs__item) {
-      color: var(--text-secondary, #666);
+      color: #fff;
       padding: 15px 20px;
       font-size: 1rem;
 
       &:hover {
-        color: var(--highlight-color, #10b981);
+        /* 可以根據需要添加 hover 效果 */
       }
 
       &.is-active {
-        color: var(--highlight-color, #10b981);
+        color: #fff;
       }
     }
 
     :deep(.el-tabs__active-line) {
-      background-color: var(--highlight-color, #10b981);
+      background-color: #fff;
       height: 3px;
       border-radius: 3px 3px 0 0;
       margin-bottom: -1px; /* 與底部邊框對齊 */
     }
 
     :deep(.el-tabs__content) {
-      /* 可以根據需要調整內容區域的樣式 */
-    }
-
-    /* 可以根據需要進一步調整 el-tab-pane 的樣式 */
-    .el-tab-pane {
-      padding: 10px; /* 可以添加一些內邊距 */
+      padding: 10px;
     }
   }
 }

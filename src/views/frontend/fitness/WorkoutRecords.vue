@@ -1,36 +1,39 @@
 <template>
   <div class="workouts-management">
+    <div class="card-header">
+      <h2>運動記錄</h2>
+    </div>
+
     <div class="search-and-add">
-      <el-form :inline="true" :model="workoutSearchForm" class="search-form">
-        <el-form-item label="運動類型">
-          <el-select
-            v-model="workoutSearchForm.type"
-            placeholder="請選擇運動類型"
-            style="width: 200px"
-          >
-            <el-option
-              v-for="type in exerciseTypes"
-              :key="type"
-              :label="type"
-              :value="type"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="日期範圍">
-          <el-date-picker
-            v-model="workoutSearchForm.dateRange"
-            type="daterange"
-            range-separator="-"
-            start-placeholder="開始日期"
-            end-placeholder="結束日期"
-            value-format="YYYY-MM-DD"
+      <div class="search-group">
+        <el-select
+          v-model="workoutSearchForm.type"
+          placeholder="請選擇運動類型"
+          style="width: 180px"
+          clearable
+        >
+          <el-option
+            v-for="type in exerciseTypes"
+            :key="type"
+            :label="type"
+            :value="type"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查詢</el-button>
-          <el-button @click="resetSearchForm">重置</el-button>
-        </el-form-item>
-      </el-form>
+        </el-select>
+
+        <el-date-picker
+          v-model="workoutSearchForm.dateRange"
+          type="daterange"
+          start-placeholder="開始日期"
+          end-placeholder="結束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 280px"
+          clearable
+        />
+
+        <el-button type="primary" @click="handleSearch">查詢</el-button>
+        <el-button @click="resetSearchForm">重置</el-button>
+      </div>
+
       <el-button type="info" @click="openAddDialog">新增運動記錄</el-button>
     </div>
 
@@ -318,10 +321,18 @@ watch(
   }
 );
 </script>
-
 <style scoped>
 .workouts-management {
   /* 移除容器的內邊距，讓父組件 el-card 控制 */
+}
+
+.card-header {
+  margin-bottom: 15px;
+  h2 {
+    color: #fff !important; /* 將標題文字顏色設定為白色 */
+    font-size: 1.5rem; /* 可以根據需要調整字體大小 */
+    margin: 0; /* 移除預設的 margin */
+  }
 }
 
 .search-and-add {
@@ -331,15 +342,41 @@ watch(
   margin-bottom: 15px;
 }
 
-.search-form {
-  margin-right: 10px;
+.search-group {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-group .el-select .el-input__wrapper,
+.search-group .el-date-picker .el-input__wrapper {
+  border-radius: 8px; /* 調整圓角 */
+  border: 1px solid #ccc;
+  box-shadow: none; /* 移除陰影 */
+}
+
+/* 修改 "運動類型" 和 "日期範圍" 標籤文字顏色為白色 */
+:deep(.el-form-item__label) {
+  color: #fff !important;
+  font-size: 1rem !important;
 }
 
 .pagination {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center; /* 將分頁組件置中 */
+  color: #fff !important; /* 修改 "Total" 和 "Go to" 的文字顏色為白色 */
 }
+
+/* 修改分頁組件的數字顏色為白色 */
+:deep(.el-pagination__total),
+:deep(.el-pagination__jump),
+:deep(.el-pagination__pager li),
+:deep(.el-pagination__text) {
+  color: #fff !important;
+}
+
 :deep(.el-table) {
   border-radius: 12px;
   overflow: hidden;
@@ -348,12 +385,13 @@ watch(
 
 :deep(.el-table th.el-table__cell) {
   background: linear-gradient(135deg, #10202b, #234567);
-  color: #fff;
+  color: #fff !important; /* 表格標題文字顏色改為白色 */
 }
 
 :deep(.el-table thead th:first-child) {
   border-top-left-radius: 12px;
 }
+
 :deep(.el-table thead th:last-child) {
   border-top-right-radius: 12px;
 }
@@ -362,5 +400,23 @@ watch(
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   overflow: hidden;
+}
+
+/* 修改表格數據文字顏色為深灰色並加粗，並設定字體大小 */
+:deep(.el-table td.el-table__cell) {
+  color: #333 !important;
+  font-weight: bold !important;
+  font-size: 1rem !important; /* 設定字體大小 */
+}
+
+/* 更進一步確保表格數據文字顏色和字體大小 */
+:deep(.el-table__body tr td.el-table__cell > div) {
+  color: #333 !important;
+  font-weight: bold !important;
+  font-size: 1rem !important; /* 設定字體大小 */
+}
+
+.add-button-wrapper {
+  flex-shrink: 0;
 }
 </style>

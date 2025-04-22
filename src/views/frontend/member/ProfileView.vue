@@ -5,7 +5,6 @@
         <h1>會員中心</h1>
       </div>
 
-      <!-- 點數顯示區塊 -->
       <el-card class="points-card">
         <div class="points-content">
           <div class="points-icon">
@@ -19,7 +18,48 @@
         </div>
       </el-card>
 
-      <!-- 個人資料編輯區塊 -->
+      <el-card class="achievements-card">
+        <template #header>
+          <div class="card-header">
+            <h2>我的獎章</h2>
+          </div>
+        </template>
+        <div v-if="loadingAchievements" class="loading-container">
+          <el-skeleton animated :rows="2" />
+        </div>
+        <div v-else-if="errorAchievements" class="error-message">
+          {{ errorAchievements }}
+        </div>
+        <div v-else class="achievements-list">
+          <div
+            v-for="achievement in userAchievements"
+            :key="achievement.achievementId"
+            class="achievement-item"
+            :title="achievement.title"
+            @mouseover="hoveredAchievement = achievement"
+            @mouseleave="hoveredAchievement = null"
+          >
+            <img
+              :src="getAchievementImage(achievement.achievementType)"
+              :alt="achievement.title"
+              class="achievement-image"
+            />
+            <el-tooltip
+              v-if="hoveredAchievement === achievement"
+              placement="bottom"
+              :content="`${hoveredAchievement.title} - ${
+                achievement.description || '無描述'
+              }`"
+            >
+              <div style="display: inline-block"></div>
+            </el-tooltip>
+          </div>
+          <div v-if="userAchievements.length === 0" class="no-achievements">
+            <el-empty description="尚未獲得任何獎章"></el-empty>
+          </div>
+        </div>
+      </el-card>
+
       <el-card class="profile-card">
         <template #header>
           <div class="card-header">
@@ -84,7 +124,6 @@
         </div>
       </el-card>
 
-      <!-- 密碼修改區塊 -->
       <el-card class="password-card">
         <template #header>
           <div class="card-header">
@@ -248,6 +287,12 @@ const passwordRules = {
     },
   ],
 };
+
+// 獎章相關的變數
+const userAchievements = ref([]);
+const loadingAchievements = ref(false);
+const errorAchievements = ref(null);
+const hoveredAchievement = ref(null);
 
 // 獲取用戶資料
 const fetchUserProfile = async () => {
@@ -431,9 +476,111 @@ const updatePassword = async () => {
   });
 };
 
-// 頁面加載時獲取用戶資料
+// 獲取用戶獎章
+const fetchUserAchievements = async () => {
+  if (!authStore.isAuthenticated || !userId.value) {
+    return;
+  }
+
+  loadingAchievements.value = true;
+  errorAchievements.value = null;
+
+  try {
+    const token = authStore.getToken;
+    const response = await axios.get(
+      `/api/tracking/achievements/user/${userId.value}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.data) {
+      // 直接判斷 response.data 是否存在
+      userAchievements.value = response.data;
+    } else {
+      throw new Error("獲取用戶獎章失敗，後端響應無數據");
+    }
+  } catch (err) {
+    console.error("獲取用戶獎章失敗", err);
+    errorAchievements.value = err.response?.data?.message || "無法獲取用戶獎章";
+  } finally {
+    loadingAchievements.value = false;
+  }
+};
+
+// 根據獎章類型獲取圖片
+const getAchievementImage = (achievementType) => {
+  switch (achievementType) {
+    case "FIRST_WORKOUT":
+      return "/static-images/1_workouts.png";
+    case "5_WORKOUTS":
+      return "/static-images/5_workouts.png";
+    case "10_WORKOUTS":
+      return "/static-images/10_workouts.png";
+    case "LOGIN_1_DAY":
+      return "/static-images/LOGIN_1_DAY.png";
+    case "LOGIN_3_DAYS":
+      return "/static-images/LOGIN_3_DAYS.png";
+    case "LOGIN_7_DAYS":
+      return "/static-images/LOGIN_7_DAYS.png";
+    case "GOAL_CREATED":
+      return "/static-images/GOAL_CREATED.png";
+    case "GOAL_COMPLETED_1":
+      return "/static-images/GOAL_COMPLETED_1.png";
+    case "GOAL_COMPLETED_5":
+      return "/static-images/GOAL_COMPLETED_5.png";
+    case "FIRST_BODY_DATA":
+      return "/static-images/FIRST_BODY_DATA.png";
+    case "10_BODY_DATA":
+      return "/static-images/10_BODY_DATA.png";
+    case "FIRST_DIET_LOG":
+      return "/static-images/FIRST_DIET_LOG.png";
+    case "10_DIET_LOGS":
+      return "/static-images/10_DIET_LOGS.png";
+    case "FIRST_POST":
+      return "/static-images/FIRST_POST.png";
+    case "5_POSTS":
+      return "/static-images/5_POSTS.png";
+    case "FIRST_COMMENT":
+      return "/static-images/FIRST_COMMENT.png";
+    case "5_COMMENTS":
+      return "/static-images/5_COMMENTS.png";
+    case "25_WORKOUTS":
+      return "/static-images/25_workouts.png";
+    case "50_WORKOUTS":
+      return "/static-images/50_workouts.png";
+    case "LOGIN_30_DAYS":
+      return "/static-images/LOGIN_30_DAYS.png";
+    case "LOGIN_90_DAYS":
+      return "/static-images/LOGIN_90_DAYS.png";
+    case "GOAL_COMPLETED_10":
+      return "/static-images/GOAL_COMPLETED_10.png";
+    case "GOAL_COMPLETED_25":
+      return "/static-images/GOAL_COMPLETED_25.png";
+    case "25_BODY_DATA":
+      return "/static-images/25_BODY_DATA.png";
+    case "25_DIET_LOGS":
+      return "/static-images/25_DIET_LOGS.png";
+    case "10_POSTS":
+      return "/static-images/10_POSTS.png";
+    case "10_COMMENTS":
+      return "/static-images/10_COMMENTS.png";
+    case "ULTIMATE_FITNESS":
+      return "/static-images/ULTIMATE_FITNESS.png";
+    case "EARLY_BIRD":
+      return "/static-images/EARLY_BIRD.png";
+    case "WEEKLY_WARRIOR":
+      return "/static-images/WEEKLY_WARRIOR.png";
+    case "SOCIAL_BUTTERFLY":
+      return "/static-images/SOCIAL_BUTTERFLY.png";
+  }
+};
+// 頁面加載時同時獲取用戶資料和獎章
 onMounted(() => {
   fetchUserProfile();
+  fetchUserAchievements();
 });
 </script>
 
@@ -616,6 +763,53 @@ onMounted(() => {
   color: #f56c6c;
   text-align: center;
   padding: 20px;
+}
+
+.achievements-card {
+  margin-bottom: 30px;
+  border-radius: 12px;
+  background-color: var(--card-bg);
+  border: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+
+  :deep(.el-card__header) {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  :deep(.el-card__body) {
+    padding: 25px;
+  }
+}
+
+.achievements-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.achievement-item {
+  width: 50px; /* 調整獎章圖片大小 */
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  position: relative; /* 為了 el-tooltip 的定位 */
+}
+
+.achievement-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-achievements {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 767px) {

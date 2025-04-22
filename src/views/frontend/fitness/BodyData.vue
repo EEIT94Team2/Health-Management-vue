@@ -10,61 +10,6 @@
         新增數據
       </el-button>
     </div>
-
-    <div class="body-data-chart"></div>
-
-    <el-button style="margin-top: 20px" @click="showDataTable = !showDataTable">
-      {{ showDataTable ? "隱藏數據列表" : "查看數據列表" }}
-    </el-button>
-
-    <el-table
-      v-if="showDataTable"
-      :data="bodyData"
-      border
-      style="width: 100%; margin-top: 15px"
-      sort-by="dateRecorded"
-      sort-order="descending"
-    >
-      <el-table-column prop="weight" label="體重 (公斤)"></el-table-column>
-      <el-table-column prop="bodyFat" label="體脂率 (%)"></el-table-column>
-      <el-table-column prop="height" label="身高 (公分)"></el-table-column>
-      <el-table-column
-        prop="waistCircumference"
-        label="腰圍 (公分)"
-      ></el-table-column>
-      <el-table-column
-        prop="hipCircumference"
-        label="臀圍 (公分)"
-      ></el-table-column>
-      <el-table-column
-        prop="muscleMass"
-        label="肌肉量 (公斤)"
-      ></el-table-column>
-      <el-table-column prop="dateRecorded" label="測量日期"></el-table-column>
-      <el-table-column label="操作" width="100">
-        <template #default="scope">
-          <el-button
-            size="small"
-            @click="$emit('open-edit-body-data', scope.row)"
-            >編輯</el-button
-          >
-          <el-button
-            size="small"
-            type="danger"
-            @click="$emit('delete-body-data', scope.row.id)"
-            >刪除</el-button
-          >
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <div
-      class="no-data"
-      v-if="!loadingBodyData && bodyData.length === 0 && !showDataTable"
-    >
-      <el-empty description="暫無身體數據，請新增"></el-empty>
-    </div>
-    <div v-if="loadingBodyData" class="loading">載入身體數據中...</div>
   </div>
 </template>
 
@@ -89,7 +34,6 @@ const emit = defineEmits([
   "delete-body-data",
 ]);
 
-const showDataTable = ref(false);
 let bodyDataChartInstance = null;
 
 const renderBodyDataChart = () => {
@@ -214,7 +158,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .body-data-manager {
   /* 移除容器的內邊距，讓父組件的 el-card 控制 */
 }
@@ -228,8 +172,8 @@ onMounted(() => {
 
 .card-header h2 {
   margin: 0;
-  font-size: 1.5rem; /* 與健身追蹤頁面 el-card header 的 h2 一致 */
-  color: var(--text-primary); /* 假設您有定義這個變數 */
+  font-size: 1.5rem;
+  color: var(--text-primary);
 }
 
 .body-data-chart {
@@ -241,7 +185,7 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: center;
-  color: var(--text-secondary); /* 假設您有定義這個變數 */
+  color: var(--text-secondary);
 }
 
 .loading {
@@ -251,7 +195,7 @@ onMounted(() => {
   color: #999;
 }
 
-/* 可以根據需要調整表格樣式，例如延用獎章頁面的樣式 */
+/* 針對 el-table 的樣式 */
 :deep(.el-table) {
   background-color: transparent;
   color: var(--text-primary);
@@ -264,10 +208,11 @@ onMounted(() => {
 
 :deep(.el-table td.el-table__cell) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  color: #333 !important;
+  font-weight: bold !important;
+  font-size: 1rem !important;
 }
 
-/* 查看數據列表按鈕樣式 */
 .el-button {
-  /* 可以添加與新增按鈕一致的樣式 */
 }
 </style>

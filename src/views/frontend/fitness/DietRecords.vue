@@ -269,7 +269,7 @@ const saveEdit = async () => {
     const payload = { ...editForm, userId };
     const apiEndpoint = editForm.recordId
       ? `/api/tracking/nutrition/${editForm.recordId}`
-      : "/api/tracking/nutrition";
+      : "/api/tracking/nutrition/add";
     const httpMethod = editForm.recordId ? "put" : "post";
 
     await axios[httpMethod](apiEndpoint, payload, {
@@ -357,10 +357,19 @@ watch(
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+
+  h2 {
+    color: #fff !important;
+    font-size: 1.5rem;
+    margin: 0;
+  }
 }
 
 .header-actions {
-  /* 可以根據需要添加頭部操作按鈕的樣式 */
+  display: flex;
+  justify-content: flex-end; /* 將子元素靠右對齊 */
+  align-items: center; /* 垂直方向居中對齊 */
+  gap: 10px; /* 如果 `header-actions` 裡面還有其他元素，可以設置間距 */
 }
 
 .search-form-container {
@@ -371,13 +380,24 @@ watch(
   /* 可以根據需要添加搜索表單的樣式 */
 }
 
+:deep(.el-form-item__label) {
+  color: #fff !important;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+/* 調整餐別下拉選單的寬度 */
+.search-form :deep(.el-select) {
+  width: 150px !important; /* 可以根據需要調整這個寬度值 */
+}
+
 .pagination {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  color: #fff !important;
 }
 
-/* 統一應用 el-table 的樣式 */
 :deep(.el-table) {
   border-radius: 12px;
   overflow: hidden;
@@ -386,12 +406,14 @@ watch(
 
 :deep(.el-table th.el-table__cell) {
   background: linear-gradient(135deg, #10202b, #234567);
-  color: #fff;
+  color: #fff !important;
+  font-size: 1rem !important;
 }
 
 :deep(.el-table thead th:first-child) {
   border-top-left-radius: 12px;
 }
+
 :deep(.el-table thead th:last-child) {
   border-top-right-radius: 12px;
 }
@@ -400,5 +422,12 @@ watch(
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   overflow: hidden;
+}
+
+:deep(.el-pagination__total),
+:deep(.el-pagination__jump),
+:deep(.el-pagination__pager li),
+:deep(.el-pagination__text) {
+  color: #fff !important;
 }
 </style>

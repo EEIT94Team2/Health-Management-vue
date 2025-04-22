@@ -422,26 +422,39 @@ onMounted(() => {
 
 <style scoped>
 .goals-progress-management {
-  /* 移除最大寬度和外邊距，讓父組件 el-card 控制 */
 }
 
 .card-header {
   margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h2 {
+    color: #fff !important;
+    font-size: 1.5rem;
+    margin: 0;
+  }
+}
+
+.header-actions {
 }
 
 .search-form-container {
   display: flex;
-  justify-content: space-between; /* 讓搜索表單靠左，新增按鈕靠右 */
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
 
 .search-form {
-  margin-right: auto; /* 讓搜索表單佔據剩餘空間並靠左 */
+  margin-right: auto;
 }
 
-.header-actions {
-  /* 讓新增按鈕靠右 */
+:deep(.el-form-item__label) {
+  color: #fff !important;
+  font-size: 1rem;
+  margin-bottom: 5px;
 }
 
 .pagination {
@@ -458,6 +471,7 @@ onMounted(() => {
 :deep(.el-table th.el-table__cell) {
   background: linear-gradient(135deg, #10202b, #234567);
   color: #fff;
+  font-size: 1rem !important;
 }
 
 :deep(.el-table thead th:first-child) {
