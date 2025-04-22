@@ -109,7 +109,7 @@
             <li><router-link to="/user/orders">我的訂單</router-link></li>
             <li><router-link to="/shop/cart">購物車</router-link></li>
             <li><router-link to="/user/fitness">健身成效</router-link></li>
-            <li><router-link to="/user/profile">我的檔案</router-link></li>
+            <li><router-link to="/social/UserSocialProfile">我的檔案</router-link></li>
             <li><a href="#" @click.prevent="handleLogout">登出</a></li>
           </ul>
         </div>
@@ -222,6 +222,7 @@ const handleLogout = () => {
 };
 
 const menus = reactive([
+<<<<<<< Updated upstream
     {
         label: "課程管理",
         children: [{ label: "課程列表", hash: "#courses" }],
@@ -254,6 +255,43 @@ const menus = reactive([
         ],
         open: false,
     },
+=======
+  {
+    label: '課程管理',
+    children: [
+      { label: '課程列表', hash: '#courses' },
+    ],
+    open: false,
+  },
+  {
+    label: '商城',
+    children: [
+      { label: '商品列表', path: '/shop/products' },
+      { label: '購物車', path: '/shop/cart' },
+      { label: '我的訂單', path: '/shop/orders' },
+    ],
+    open: false,
+  },
+  {
+    label: '追蹤成效',
+    children: [
+      { label: '運動紀錄管理', hash: '#workout-tracking' },
+      { label: '身體數據管理', hash: '#body-data' },
+      { label: '報告與數據分析', hash: '#report' },
+    ],
+    open: false,
+  },
+  {
+    label: '社群論壇',
+    children: [
+      { label: '論壇首頁', path: '/social/forumhome' },
+      { label: '文章列表', path: '/social/forum' },
+      { label: '發表文章', path: '/social/forumcreate' },
+      { label: '個人檔案', path: '/social/UserSocialProfile' },
+    ],
+    open: false,
+  },
+>>>>>>> Stashed changes
 ]);
 
 // 过滤掉会员中心菜单
