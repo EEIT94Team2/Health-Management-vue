@@ -83,7 +83,7 @@ const registerForm = ref({
 
 // 密碼強度相關
 const passwordScore = ref(0);
-const strengthTex=t = ref('');
+const strengthText = ref('');
 const strengthColor = ref('');
 const strengthPercentage = ref(0);
 
