@@ -72,7 +72,7 @@
       </div>
     </header>
   </template>
-
+  
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
