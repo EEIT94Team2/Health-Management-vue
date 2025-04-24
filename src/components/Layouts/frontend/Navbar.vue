@@ -53,21 +53,21 @@
             @mouseenter="userMenuOpen = true"
             @mouseleave="userMenuOpen = false"
           >
-            <div class="user-dropdown-toggle">
-              <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" />
-              {{ userInfo?.name || "用戶" }}
-              <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
-            </div>
-            <ul class="dropdown" :class="{ show: userMenuOpen }">
-              <li><router-link to="/user/profile">會員中心</router-link></li>
-              <li><router-link to="/user/courses">我的課程</router-link></li>
-              <li><router-link to="/shop/orders">我的訂單</router-link></li>
-              <li><router-link to="/shop/cart">購物車</router-link></li>
-              <li><router-link to="/user/fitness">健身成效</router-link></li>
-              <li><router-link to="/user/profile">我的檔案</router-link></li>
-              <li><a href="#" @click.prevent="handleLogout">登出</a></li>
-            </ul>
-          </div>
+          <div class="user-dropdown-toggle">
+                        <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" />
+                        <span class="user-name" :title="userInfo?.name">{{ displayName }}</span>
+                        <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
+                    </div>
+                    <ul class="dropdown" :class="{ show: userMenuOpen }">
+                        <li><router-link to="/user/profile">會員中心</router-link></li>
+                        <li><router-link to="/user/courses">我的課程</router-link></li>
+                        <li><router-link to="/shop/orders">我的訂單</router-link></li>
+                        <li><router-link to="/shop/cart">購物車</router-link></li>
+                        <li><router-link to="/user/fitness">健身成效</router-link></li>
+                        <li><router-link to="/user/profile">我的檔案</router-link></li>
+                        <li><a href="#" @click.prevent="handleLogout">登出</a></li>
+                    </ul>
+                </div>
         </div>
       </div>
     </header>

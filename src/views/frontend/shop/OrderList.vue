@@ -495,10 +495,12 @@ export default {
                 return;
             }
 
-            router.push({
-                path: "/shop/payment",
-                query: { orderId: order.id },
-            });
+            // 使用完整URL形式跳轉到backpage支付頁面
+            const baseUrl = window.location.origin; // 獲取當前網站的基本URL (http://localhost:5173)
+            const paymentUrl = `${baseUrl}/backpage/shop/payment?orderId=${order.id}`;
+
+            // 使用window.location.href進行跳轉，而不是使用Vue Router
+            window.location.href = paymentUrl;
         };
 
         // 格式化日期
