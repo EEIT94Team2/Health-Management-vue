@@ -394,8 +394,13 @@ watch(
 .pagination {
   margin-top: 20px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   color: #fff !important;
+}
+
+.diet-data-management :deep(.el-form-item__label) {
+  color: #373535 !important; /* 一個淺灰色 */
+  opacity: 0.8;
 }
 
 :deep(.el-table) {

@@ -16,9 +16,49 @@
               :loading-body-data="loadingBodyData"
               @open-add-body-data="openAddBodyDataDialog"
               @open-edit-body-data="openEditBodyDataDialog"
-              @delete-body-data="deleteBodyData"
+              @delete-body-data="handleDeleteBodyData"
               @open-view-body-data="openViewBodyDataDialog"
             />
+            <div
+              style="
+                margin-top: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <div>
+                <span>觀察週期：</span>
+                <el-radio-group
+                  v-model="selectedTimeGranularity"
+                  @change="handleTimeGranularityChange"
+                >
+                  <el-radio-button label="week">週</el-radio-button>
+                  <el-radio-button label="month">月</el-radio-button>
+                  <el-radio-button label="quarter">季</el-radio-button>
+                  <el-radio-button label="year">年</el-radio-button>
+                  <el-radio-button label="custom">自訂</el-radio-button>
+                </el-radio-group>
+              </div>
+              <div v-if="selectedTimeGranularity === 'custom'">
+                <el-date-picker
+                  v-model="customDateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="開始日期"
+                  end-placeholder="結束日期"
+                  value-format="YYYY-MM-DD"
+                  @change="handleCustomDateRangeChange"
+                />
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="fetchCustomDateRangeData"
+                  style="margin-left: 10px"
+                  >查詢</el-button
+                >
+              </div>
+            </div>
             <div id="body-data-chart" class="chart-container"></div>
             <div style="margin-top: 20px; text-align: right">
               <el-button
@@ -74,7 +114,7 @@
                   <el-button
                     size="small"
                     type="danger"
-                    @click="deleteBodyData(scope.row.id)"
+                    @click="openDeleteConfirmation(scope.row.id)"
                     >刪除</el-button
                   >
                 </template>
@@ -122,11 +162,7 @@
             <template #header>
               <div class="card-header"></div>
             </template>
-            <OverviewSection
-              :overview-data="overviewData"
-              :loading-overview-chart="loadingOverviewChart"
-            />
-            <div id="overview-chart" class="chart-container"></div>
+            <OverviewSection />
           </el-card>
         </el-tab-pane>
       </el-tabs>
@@ -302,7 +338,7 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
 import * as echarts from "echarts";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElTabs, ElTabPane, ElCard } from "element-plus";
 
 // 導入分離出的組件
 import WorkoutRecordsManagement from "./WorkoutRecords.vue";
@@ -316,9 +352,8 @@ const authStore = useAuthStore();
 // 反應式數據
 const workouts = ref([]);
 const bodyData = ref([]);
-const overviewData = ref(null);
+const chartData = ref([]);
 const dietRecordsData = ref([]);
-// 添加這些響應式變數
 const loadingDiet = ref(false);
 const errorDiet = ref(null);
 const dietRecords = ref([]);
@@ -342,7 +377,6 @@ const isDeletingDiet = ref(false);
 // 圖表實例
 let workoutChartInstance = null;
 let bodyDataChartInstance = null;
-let overviewChartInstance = null;
 
 // 運動記錄相關
 const workoutTotal = ref(0);
@@ -481,7 +515,6 @@ watch(
     if (newUserInfo?.id) {
       console.log("userInfo became available in FitnessView:", newUserInfo.id);
       fetchBodyData();
-      fetchOverviewData();
     } else if (authStore.isAuthenticated) {
       console.warn(
         "userInfo is still null or undefined after auth is authenticated."
@@ -504,12 +537,12 @@ const fetchBodyData = async () => {
       }
     );
     bodyData.value = response.data;
+    console.log("fetchBodyData 成功:", bodyData.value);
   } catch (error) {
     console.error("獲取身體數據失敗", error);
     ElMessage.error("獲取身體數據失敗");
   } finally {
     loadingBodyData.value = false;
-    nextTick(renderBodyDataChart);
   }
 };
 
@@ -541,7 +574,7 @@ const saveBodyData = async () => {
       ...bodyDataForm.value,
       dateRecorded: bodyDataForm.value.date, // 將前端的 'date' 映射到後端的 'dateRecorded'
     };
-    delete payload.date; // 移除前端的 'date' 欄位 (可選)
+    delete payload.date;
 
     let response;
     if (bodyDataForm.value.id) {
@@ -565,13 +598,16 @@ const saveBodyData = async () => {
 const handleDeleteBodyDataConfirmed = async () => {
   isDeletingBodyData.value = true;
   try {
-    await axios.delete(`/api/tracking/body-data/${deletingBodyDataId.value}`, {
-      headers: { Authorization: `Bearer ${authStore.getToken}` },
-    });
+    await axios.delete(
+      `/api/tracking/body-metrics/${deletingBodyDataId.value}`,
+      {
+        headers: { Authorization: `Bearer ${authStore.getToken}` },
+      }
+    );
     ElMessage.success("身體數據刪除成功");
     confirmDeleteBodyDataVisible.value = false;
     // 重新獲取身體數據以更新列表
-    fetchBodyData(); // 確保你有名為 fetchBodyData 的方法來獲取身體數據
+    fetchBodyData();
   } catch (error) {
     console.error("刪除身體數據失敗", error);
     ElMessage.error("刪除身體數據失敗");
@@ -580,14 +616,120 @@ const handleDeleteBodyDataConfirmed = async () => {
     deletingBodyDataId.value = null;
   }
 };
+const openDeleteConfirmation = (id) => {
+  deletingBodyDataId.value = id;
+  confirmDeleteBodyDataVisible.value = true;
+};
 
 const openViewBodyDataDialog = (data) => {
   viewBodyData.value = { ...data };
   viewBodyDataDialogVisible.value = true;
 };
 
+const selectedTimeGranularity = ref("month");
+const customDateRange = ref(null);
+
+const handleTimeGranularityChange = (granularity) => {
+  selectedTimeGranularity.value = granularity;
+  if (granularity !== "custom") {
+    fetchBodyDataByDateRange(granularity);
+    customDateRange.value = null; // 清空自訂日期範圍
+  } else {
+    // 當選擇自訂時，顯示日期選擇器
+  }
+};
+
+const handleCustomDateRangeChange = (value) => {
+  customDateRange.value = value;
+};
+
+const fetchCustomDateRangeData = () => {
+  if (customDateRange.value && customDateRange.value.length === 2) {
+    const startDate = customDateRange.value[0];
+    const endDate = customDateRange.value[1];
+    fetchBodyDataByDateRange("custom", startDate, endDate);
+  } else {
+    ElMessage.warning("請選擇開始和結束日期");
+  }
+};
+
+const fetchBodyDataByDateRange = async (
+  granularity = selectedTimeGranularity.value,
+  startDate = null,
+  endDate = null
+) => {
+  if (!authStore.userInfo?.id) return;
+  loadingBodyDataChart.value = true;
+  let calculatedStartDate, calculatedEndDate;
+
+  if (granularity === "custom" && startDate && endDate) {
+    calculatedStartDate = startDate;
+    calculatedEndDate = endDate;
+  } else {
+    const range = calculateDateRange(granularity);
+    calculatedStartDate = range.startDate;
+    calculatedEndDate = range.endDate;
+  }
+
+  try {
+    const response = await axios.get(`/api/tracking/body-metrics/search`, {
+      headers: { Authorization: `Bearer ${authStore.getToken}` },
+      params: {
+        userId: authStore.userInfo?.id,
+        startDate: calculatedStartDate,
+        endDate: calculatedEndDate,
+        page: 0,
+        size: 1000,
+      },
+    });
+    chartData.value = response.data.content;
+    console.log("fetchBodyDataByDateRange 成功:", chartData.value); // 追蹤圖表資料
+    renderBodyDataChart(chartData.value, granularity);
+    console.log("fetchBodyDataByDateRange try -> renderBodyDataChart called"); // 追蹤渲染呼叫
+  } catch (error) {
+    console.error("依日期範圍獲取身體數據失敗", error);
+    ElMessage.error("依日期範圍獲取身體數據失敗");
+  } finally {
+    loadingBodyDataChart.value = false;
+  }
+};
+
+const calculateDateRange = (granularity) => {
+  const now = new Date();
+  let startDate, endDate;
+
+  if (granularity === "week") {
+    const dayOfWeek = now.getDay(); // 0 (Sunday) - 6 (Saturday)
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // 計算這週的第一天
+    startDate = new Date(now.setDate(diff));
+    endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+  } else if (granularity === "month") {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (granularity === "quarter") {
+    const month = now.getMonth();
+    const startMonth = Math.floor(month / 3) * 3;
+    startDate = new Date(now.getFullYear(), startMonth, 1);
+    endDate = new Date(now.getFullYear(), startMonth + 3, 0);
+  } else if (granularity === "year") {
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = new Date(now.getFullYear(), 11, 31);
+  }
+
+  // 格式化為YYYY-MM-DD
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  return { startDate: formatDate(startDate), endDate: formatDate(endDate) };
+};
+
 // 圖表渲染函數
-const renderBodyDataChart = () => {
+const renderBodyDataChart = (data, granularity) => {
   const chartDom = document.getElementById("body-data-chart");
 
   if (!chartDom) return;
@@ -604,12 +746,13 @@ const renderBodyDataChart = () => {
 
   nextTick(() => {
     bodyDataChartInstance = echarts.init(chartDom);
+    console.log("ECharts instance initialized:", bodyDataChartInstance); // 追蹤 ECharts 實例
 
-    if (bodyData.value && bodyData.value.length > 0) {
-      const dates = bodyData.value.map((item) => item.dateRecorded);
-      const weights = bodyData.value.map((item) => item.weight);
-      const bodyFats = bodyData.value.map((item) => item.bodyFat);
-      const muscleMasses = bodyData.value.map((item) => item.muscleMass);
+    if (data && data.length > 0) {
+      const dates = data.map((item) => item.dateRecorded);
+      const weights = data.map((item) => item.weight);
+      const bodyFats = data.map((item) => item.bodyFat);
+      const muscleMasses = data.map((item) => item.muscleMass);
 
       // 如果數據少於 2 個，新增一些空數據點以展開圖表
       if (dates.length < 2) {
@@ -637,9 +780,8 @@ const renderBodyDataChart = () => {
         tooltip: {
           trigger: "axis",
           confine: false,
-          appendToBody: true, // 將提示框添加到 body 上，避免被其他元素限制
+          appendToBody: true,
           position: function (point, params, dom, rect, size) {
-            // 提示框放在鼠標右側，確保不超出視窗
             return [
               Math.min(
                 point[0] + 10,
@@ -659,15 +801,13 @@ const renderBodyDataChart = () => {
             color: "#333",
           },
           formatter: function (params) {
-            // 只處理有數據的點
             if (params[0].axisValue === "") return "";
 
             let result = `<div style="font-weight:bold;border-bottom:1px solid #ccc;padding-bottom:5px;margin-bottom:5px">
-              ${params[0].axisValue}
-            </div>`;
+      ${params[0].axisValue}
+    </div>`;
 
             params.forEach((param) => {
-              // 跳過空值
               if (param.value === null || param.value === undefined) return;
 
               let unit = "";
@@ -681,12 +821,12 @@ const renderBodyDataChart = () => {
               }
 
               result += `<div style="display:flex;justify-content:space-between;align-items:center;margin:3px 0">
-                <span style="display:inline-block;margin-right:5px">
-                  <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:$lightgreen;margin-right:5px"></span>
-                  ${param.seriesName}:
-                </span>
-                <span style="font-weight:white">${param.value}${unit}</span>
-              </div>`;
+        <span style="display:inline-block;margin-right:5px">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${param.markerColor};margin-right:5px"></span>
+          ${param.seriesName}:
+        </span>
+        <span style="font-weight:bold">${param.value}${unit}</span>
+      </div>`;
             });
 
             return result;
@@ -759,6 +899,10 @@ const renderBodyDataChart = () => {
             start: 0,
             end: 100,
             bottom: 10,
+            xAxisIndex: 0,
+            labelFormatter: function () {
+              return "";
+            },
           },
         ],
         xAxis: {
@@ -767,11 +911,48 @@ const renderBodyDataChart = () => {
           boundaryGap: true,
           axisLabel: {
             interval: "auto",
-            rotate: 90,
+            rotate: 0,
             margin: 15,
             fontSize: 12,
             formatter: function (value) {
-              return value === "" ? "" : value; // 不顯示空字符串
+              if (value === "") return "";
+              const date = new Date(value);
+              let formattedDate = "";
+              if (granularity === "week") {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const firstDayOfYear = new Date(year, 0, 1);
+                const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+                const weekNumber = Math.ceil(
+                  (pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7
+                );
+                formattedDate = `${year}年 第${weekNumber}週 (${month}-${day})`;
+              } else if (granularity === "month") {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                formattedDate = `${year}年 ${month}月`;
+              } else if (granularity === "quarter") {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const quarter = Math.floor(month / 3) + 1;
+                let startMonth = (quarter - 1) * 3 + 1;
+                let endMonth = quarter * 3;
+                formattedDate = `${year}年 第${quarter}季(${startMonth}月-${endMonth}月)`;
+              } else if (granularity === "year") {
+                formattedDate = `${date.getFullYear()}年`;
+              } else if (granularity === "custom") {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                formattedDate = `${year}-${month}-${day}`;
+              } else {
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                formattedDate = `${year}-${month}-${day}`;
+              }
+              return formattedDate;
             },
             color: "#00b51a",
           },
@@ -795,11 +976,13 @@ const renderBodyDataChart = () => {
               show: true,
               lineStyle: {
                 color: "#5470c6",
+                fontSize: 20,
               },
             },
             axisLabel: {
               formatter: "{value} kg",
               margin: 5,
+              rotate: 0,
             },
             splitLine: {
               show: true,
@@ -821,11 +1004,13 @@ const renderBodyDataChart = () => {
               show: true,
               lineStyle: {
                 color: "#91cc75",
+                fontSize: 20,
               },
             },
             axisLabel: {
               formatter: "{value} %",
               margin: 5,
+              rotate: 0,
             },
             splitLine: {
               show: false,
@@ -843,11 +1028,13 @@ const renderBodyDataChart = () => {
               show: true,
               lineStyle: {
                 color: "#74add1",
+                fontSize: 30,
               },
             },
             axisLabel: {
               formatter: "{value} kg",
               margin: 5,
+              rotate: 0,
             },
             splitLine: {
               show: false,
@@ -974,6 +1161,9 @@ const renderBodyDataChart = () => {
 
       // 確保圖表正確渲染
       bodyDataChartInstance.resize(); // 直接調整大小
+    } else {
+      bodyDataChartInstance.clear();
+      console.log("ECharts cleared due to no data"); // 追蹤無資料時清除圖表
     }
   });
   // 響應窗口大小變化
@@ -984,78 +1174,6 @@ const renderBodyDataChart = () => {
   });
 };
 
-// 獲取概覽數據
-const fetchOverviewData = async () => {
-  if (!authStore.userInfo?.id) return;
-  loadingOverviewChart.value = true;
-  try {
-    const response = await axios.get(
-      `/api/tracking/overview/user/${authStore.userInfo?.id}`
-    );
-    overviewData.value = response.data;
-    nextTick(renderOverviewChart);
-  } catch (error) {
-    console.error("獲取概覽數據失敗", error);
-    ElMessage.error("獲取概覽數據失敗");
-  } finally {
-    loadingOverviewChart.value = false;
-  }
-};
-
-const renderOverviewChart = () => {
-  const chartDom = document.getElementById("overview-chart");
-  if (chartDom && overviewData.value) {
-    overviewChartInstance = echarts.init(chartDom);
-    const option = {
-      title: {
-        text: "運動概覽",
-      },
-      tooltip: {},
-      legend: {
-        data: ["總時間", "總卡路里", "運動次數", "連續天數"],
-      },
-      xAxis: {
-        data: [""],
-      },
-      yAxis: {},
-      series: [
-        {
-          name: "總時間",
-          type: "bar",
-          data: [overviewData.value.totalWorkoutTime || 0],
-        },
-        {
-          name: "總卡路里",
-          type: "bar",
-          data: [overviewData.value.totalCaloriesBurned || 0],
-        },
-        {
-          name: "運動次數",
-          type: "bar",
-          data: [overviewData.value.workoutCount || 0],
-        },
-        {
-          name: "連續天數",
-          type: "bar",
-          data: [overviewData.value.consecutiveDays || 0],
-        },
-      ],
-    };
-    overviewChartInstance.setOption(option);
-  }
-};
-const handleTabChange = (tabName) => {
-  if (tabName === "身體數據") {
-    nextTick(() => {
-      renderBodyDataChart();
-      setTimeout(() => {
-        if (bodyDataChartInstance) {
-          bodyDataChartInstance.resize();
-        }
-      }, 300); // 增加一個小的延遲
-    });
-  }
-};
 onBeforeUnmount(() => {
   if (bodyDataChartInstance) {
     bodyDataChartInstance.dispose();
@@ -1068,14 +1186,69 @@ onMounted(() => {
   console.log("Initial userId:", userId.value);
   console.log("Initial token:", token.value);
   if (userId.value) {
-    fetchBodyData();
-    fetchOverviewData();
+    fetchBodyData(); // 初始載入所有數據，用於列表顯示
+    fetchBodyDataByDateRange(); // 初始載入預設月份的圖表數據
+    console.log(
+      "onMounted -> fetchBodyData and fetchBodyDataByDateRange called"
+    ); // 追蹤資料獲取
   } else {
     console.warn("User ID is not available yet, skipping data fetching.");
     // 可以添加一些處理邏輯，例如顯示載入中狀態或在用戶 ID 可用後再觸發數據獲取
   }
 });
+
+watch(selectedTimeGranularity, (newGranularity) => {
+  if (newGranularity !== "custom" || customDateRange.value === null) {
+    fetchBodyDataByDateRange(newGranularity);
+  }
+});
+
+watch(customDateRange, (newRange) => {
+  if (
+    selectedTimeGranularity.value === "custom" &&
+    newRange &&
+    newRange.length === 2
+  ) {
+    fetchCustomDateRangeData();
+  }
+});
 </script>
+
+<style scoped>
+.fitness-container {
+  padding: 20px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+  color: white;
+}
+
+.content-card {
+  margin-bottom: 20px;
+}
+
+.chart-container {
+  width: 100%;
+  min-height: 400px; /* 確保圖表容器有足夠的高度 */
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: white;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: white;
+}
+</style>
 <style lang="scss" scoped>
 .fitness-view {
   min-height: 100vh;
@@ -1085,10 +1258,10 @@ onMounted(() => {
 }
 
 .fitness-container {
-  width: 100%; /* 確保在小螢幕上佔滿寬度 */
-  max-width: 1200px; /* 設定最大寬度為 1200px */
-  margin: 0 auto; /* 水平居中 */
-  padding: 0 40px; /* 左右留白 40px */
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
 }
 
 .page-header {
@@ -1097,7 +1270,7 @@ onMounted(() => {
 
   h1 {
     font-size: 2.5rem;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, #f5eeee);
     margin-bottom: 10px;
   }
 }
@@ -1117,7 +1290,7 @@ onMounted(() => {
 
     :deep(.el-card__body) {
       padding: 25px;
-      min-height: 550px; /* 增加卡片內部的高度 */
+      min-height: 550px;
     }
   }
 }
@@ -1127,60 +1300,38 @@ onMounted(() => {
 :deep(.el-tabs__header) {
   background-color: #1e293b !important;
   border-radius: 8px 8px 0 0;
+  display: flex !important;
+  justify-content: space-around !important;
+  align-items: center !important;
 }
 
 :deep(.el-tabs__item) {
-  background-color: #1e293b !important;
+  text-align: center !important;
+  padding: 30px 73px !important;
+  margin: 0 !important;
+  background-color: transparent !important;
   color: #fff !important;
   border: none !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-size: 1.3rem !important;
+  font-weight: bold !important;
+
+  &:hover {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #66ccff;
+  }
 
   &.is-active {
+    color: #fff;
     background-color: #2c3e50 !important;
     border-bottom: 2px solid #3a8ee6 !important;
   }
 }
-:deep(.el-tabs--border-card) {
-  background-color: #1e293b !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-:deep(.el-tabs--border-card > .el-tabs__header .el-tabs__item) {
-  background-color: #1e293b !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #fff !important;
 
-  &:hover {
-    background-color: #2a3b52 !important;
-    color: #66ccff !important;
-  }
-
-  &.is-active {
-    background-color: #5ab2a6 !important;
-    border-bottom-color: transparent !important;
-    color: #3a8ee6 !important;
-  }
-}
-:deep(.el-tabs) {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.el-card.content-card {
-  background-color: #1e293b !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  h2 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--text-primary, #333);
-  }
+:deep(.el-tabs__active-line) {
+  background-color: #fff;
 }
 
 .chart-container {
@@ -1214,8 +1365,8 @@ onMounted(() => {
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   background-color: var(--card-bg, #fff);
-  color: var(--text-primary, #333);
-  margin-top: 15px; /* 確保與上方元素間距 */
+  color: var(--text-primary, #e9e0e0);
+  margin-top: 15px;
 }
 
 /* 表格標頭文字顏色改為白色 */
@@ -1236,12 +1387,6 @@ onMounted(() => {
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   overflow: hidden;
-}
-
-/* 強制修改表格數據文字顏色為深灰色並加粗 */
-:deep(.el-table td.el-table__cell) {
-  color: #333 !important;
-  font-weight: bold !important;
 }
 
 /* 更進一步確保表格數據文字顏色 */
@@ -1269,11 +1414,24 @@ onMounted(() => {
     margin-bottom: 20px;
   }
 
-  /* 修改 "運動類型" 和 "日期範圍" 標籤文字顏色為白色 */
+  /* 修改標籤文字顏色為白色 */
   :deep(.el-form-item__label) {
-    color: #fff !important;
+    color: #ecf0f1 !important;
     font-size: 1rem;
     margin-bottom: 5px;
+    font-weight: bold; /* 標籤文字加粗 */
+  }
+
+  /* 統一修改所有輸入框（包括 input, textarea, select, input-number, date-editor）的樣式 */
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__wrapper),
+  :deep(.el-select .el-input__wrapper),
+  :deep(.el-input-number .el-input__wrapper),
+  :deep(.el-date-editor .el-input__wrapper) {
+    background-color: #4a6572 !important;
+    color: #fff !important;
+    border-radius: 8px;
+    border: none !important;
   }
 
   :deep(.el-input__inner),
@@ -1281,10 +1439,9 @@ onMounted(() => {
   :deep(.el-select .el-input__inner),
   :deep(.el-input-number .el-input__inner),
   :deep(.el-date-editor .el-input__inner) {
-    background-color: #fff !important;
-    border: 1px solid var(--highlight-color, #10b981);
-    color: var(--text-primary, #333) !important; /* 確保表單輸入框內文字顏色 */
-    border-radius: 8px;
+    color: #fff !important;
+    background-color: #4a6572 !important;
+    border: none !important; /* 移除可能有的邊框 */
     height: 40px;
     line-height: 40px;
     padding-left: 12px;
@@ -1297,7 +1454,7 @@ onMounted(() => {
 
   :deep(.el-select .el-input .el-select__caret),
   :deep(.el-date-editor .el-input .el-input__icon) {
-    color: var(--text-secondary, #666);
+    color: #fff !important; /* 同樣修改箭頭和圖示顏色為白色 */
   }
 
   :deep(.el-input__inner:focus),
@@ -1305,8 +1462,19 @@ onMounted(() => {
   :deep(.el-select .el-input__inner:focus),
   :deep(.el-input-number .el-input__inner:focus),
   :deep(.el-date-editor .el-input__inner:focus) {
-    border-color: var(--highlight-color, #10b981);
+    color: #00ff00 !important; /* 螢光綠 */
+    font-size: 1.2em !important; /* 放大 1.2 倍 */
+    border-color: var(
+      --highlight-color,
+      #10b981
+    ) !important; /* 保留之前的焦點高亮 */
     box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+  }
+
+  :deep(.el-input__inner:focus::placeholder),
+  :deep(.el-textarea__inner:focus::placeholder) {
+    color: #00ff00;
+    font-size: 1.2em;
   }
 }
 
@@ -1316,6 +1484,8 @@ onMounted(() => {
 
   .el-button {
     margin-left: 10px;
+    font-size: 1.1rem; /* 放大按鈕文字 */
+    padding: 12px 25px; /* 放大按鈕內邊距 */
   }
 }
 
@@ -1323,7 +1493,7 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
-  color: #fff !important; /* 修改 "Total" 和 "Go to" 的文字顏色為白色 */
+  color: #fff !important;
 }
 
 /* 修改分頁組件的數字顏色為白色 */
@@ -1332,36 +1502,6 @@ onMounted(() => {
 :deep(.el-pagination__pager li),
 :deep(.el-pagination__text) {
   color: #fff !important;
-}
-
-/* 切換標籤 hover 效果 */
-:deep(.el-tabs__header) {
-  /* 可以根據需要調整標頭的整體樣式 */
-}
-
-:deep(.el-tabs__item) {
-  color: #fff; /* 預設標籤文字顏色為白色 */
-  transition: background-color 0.3s ease, color 0.3s ease; /* 添加過渡效果 */
-  background-color: transparent; /* 預設背景透明 */
-
-  &:hover {
-    background-color: rgba(
-      16,
-      185,
-      129,
-      0.15
-    ); /* 淡淡的綠色背景，調整 alpha 值控制透明度 */
-    color: #66ccff; /* 移入時的文字顏色，淺藍色 */
-  }
-
-  &.is-active {
-    color: #fff; /* 激活標籤的文字顏色 */
-    /* 可以根據需要添加激活標籤的樣式 */
-  }
-}
-
-:deep(.el-tabs__active-line) {
-  background-color: #fff; /* 激活指示線顏色 */
 }
 
 @media (max-width: 767px) {
@@ -1380,37 +1520,167 @@ onMounted(() => {
   .el-tabs {
     :deep(.el-tabs__header) {
       margin-bottom: 15px;
-      border-bottom: 1px solid var(--border-color, #e0e0e0); /* 可能需要調整 */
+      border-bottom: 1px solid var(--border-color, #e0e0e0);
     }
 
     :deep(.el-tabs__nav-wrap::after) {
-      background-color: transparent; /* 移除底部陰影 */
-    }
-
-    :deep(.el-tabs__item) {
-      color: #fff;
-      padding: 15px 20px;
-      font-size: 1rem;
-
-      &:hover {
-        /* 可以根據需要添加 hover 效果 */
-      }
-
-      &.is-active {
-        color: #fff;
-      }
+      background-color: transparent;
     }
 
     :deep(.el-tabs__active-line) {
       background-color: #fff;
       height: 3px;
       border-radius: 3px 3px 0 0;
-      margin-bottom: -1px; /* 與底部邊框對齊 */
+      margin-bottom: -1px;
     }
 
     :deep(.el-tabs__content) {
       padding: 10px;
     }
   }
+}
+
+:deep(.el-dialog) {
+  background-color: #2c3e50 !important;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* 修改 el-dialog 的標題文字顏色 */
+:deep(.el-dialog__header) {
+  color: #fff !important;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 修改 el-dialog 的內容區域背景色和文字顏色 */
+:deep(.el-dialog__body) {
+  background-color: #34495e !important;
+  padding: 25px;
+  color: #ecf0f1 !important; /* 修改對話框內主要文字顏色為淺色 */
+}
+
+/* 修改 el-form-item 的 label 文字顏色 */
+:deep(.el-form-item__label) {
+  color: #ecf0f1 !important;
+  font-weight: bold;
+}
+
+/* 統一修改所有輸入框（再次強調） */
+:deep(.el-input__wrapper),
+:deep(.el-textarea__wrapper),
+:deep(.el-select .el-input__wrapper),
+:deep(.el-input-number .el-input__wrapper),
+:deep(.el-date-editor .el-input__wrapper) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+  border-radius: 8px;
+  border: none !important;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select .el-input__inner),
+:deep(.el-input-number .el-input__inner),
+:deep(.el-date-editor .el-input__inner) {
+  color: #fff !important;
+  background-color: #4a6572 !important;
+  border: none !important;
+  height: 40px;
+  line-height: 40px;
+  padding-left: 12px;
+}
+
+/* 修改 el-date-picker 的輸入框樣式 */
+:deep(.el-date-editor.el-input .el-input__inner),
+:deep(.el-date-editor.el-input .el-input__wrapper) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+}
+
+/* 修改 el-select 的背景色和文字顏色 */
+:deep(.el-select .el-input .el-input__wrapper) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+:deep(.el-select .el-input .el-input__inner) {
+  color: #fff !important;
+  background-color: #4a6572 !important;
+}
+
+/* 修改 el-input-number 的控制按鈕樣式 */
+:deep(.el-input-number__decrease),
+:deep(.el-input-number__increase) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+  border: 1px solid #607d8b;
+}
+
+/* 修改 el-dialog 的底部按鈕樣式 */
+:deep(.el-dialog__footer) {
+  padding: 15px 20px;
+  border-top: none !important; /* 移除頂部格線 */
+  background-color: #34495e !important;
+  text-align: center;
+
+  .el-button {
+    font-size: 1.3rem; /* 放大按鈕文字 */
+    padding: 12px 25px; /* 放大按鈕內邊距 */
+  }
+}
+
+/* 嘗試實現日期五字平均分佈 - 效果有限，可能需要 JavaScript 輔助 */
+:deep(.el-date-editor .el-input__inner) {
+  font-family: monospace; /* 使用等寬字體 */
+  text-align: justify;
+  text-justify: distribute-all-lines;
+  letter-spacing: 0.5em; /* 你可以調整這個值 */
+}
+
+/* 修改輸入框和數字輸入框聚焦時的文字顏色和大小 */
+:deep(.el-input__inner:focus),
+:deep(.el-input-number .el-input__inner:focus),
+:deep(.el-textarea__inner:focus),
+:deep(.el-select .el-input__inner:focus),
+:deep(.el-date-editor .el-input__inner:focus) {
+  color: #00ff00 !important; /* 螢光綠 */
+  font-size: 1.2em !important; /* 放大 1.2 倍 */
+  border-color: var(
+    --highlight-color,
+    #10b981
+  ) !important; /* 保留之前的焦點高亮 */
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+}
+
+:deep(.el-input__inner:focus::placeholder),
+:deep(.el-textarea__inner:focus::placeholder) {
+  color: #00ff00;
+  font-size: 1.2em;
+}
+
+/* 修改 el-select 下拉選單被選中項目的樣式（可選） */
+:deep(.el-select-dropdown__item.selected) {
+  color: #00ff00 !important;
+  font-size: 1.2em !important;
+  font-weight: bold; /* 可以選擇加粗 */
+  background-color: rgba(0, 255, 0, 0.1); /* 可以添加一個淺綠色背景 */
+}
+
+/* 修改 el-date-picker 日曆中被選中日期的樣式（可選） */
+:deep(.el-date-table td.is-selected div span) {
+  color: #000 !important; /* 選中日期文字顏色 */
+  background-color: #00ff00 !important; /* 選中日期背景色 */
+  font-size: 1.2em !important;
+}
+
+:deep(.el-dialog__title) {
+  color: #fff !important;
+  font-size: 1.5em !important;
+}
+.echarts-datazoom-slider text {
+  display: none !important;
 }
 </style>
