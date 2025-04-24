@@ -4,16 +4,19 @@
     <section class="hero">
       <div class="overlay">
         <h1>健康管理專家，<span class="highlight">掌握你的健康</span></h1>
-        <p>專業數據分析、個人化健康計劃，全方位追蹤功能，讓健康管理更簡單有效</p>
-        <el-button type="success" @click="$router.push('/social/forumcreate')">立即發表文章</el-button>
+        <p>{{ bannerText }}</p>
+        <div class="hero-buttons">
+          <el-button type="primary" @click="$router.push('/social/forum')">文章列表</el-button>
+          <el-button type="success" @click="$router.push('/social/forumcreate')">立即發表文章</el-button>
+        </div>
       </div>
     </section>
 
     <!-- 三個廣告卡片區 -->
     <section class="promo-section">
       <div class="promo-card" v-for="n in 3" :key="n">
-        <img :src="`/api/home/promo-${n}.jpg`" alt="廣告圖片" />
-        <p class="promo-text">這裡是廣告文案{{ n }}</p>
+        <img :src="getPromoImagePath(n)" alt="廣告圖片" />
+        <p class="promo-text">廣告文案：{{ promoTexts[n - 1] }}</p>
       </div>
     </section>
 
@@ -22,8 +25,15 @@
       <div class="post-half">
         <h2>🔥 熱門文章排行榜</h2>
         <ul>
-          <li v-for="p in topPosts" :key="p.id" class="post-item">
-            <span class="rank">TOP{{ p.rank }}</span>
+          <li
+            v-for="(p, i) in topFivePosts"
+            :key="p.id"
+            class="post-item"
+            :data-post-id="p.id"
+            @click="$router.push({ path: '/social/forum', query: { postId: p.id } })"
+            style="cursor: pointer"
+          >
+            <span class="rank">TOP{{ i + 1 }}</span>
             <div>
               <strong>{{ p.title }}</strong>
               <p class="meta">👀 {{ p.viewCount }} 次瀏覽</p>
@@ -35,7 +45,14 @@
       <div class="post-half">
         <h2>🆕 最新文章</h2>
         <ul>
-          <li v-for="p in latestPosts" :key="p.id" class="post-item">
+          <li
+            v-for="(p, i) in latestFivePosts"
+            :key="p.id"
+            class="post-item"
+            :data-post-id="p.id"
+            @click="$router.push({ path: '/social/forum', query: { postId: p.id } })"
+            style="cursor: pointer"
+          >
             <strong>{{ p.title }}</strong>
             <p class="meta">{{ p.summary }}</p>
           </li>
@@ -54,28 +71,58 @@
       </div>
       <div class="video-box">
         <h2>📺 推薦影片</h2>
-        <iframe width="100%" height="200" :src="youtubeEmbedUrl" frameborder="0" allowfullscreen></iframe>
+        <iframe width="100%" height="200" :src="embedUrl" frameborder="0" allowfullscreen></iframe>
       </div>
     </section>
   </div>
 </template>
 
 <script setup>
-const topPosts = [
-  { id: 1, title: '增肌飲食計畫', viewCount: 345, rank: 1 },
-  { id: 2, title: '減脂訓練菜單', viewCount: 300, rank: 2 },
-  { id: 3, title: '健身必備補給品', viewCount: 280, rank: 3 },
-  { id: 4, title: '從零開始跑步習慣', viewCount: 210, rank: 4 },
-  { id: 5, title: '運動傷害預防知識', viewCount: 198, rank: 5 },
-];
+import { ref, onMounted, computed, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
+import axios from 'axios';
 
-const latestPosts = [
-  { id: 101, title: '最新訓練技巧', summary: '學習如何快速進入訓練節奏，提升效率。' },
-  { id: 102, title: '健身房新手入門', summary: '第一次進健身房就上手！' },
-  { id: 103, title: '如何避免運動疲勞', summary: '改善休息策略與補給觀念。' },
-];
+const allPosts = ref([]);
+const bannerText = ref('');
+const promoTexts = ref(['', '', '']);
+const videoUrl = ref('');
+const route = useRoute();
 
-const youtubeEmbedUrl = 'https://www.youtube.com/embed/WUZZ0N7pmlc'; // 可後端管理
+onMounted(async () => {
+  bannerText.value = localStorage.getItem('home_bannerText') ||
+    '專業數據分析、個人化健康計劃，全方位追蹤功能，讓健康管理更簡單有效';
+  promoTexts.value = JSON.parse(localStorage.getItem('home_promoTexts') || '["廣告一文案", "廣告二文案", "廣告三文案"]');
+  videoUrl.value = localStorage.getItem('home_videoUrl') || 'https://www.youtube.com/embed/WUZZ0N7pmlc';
+
+  const res = await axios.get('/api/posts');
+  allPosts.value = res.data;
+
+  await nextTick();
+  const targetId = route.query.postId;
+  if (targetId) {
+    const el = document.querySelector(`[data-post-id="${targetId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+const getPromoImagePath = (n) => `/src/assets/images/promo-${n}.jpg`;
+
+const embedUrl = computed(() => {
+  const match = videoUrl.value.match(/(?:\?v=|\.be\/|embed\/)([\w-]+)/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : videoUrl.value;
+});
+
+const topFivePosts = computed(() => {
+  return [...allPosts.value]
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .slice(0, 5);
+});
+
+const latestFivePosts = computed(() => {
+  return [...allPosts.value]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5);
+});
 </script>
 
 <style scoped>
@@ -85,8 +132,9 @@ const youtubeEmbedUrl = 'https://www.youtube.com/embed/WUZZ0N7pmlc'; // 可後�
   font-family: 'Segoe UI', sans-serif;
 }
 
+/* ✨ Banner 區塊樣式 */
 .hero {
-  background-image: url('/api/home/banner.jpg');
+  background-image: url('/src/assets/images/banner.jpg');
   background-size: cover;
   background-position: center;
   height: 420px;
@@ -98,8 +146,9 @@ const youtubeEmbedUrl = 'https://www.youtube.com/embed/WUZZ0N7pmlc'; // 可後�
 }
 .hero .overlay {
   background: rgba(0, 0, 0, 0.5);
-  padding: 40px;
+  padding: 60px;
   border-radius: 12px;
+  position: relative;
 }
 .hero h1 {
   font-size: 32px;
@@ -111,6 +160,13 @@ const youtubeEmbedUrl = 'https://www.youtube.com/embed/WUZZ0N7pmlc'; // 可後�
 .hero p {
   color: #ccc;
   margin-bottom: 20px;
+}
+.hero-buttons {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
 }
 
 .promo-section {
@@ -131,9 +187,11 @@ const youtubeEmbedUrl = 'https://www.youtube.com/embed/WUZZ0N7pmlc'; // 可後�
   border-radius: 6px;
   margin-bottom: 10px;
 }
+/* 廣告文案 */
 .promo-text {
   font-size: 14px;
-  color: #ccc;
+  color: #ccc; 
+  font-weight: 500;
 }
 
 .post-section {

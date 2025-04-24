@@ -34,6 +34,7 @@ import ProductAdmin from "@/views/backend/shop/ProductAdmin.vue";
 import ForumHomeView from "@/views/backend/social/ForumHomeView.vue";
 import ForumPostsView from "@/views/backend/social/ForumPostsView.vue";
 import ForumCreateView from "@/views/backend/social/ForumCreateView.vue";
+import SocialAnalyticsView from "@/views/backend/social/SocialAnalyticsView.vue";
 
 // 追蹤成效
 import AdminDietRecords from "@/views/backend/fitness/back/DietRecords.vue";
@@ -317,6 +318,12 @@ const routes = [
                 name: "ForumCreate",
                 component: ForumCreateView,
                 meta: { title: "發表文章", requiresAuth: true },
+            },
+            {
+                path: "social/analytics",
+                name: "SocialAnalytics",
+                component: SocialAnalyticsView,
+                meta: { title: "數據分析", requiresAuth: true },
             },
             {
                 path: "fitness/admin/workouts",

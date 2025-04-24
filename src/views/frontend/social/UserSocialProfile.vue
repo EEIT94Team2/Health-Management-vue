@@ -61,9 +61,9 @@
 </el-dialog>
 <el-button @click="loadSentTraining">📤 我發送的訓練邀請</el-button>
 <el-dialog v-model="showSentTrainingDialog" title="📤 我發送的邀請">
-  <ul>
+  <ul class="sent-training-list">
     <li v-for="invite in sentTraining" :key="invite.id">
-      <p>💪 你邀請了 {{ invite.receiverName }}：狀態是 {{ statusText(invite.status) }}</p>
+      <p :class="['invite-status-text', invite.status]">💪 你邀請了 {{ invite.receiverName }}：狀態是 {{ statusText(invite.status) }}</p>
     </li>
   </ul>
 </el-dialog>
@@ -645,6 +645,25 @@ const submitEdit = async () => {
   padding: 10px 12px;
   font-size: 16px;
   line-height: 1.5;
+}
+/* 已發送邀請通知樣式 */
+.sent-training-list p {
+  color: #90caf9; 
+  font-size: 16px;
+  margin: 8px 0;
+}
+.invite-status-text {
+  font-size: 16px;
+  margin: 6px 0;
+}
+.invite-status-text.accepted {
+  color: #4caf50; /* 綠色 */
+}
+.invite-status-text.rejected {
+  color: #f44336; /* 紅色 */
+}
+.invite-status-text.pending {
+  color: #ffc107; /* 黃色 */
 }
 /* 🔧 Dialog 彈窗外觀 */
 :deep(.el-dialog) {
