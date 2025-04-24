@@ -1,76 +1,78 @@
 <template>
     <header class="main-header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <router-link to="/" @click="handleLogoClick">
-                        <img src="@/assets/images/logo.png" alt="Logo" class="logo-icon" />
-                        享健你
-                        <span class="subtitle">遇見更好的自己</span>
-                    </router-link>
-                </div>
-                <nav class="main-nav">
-                    <ul>
-                        <li
-                            v-for="menu in filteredMenus"
-                            :key="menu.label"
-                            class="nav-item"
-                            @mouseenter="menu.open = true"
-                            @mouseleave="menu.open = false"
-                        >
-                            <a href="#" @click.prevent="menu.hash ? handleNavClick(menu) : null">
-                                {{ menu.label }}
-                                <span class="arrow" :class="{ open: menu.open }">▼</span>
-                            </a>
-                            <ul
-                                v-if="menu.children"
-                                class="dropdown horizontal"
-                                :class="{ show: menu.open }"
-                            >
-                                <li v-for="child in menu.children" :key="child.label">
-                                    <a href="#" @click.prevent="handleNavClick(child)">
-                                        {{ child.label }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- 未登錄 -->
-                <div class="header-buttons" v-if="!isAuthenticated">
-                    <el-button size="medium" @click="handleLogin">登入</el-button>
-                    <el-button type="primary" size="medium" @click="handleRegister">
-                        免費註冊
-                    </el-button>
-                </div>
-
-                <!-- 已登錄 -->
-                <div
-                    class="user-dropdown"
-                    v-else
-                    @mouseenter="userMenuOpen = true"
-                    @mouseleave="userMenuOpen = false"
+      <div class="container">
+        <div class="header-content">
+          <div class="logo">
+            <router-link to="/" @click="handleLogoClick">
+              <img src="@/assets/images/logo.png" alt="Logo" class="logo-icon" />
+              享健你
+              <span class="subtitle">遇見更好的自己</span>
+            </router-link>
+          </div>
+  
+          <nav class="main-nav">
+            <ul>
+              <li
+                v-for="menu in filteredMenus"
+                :key="menu.label"
+                class="nav-item"
+                @mouseenter="menu.open = true"
+                @mouseleave="menu.open = false"
+              >
+                <a href="#" @click.prevent="menu.hash ? handleNavClick(menu) : null">
+                  {{ menu.label }}
+                  <span class="arrow" :class="{ open: menu.open }">▼</span>
+                </a>
+                <ul
+                  v-if="menu.children"
+                  class="dropdown horizontal"
+                  :class="{ show: menu.open }"
                 >
-                    <div class="user-dropdown-toggle">
-                        <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" />
-                        <span class="user-name" :title="userInfo?.name">{{ displayName }}</span>
-                        <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
-                    </div>
-                    <ul class="dropdown" :class="{ show: userMenuOpen }">
-                        <li><router-link to="/user/profile">會員中心</router-link></li>
-                        <li><router-link to="/user/courses">我的課程</router-link></li>
-                        <li><router-link to="/user/orders">我的訂單</router-link></li>
-                        <li><router-link to="/shop/cart">購物車</router-link></li>
-                        <li><router-link to="/user/fitness">健身成效</router-link></li>
-                        <li><router-link to="/user/profile">我的檔案</router-link></li>
-                        <li><a href="#" @click.prevent="handleLogout">登出</a></li>
-                    </ul>
-                </div>
+                  <li v-for="child in menu.children" :key="child.label">
+                    <a href="#" @click.prevent="handleNavClick(child)">
+                      {{ child.label }}
+                    </a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </nav>
+  
+          <!-- 未登錄 -->
+          <div class="header-buttons" v-if="!isAuthenticated">
+            <el-button size="medium" @click="handleLogin">登入</el-button>
+            <el-button type="primary" size="medium" @click="handleRegister">
+              免費註冊
+            </el-button>
+          </div>
+  
+          <!-- 已登錄 -->
+          <div
+            class="user-dropdown"
+            v-else
+            @mouseenter="userMenuOpen = true"
+            @mouseleave="userMenuOpen = false"
+          >
+            <div class="user-dropdown-toggle">
+              <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" />
+              {{ userInfo?.name || "用戶" }}
+              <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
             </div>
+            <ul class="dropdown" :class="{ show: userMenuOpen }">
+              <li><router-link to="/user/profile">會員中心</router-link></li>
+              <li><router-link to="/user/courses">我的課程</router-link></li>
+              <li><router-link to="/shop/orders">我的訂單</router-link></li>
+              <li><router-link to="/shop/cart">購物車</router-link></li>
+              <li><router-link to="/user/fitness">健身成效</router-link></li>
+              <li><router-link to="/user/profile">我的檔案</router-link></li>
+              <li><a href="#" @click.prevent="handleLogout">登出</a></li>
+            </ul>
+          </div>
         </div>
+      </div>
     </header>
-</template>
-
+  </template>
+  
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -175,38 +177,41 @@ const handleLogout = () => {
 };
 
 const menus = reactive([
-    {
-        label: "課程管理",
-        children: [{ label: "課程列表", hash: "#courses" }],
-        open: false,
-    },
-    {
-        label: "商城",
-        children: [
-            { label: "商品列表", path: "/shop/products" },
-            { label: "購物車", path: "/shop/cart" },
-            { label: "我的訂單", path: "/shop/orders" },
-        ],
-        open: false,
-    },
-    {
-        label: "追蹤成效",
-        children: [
-            { label: "運動紀錄管理", hash: "#workout-tracking" },
-            { label: "身體數據管理", hash: "#body-data" },
-            { label: "報告與數據分析", hash: "#report" },
-        ],
-        open: false,
-    },
-    {
-        label: "社群論壇",
-        children: [
-            { label: "論壇首頁", hash: "#forum-home" },
-            { label: "文章列表", hash: "#articles" },
-            { label: "發表文章", hash: "#post" },
-        ],
-        open: false,
-    },
+  {
+    label: '課程管理',
+    children: [
+      { label: '課程列表', hash: '#courses' },
+    ],
+    open: false,
+  },
+  {
+    label: '商城',
+    children: [
+      { label: '商品列表', path: '/shop/products' },
+      { label: '購物車', path: '/shop/cart' },
+      { label: '我的訂單', path: '/shop/orders' },
+    ],
+    open: false,
+  },
+  {
+    label: '追蹤成效',
+    children: [
+      { label: '運動紀錄管理', hash: '#workout-tracking' },
+      { label: '身體數據管理', hash: '#body-data' },
+      { label: '報告與數據分析', hash: '#report' },
+    ],
+    open: false,
+  },
+  {
+    label: '社群論壇',
+    children: [
+      { label: '論壇首頁', path: '/social/forumhome' },
+      { label: '文章列表', path: '/social/forum' },
+      { label: '發表文章', path: '/social/forumcreate' },
+      { label: '個人檔案', path: '/social/UserSocialProfile' },
+    ],
+    open: false,
+  },
 ]);
 
 // 过滤掉会员中心菜单

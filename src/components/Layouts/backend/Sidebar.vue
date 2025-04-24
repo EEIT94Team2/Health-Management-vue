@@ -86,7 +86,7 @@
              </el-sub-menu>
 
              <el-sub-menu index="social">
-                 <template #title>
+                <template #title>
                      <el-icon><ChatSquare /></el-icon>
                      <span>論壇</span>
                  </template>
@@ -98,6 +98,9 @@
                  </el-menu-item>
                  <el-menu-item index="/backpage/social/create">
                      <span>發表文章</span>
+                 </el-menu-item>
+                 <el-menu-item index="/backpage/social/analytics">
+                     <span>數據分析</span>
                  </el-menu-item>
              </el-sub-menu>
              <el-menu-item index="/">

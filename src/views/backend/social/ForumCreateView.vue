@@ -1,4 +1,5 @@
 <template>
+  <div class="admin-forum-create">
     <div class="view-container">
       <h1>發表新文章</h1>
   
@@ -31,6 +32,7 @@
         </el-form-item>
       </el-form>
     </div>
+  </div>
   </template>
   
   <script setup>
@@ -70,6 +72,32 @@
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  </style>
+  <style>
+  .admin-forum-create {
+    background-color: #fff;
+    color: #000;
+    padding: 24px;
+    border-radius: 8px;
+  }
+  
+  /* 把 input、textarea、select 還原亮色風格 */
+  .admin-forum-create input,
+  .admin-forum-create textarea,
+  .admin-forum-create select {
+    background-color: #fff !important;
+    color: #000 !important;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  /* 按鈕樣式可自行調整，也還原 */
+  .admin-forum-create button,
+  .admin-forum-create .el-button {
+    background-color: #409eff;
+    color: white;
+    border-radius: 4px;
   }
   </style>
   
