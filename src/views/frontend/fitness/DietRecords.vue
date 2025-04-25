@@ -348,10 +348,6 @@ watch(
 </script>
 
 <style scoped>
-.diet-data-management {
-  /* 可以根據需要添加飲食記錄管理容器的樣式 */
-}
-
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -374,10 +370,6 @@ watch(
 
 .search-form-container {
   margin-bottom: 15px;
-}
-
-.search-form {
-  /* 可以根據需要添加搜索表單的樣式 */
 }
 
 :deep(.el-form-item__label) {

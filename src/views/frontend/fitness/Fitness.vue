@@ -2,11 +2,15 @@
   <div class="fitness-view">
     <div class="fitness-container">
       <div class="page-header">
-        <h1>健身追蹤</h1>
+        <h1>成效追蹤</h1>
       </div>
 
-      <el-tabs type="border-card" @tab-change="handleTabChange">
-        <el-tab-pane label="身體數據">
+      <el-tabs
+        type="border-card"
+        v-model="activeTab"
+        @tab-change="handleTabChange"
+      >
+        <el-tab-pane label="身體指標" name="body-data">
           <el-card class="content-card">
             <template #header>
               <div class="card-header"></div>
@@ -130,7 +134,7 @@
           </el-card>
         </el-tab-pane>
 
-        <el-tab-pane label="運動記錄">
+        <el-tab-pane label="運動紀錄" name="workout-records">
           <el-card class="content-card">
             <template #header>
               <div class="card-header"></div>
@@ -139,7 +143,7 @@
           </el-card>
         </el-tab-pane>
 
-        <el-tab-pane label="飲食記錄">
+        <el-tab-pane label="飲食追蹤" name="diet-records">
           <el-card class="content-card">
             <template #header>
               <div class="card-header"></div>
@@ -148,7 +152,7 @@
           </el-card>
         </el-tab-pane>
 
-        <el-tab-pane label="健身目標">
+        <el-tab-pane label="目標設定" name="goals-progress">
           <el-card class="content-card">
             <template #header>
               <div class="card-header"></div>
@@ -157,7 +161,7 @@
           </el-card>
         </el-tab-pane>
 
-        <el-tab-pane label="概覽">
+        <el-tab-pane label="概覽" name="overview">
           <el-card class="content-card">
             <template #header>
               <div class="card-header"></div>
@@ -339,6 +343,7 @@ import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
 import * as echarts from "echarts";
 import { ElMessage, ElTabs, ElTabPane, ElCard } from "element-plus";
+import { useRoute, useRouter } from "vue-router";
 
 // 導入分離出的組件
 import WorkoutRecordsManagement from "./WorkoutRecords.vue";
@@ -348,6 +353,9 @@ import DietRecordsManagement from "./DietRecords.vue";
 import GoalsProgressManagement from "./GoalsProgress.vue";
 
 const authStore = useAuthStore();
+const route = useRoute();
+const router = useRouter();
+const activeTab = ref(route.query.tab || "body-data");
 
 // 反應式數據
 const workouts = ref([]);
@@ -1202,6 +1210,16 @@ watch(selectedTimeGranularity, (newGranularity) => {
     fetchBodyDataByDateRange(newGranularity);
   }
 });
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab) {
+      activeTab.value = newTab;
+    } else {
+      activeTab.value = "body-data";
+    }
+  }
+);
 
 watch(customDateRange, (newRange) => {
   if (
