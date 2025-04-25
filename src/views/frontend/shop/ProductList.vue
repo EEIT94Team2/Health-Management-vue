@@ -536,12 +536,18 @@ export default {
         position: relative;
         overflow: hidden;
         background-color: #111827;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        width: 100%;
 
         img {
             width: 100%;
-            height: 100%;
-            object-fit: contain;
+            height: 180px;
+            object-fit: cover;
             transition: transform 0.5s;
+            border-radius: 0;
         }
     }
 

@@ -35,6 +35,7 @@ import ProductAdmin from "@/views/backend/shop/ProductAdmin.vue";
 import ForumHomeView from "@/views/backend/social/ForumHomeView.vue";
 import ForumPostsView from "@/views/backend/social/ForumPostsView.vue";
 import ForumCreateView from "@/views/backend/social/ForumCreateView.vue";
+import SocialAnalyticsView from "@/views/backend/social/SocialAnalyticsView.vue";
 
 // 追蹤成效
 import AdminDietRecords from "@/views/backend/fitness/DietRecords.vue";
@@ -135,17 +136,36 @@ const routes = [
         meta: { title: "會員中心", requiresAuth: true },
       },
       {
-        path: "forum",
+        path: "social/forumhome",
+        name: "FrontendForumHome",
+        component: () => import("@/views/frontend/social/ForumHomeView.vue"),
+        meta: { title: "論壇首頁" },
+      },
+      {
+        path: "social/forum",
         name: "FrontendForum",
         component: () => import("@/views/frontend/social/Forum.vue"),
         meta: { title: "健康討論區" },
       },
       {
-        path: "UserSocialProfile",
+        path: "social/UserSocialProfile",
         name: "UserSocialProfile",
         component: () =>
           import("@/views/frontend/social/UserSocialProfile.vue"),
         meta: { title: "個人檔案" },
+      },
+      {
+        path: "social/forumcreate",
+        name: "FrontendForumCreateView",
+        component: () => import("@/views/frontend/social/ForumCreateView.vue"),
+        meta: { title: "發表文章" },
+      },
+      {
+        path: "social/partner",
+        name: "Partner",
+        component: () =>
+          import("@/views/frontend/social/FindWorkoutPartner.vue"),
+        meta: { title: "發表文章" },
       },
     ],
   },
@@ -303,7 +323,7 @@ const routes = [
         component: ForumCreateView,
         meta: { title: "發表文章", requiresAuth: true },
       },
-      //成效追蹤
+
       {
         path: "fitness/admin/workouts",
         name: "AdminWorkouts",
@@ -330,6 +350,7 @@ const routes = [
         component: AdminBodyData,
         meta: {
           title: "身體數據管理",
+          icon: "Scale",
           requiresAuth: true,
           isAdmin: true,
         },
@@ -340,16 +361,6 @@ const routes = [
         component: AdminGoalsProgress,
         meta: {
           title: "目標與進度",
-          requiresAuth: true,
-          isAdmin: true,
-        },
-      },
-      {
-        path: "fitness/admin/achievements",
-        name: "AdminAchievement",
-        component: AdminAchievement,
-        meta: {
-          title: "獎章管理",
           requiresAuth: true,
           isAdmin: true,
         },
