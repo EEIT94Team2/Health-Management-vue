@@ -294,22 +294,25 @@
               </p>
               <ul class="community-features">
                 <li>
-                  <router-link to="/forum" class="plain-link">
+                  <router-link to="/social/forum" class="plain-link">
                     <el-icon><ChatDotRound /></el-icon> 健康討論區
                   </router-link>
                 </li>
                 <li>
-                  <router-link to="/forum" class="plain-link">
+                  <router-link to="/social/partner" class="plain-link">
                     <el-icon><Connection /></el-icon> 尋找運動夥伴</router-link
                   >
                 </li>
                 <li>
-                  <router-link to="/forum" class="plain-link">
+                  <router-link to="/social/createforum" class="plain-link">
                     <el-icon><Share /></el-icon> 分享成功故事</router-link
                   >
                 </li>
                 <li>
-                  <router-link to="/UserSocialProfile" class="plain-link">
+                  <router-link
+                    to="/social/UserSocialProfile"
+                    class="plain-link"
+                  >
                     <el-icon><QuestionFilled /></el-icon> 個人檔案</router-link
                   >
                 </li>

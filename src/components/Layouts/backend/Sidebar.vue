@@ -117,6 +117,9 @@
         <el-menu-item index="/backpage/social/create">
           <span>發表文章</span>
         </el-menu-item>
+        <el-menu-item index="/backpage/social/analytics">
+          <span>數據分析</span>
+        </el-menu-item>
       </el-sub-menu>
       <el-menu-item index="/">
         <el-icon><Monitor /></el-icon> <span>前往前台</span>

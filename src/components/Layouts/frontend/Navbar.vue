@@ -9,6 +9,7 @@
             <span class="subtitle">遇見更好的自己</span>
           </router-link>
         </div>
+
         <nav class="main-nav">
           <ul>
             <li
@@ -39,6 +40,7 @@
             </li>
           </ul>
         </nav>
+
         <!-- 未登錄 -->
         <div class="header-buttons" v-if="!isAuthenticated">
           <el-button size="medium" @click="handleLogin">登入</el-button>
@@ -68,7 +70,7 @@
           <ul class="dropdown" :class="{ show: userMenuOpen }">
             <li><router-link to="/user/profile">會員中心</router-link></li>
             <li><router-link to="/user/courses">我的課程</router-link></li>
-            <li><router-link to="/user/orders">我的訂單</router-link></li>
+            <li><router-link to="/shop/orders">我的訂單</router-link></li>
             <li><router-link to="/shop/cart">購物車</router-link></li>
             <li><router-link to="/user/fitness">健身成效</router-link></li>
             <li><router-link to="/user/profile">我的檔案</router-link></li>
@@ -210,9 +212,10 @@ const menus = reactive([
   {
     label: "社群論壇",
     children: [
-      { label: "論壇首頁", hash: "#forum-home" },
-      { label: "文章列表", hash: "#articles" },
-      { label: "發表文章", hash: "#post" },
+      { label: "論壇首頁", path: "/social/forumhome" },
+      { label: "文章列表", path: "/social/forum" },
+      { label: "發表文章", path: "/social/forumcreate" },
+      { label: "個人檔案", path: "/social/UserSocialProfile" },
     ],
     open: false,
   },

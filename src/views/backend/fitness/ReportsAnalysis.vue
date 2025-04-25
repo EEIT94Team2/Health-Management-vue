@@ -1,56 +1,48 @@
 <template>
-  <div>
-    <h1>綜合數據報告</h1>
-    <div>
-      <div style="display: flex; flex-wrap: wrap; gap: 20px">
-        <el-card style="width: 250px">
-          <template #header>
-            <div class="card-header">
-              <span>總訓練次數</span>
-            </div>
-          </template>
-          <div style="text-align: center; font-size: 24px; font-weight: bold">
-            {{ dashboardStats.totalWorkouts }}
+  <div class="dashboard-container">
+    <h1 class="dashboard-title">綜合數據報告</h1>
+    <div class="stats-grid">
+      <el-card class="stats-card">
+        <template #header>
+          <div class="card-header">
+            <span style="font-size: 1.8rem">📊 總訓練次數</span>
           </div>
-        </el-card>
+        </template>
+        <div class="stats-value">{{ dashboardStats.totalWorkouts }}</div>
+      </el-card>
 
-        <el-card style="width: 250px">
-          <template #header>
-            <div class="card-header">
-              <span>總訓練時長 (分鐘)</span>
-            </div>
-          </template>
-          <div style="text-align: center; font-size: 24px; font-weight: bold">
-            {{ dashboardStats.totalWorkoutMinutes }}
+      <el-card class="stats-card">
+        <template #header>
+          <div class="card-header">
+            <span style="font-size: 1.8rem">⏱️ 總訓練時長 (分鐘)</span>
           </div>
-        </el-card>
+        </template>
+        <div class="stats-value">{{ dashboardStats.totalWorkoutMinutes }}</div>
+      </el-card>
 
-        <el-card style="width: 250px">
-          <template #header>
-            <div class="card-header">
-              <span>總燃燒卡路里</span>
-            </div>
-          </template>
-          <div style="text-align: center; font-size: 24px; font-weight: bold">
-            {{
-              dashboardStats.totalCaloriesBurned
-                ? dashboardStats.totalCaloriesBurned.toFixed(2)
-                : 0
-            }}
+      <el-card class="stats-card">
+        <template #header>
+          <div class="card-header">
+            <span style="font-size: 1.8rem">🔥總燃燒卡路里</span>
           </div>
-        </el-card>
+        </template>
+        <div class="stats-value">
+          {{
+            dashboardStats.totalCaloriesBurned
+              ? dashboardStats.totalCaloriesBurned.toFixed(2)
+              : 0
+          }}
+        </div>
+      </el-card>
 
-        <el-card style="width: 250px">
-          <template #header>
-            <div class="card-header">
-              <span>本週活躍用戶數</span>
-            </div>
-          </template>
-          <div style="text-align: center; font-size: 24px; font-weight: bold">
-            {{ dashboardStats.activeUsersThisWeek }}
+      <el-card class="stats-card">
+        <template #header>
+          <div class="card-header">
+            <span style="font-size: 1.8rem">🌟 本週活躍用戶數</span>
           </div>
-        </el-card>
-      </div>
+        </template>
+        <div class="stats-value">{{ dashboardStats.activeUsersThisWeek }}</div>
+      </el-card>
     </div>
   </div>
 </template>
@@ -91,9 +83,56 @@ const fetchDashboardStats = async () => {
 </script>
 
 <style scoped>
-.card-header {
+.dashboard-container {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
+  padding: 40px;
+  min-height: 80vh;
+}
+
+.dashboard-title {
+  margin-bottom: 60px;
+  color: #333;
+  font-size: 4rem;
+  text-align: center;
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column; /* 關鍵：垂直排列 */
+  align-items: center; /* 水平居中每個卡片 */
+  gap: 30px; /* 垂直間距 */
+  max-width: 600px; /* 控制整體寬度 */
+  width: 100%;
+  margin: 0 auto; /* 水平居中卡片組 */
+}
+
+.stats-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  border: none;
+  width: 100%; /* 使卡片佔滿容器寬度 */
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.card-header {
+  color: #555;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.card-header i {
+  margin-right: 10px;
+}
+
+.stats-value {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #007bff;
 }
 </style>
