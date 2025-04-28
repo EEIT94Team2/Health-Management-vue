@@ -271,7 +271,7 @@
                                         <el-icon><Connection /></el-icon> 尋找運動夥伴</router-link>
                                 </li>
                                 <li>
-                                    <router-link to="/social/createforum" class="plain-link">
+                                    <router-link to="/social/forumcreate" class="plain-link">
                                         <el-icon><Share /></el-icon> 分享成功故事</router-link>
                                 </li>
                                 <li>

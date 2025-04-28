@@ -1,7 +1,7 @@
 <template>
   <div class="admin-forum-create">
     <div class="view-container">
-      <h1>發表新文章</h1>
+      <h2>公告貼文</h2>
   
       <el-form label-position="top" :model="form" class="form-box">
         <el-form-item label="文章標題">

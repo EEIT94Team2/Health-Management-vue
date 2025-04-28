@@ -160,7 +160,7 @@ const routes = [
             path: 'social/partner',
             name: 'Partner',
             component: () => import('@/views/frontend/social/FindWorkoutPartner.vue'),
-            meta: { title: "發表文章" }
+            meta: { title: "尋找夥伴" }
         },
         ]
 

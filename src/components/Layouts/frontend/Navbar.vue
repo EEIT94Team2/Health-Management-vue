@@ -208,6 +208,7 @@ const menus = reactive([
       { label: '論壇首頁', path: '/social/forumhome' },
       { label: '文章列表', path: '/social/forum' },
       { label: '發表文章', path: '/social/forumcreate' },
+      { label: '尋找夥伴', path: '/social/partner' },
       { label: '個人檔案', path: '/social/UserSocialProfile' },
     ],
     open: false,

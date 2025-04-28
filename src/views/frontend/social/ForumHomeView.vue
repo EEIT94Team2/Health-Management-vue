@@ -3,7 +3,7 @@
     <!-- Hero Banner -->
     <section class="hero">
       <div class="overlay">
-        <h1>健康管理專家，<span class="highlight">掌握你的健康</span></h1>
+        <h1>健身交流新基地  <span class="highlight">分享與成長從這裡開始！</span></h1>
         <p>{{ bannerText }}</p>
         <div class="hero-buttons">
           <el-button type="primary" @click="$router.push('/social/forum')">文章列表</el-button>
@@ -16,7 +16,7 @@
     <section class="promo-section">
       <div class="promo-card" v-for="n in 3" :key="n">
         <img :src="getPromoImagePath(n)" alt="廣告圖片" />
-        <p class="promo-text">廣告文案：{{ promoTexts[n - 1] }}</p>
+        <p class="promo-text">{{ promoTexts[n - 1] }}</p>
       </div>
     </section>
 
@@ -53,8 +53,8 @@
             @click="$router.push({ path: '/social/forum', query: { postId: p.id } })"
             style="cursor: pointer"
           >
-            <strong>{{ p.title }}</strong>
-            <p class="meta">{{ p.summary }}</p>
+          <strong>{{ p.title }}</strong>
+          <p class="meta">{{ p.content.slice(0, 50) }}{{ p.content.length > 50 ? '...' : '' }}</p>
           </li>
         </ul>
       </div>
@@ -67,6 +67,11 @@
         <div class="course-card">
           <h3>重訓核心訓練入門</h3>
           <p>由專業教練帶領，30分鐘改善體態、增強肌力！</p>
+        </div>
+        <p></p>
+        <div class="course-card">
+          <h3>爆發力訓練基礎班</h3>
+          <p>透過專業課表引導，30分鐘提升爆發力、加強動作速度與敏捷性！</p>
         </div>
       </div>
       <div class="video-box">
@@ -213,6 +218,7 @@ const latestFivePosts = computed(() => {
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 10px;
+  height: 100px;
 }
 .rank {
   font-weight: bold;
