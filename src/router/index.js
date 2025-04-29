@@ -53,7 +53,6 @@ import AdminAchievement from "@/views/backend/fitness/Achievement.vue";
 // 錯誤頁面
 import Forbidden403 from "@/views/403.vue";
 
-import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
         path: "/",
