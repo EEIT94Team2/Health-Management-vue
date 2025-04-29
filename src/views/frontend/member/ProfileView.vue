@@ -190,7 +190,17 @@ const authStore = useAuthStore();
 
 // 用戶資訊與狀態
 const userInfo = computed(() => authStore.getUserInfo || {});
-const userId = computed(() => userInfo.value?.id);
+const userId = computed(() => {
+  // 優先從 userInfo 獲取 id 或 userId
+  if (userInfo.value?.id) return userInfo.value.id;
+  if (userInfo.value?.userId) return userInfo.value.userId;
+  
+  // 其次從 localStorage 獲取
+  const localUserId = localStorage.getItem("userId");
+  if (localUserId) return Number(localUserId);
+  
+  return null;
+});
 const loading = ref(false);
 const error = ref(null);
 const updating = ref(false);
@@ -294,21 +304,21 @@ const hoveredAchievement = ref(null);
 
 // 獲取用戶資料
 const fetchUserProfile = async () => {
-  if (!authStore.isAuthenticated || !userId.value) {
-    router.push("/user/login");
-    return;
-  }
-
   loading.value = true;
   error.value = null;
 
   try {
-    const token = authStore.getToken;
-    const response = await axios.get(`/api/users/${userId.value}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // 從localStorage獲取認證token
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      throw new Error("您尚未登入，請先登入");
+    }
+    
+    // 設置axios請求頭帶上token
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    
+    // 使用/api/users/userinfo端點獲取當前登入用戶的信息
+    const response = await axios.get(`/api/users/userinfo`);
 
     if (response.data && response.data.success) {
       const userData = response.data.data;
@@ -318,18 +328,27 @@ const fetchUserProfile = async () => {
       profileForm.email = userData.email || "";
       profileForm.gender = userData.gender || "M";
       profileForm.bio = userData.bio || "";
+      
+      // 將用戶ID存儲到localStorage
+      if (userData.userId) {
+        localStorage.setItem("userId", userData.userId.toString());
+      }
+      
+      // 更新store中的用戶信息
+      authStore.setUserInfo(userData);
+      
+      // 如果沒有userInfo中沒有id，但有userId，則使用userId
+      if (!userInfo.value?.id && userData.userId) {
+        // 更新userId計算屬性所依賴的數據
+        const updatedUserInfo = { ...userInfo.value, id: userData.userId };
+        authStore.setUserInfo(updatedUserInfo);
+      }
     } else {
       throw new Error(response.data?.message || "獲取用戶資料失敗");
     }
   } catch (err) {
     console.error("獲取用戶資料失敗", err);
-    error.value = err.response?.data?.message || "無法獲取用戶資料";
-
-    if (err.response?.status === 401 || err.response?.status === 403) {
-      ElMessage.error("登入憑證已過期，請重新登入");
-      authStore.logout();
-      router.push("/user/login");
-    }
+    error.value = err.message || "無法獲取用戶資料";
   } finally {
     loading.value = false;
   }
@@ -345,25 +364,20 @@ const updateProfile = async () => {
     updating.value = true;
 
     try {
-      const token = authStore.getToken;
-
+      // 使用新的api/users/profile端點
       const updateData = {
-        id: userId.value,
+        email: profileForm.email, // 必須提供郵箱進行身份識別
         name: profileForm.name,
-        email: profileForm.email,
         gender: profileForm.gender,
         bio: profileForm.bio,
-        // 保留原有值
-        role: userInfo.value.role,
-        userPoints: userInfo.value.userPoints,
       };
 
+      // 不再需要userId和認證令牌
       const response = await axios.put(
-        `/api/users/${userId.value}`,
+        "/api/users/profile",
         updateData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -375,18 +389,15 @@ const updateProfile = async () => {
         // 更新 store 中的用戶信息
         const userData = response.data.data;
         authStore.$patch({ userInfo: userData });
+        
+        // 更新localStorage中的用戶信息
+        localStorage.setItem("userInfo", JSON.stringify(userData));
       } else {
         throw new Error(response.data?.message || "更新失敗");
       }
     } catch (err) {
       console.error("更新個人資料失敗", err);
       ElMessage.error(err.response?.data?.message || "更新個人資料失敗");
-
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        ElMessage.error("登入憑證已過期，請重新登入");
-        authStore.logout();
-        router.push("/user/login");
-      }
     } finally {
       updating.value = false;
     }
@@ -403,41 +414,19 @@ const updatePassword = async () => {
     updatingPassword.value = true;
 
     try {
-      const token = authStore.getToken;
-
-      // 使用登入API驗證當前密碼是否正確
-      try {
-        // 這裡使用現有的登入API驗證當前密碼
-        await axios.post("/api/auth/login", {
-          email: userInfo.value.email,
-          password: passwordForm.currentPassword,
-        });
-      } catch (error) {
-        // 如果登入失敗，表示當前密碼不正確
-        ElMessage.error("目前密碼不正確，請重新輸入");
-        updatingPassword.value = false;
-        return;
-      }
-
-      // 當前密碼驗證通過，繼續更新密碼
+      // 使用新的profile端點更新密碼
       const updateData = {
-        id: userId.value,
-        name: userInfo.value.name,
-        email: userInfo.value.email,
-        passwordHash: passwordForm.newPassword,
-        gender: userInfo.value.gender,
-        bio: userInfo.value.bio,
-        role: userInfo.value.role,
-        userPoints: userInfo.value.userPoints,
+        email: profileForm.email, // 必須提供郵箱進行身份識別
+        password: passwordForm.newPassword,
+        oldPassword: passwordForm.currentPassword,
       };
 
-      // 發送更新請求
+      // 發送更新請求，不需要驗證令牌
       const response = await axios.put(
-        `/api/users/${userId.value}`,
+        "/api/users/profile",
         updateData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -458,16 +447,7 @@ const updatePassword = async () => {
       }
     } catch (err) {
       console.error("更新密碼失敗", err);
-      // 如果不是密碼驗證的錯誤，顯示其他錯誤信息
-      if (err.message !== "目前密碼不正確，請重新輸入") {
-        ElMessage.error(err.response?.data?.message || "更新密碼失敗");
-
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          ElMessage.error("登入憑證已過期，請重新登入");
-          authStore.logout();
-          router.push("/user/login");
-        }
-      }
+      ElMessage.error(err.response?.data?.message || "更新密碼失敗");
     } finally {
       updatingPassword.value = false;
     }
@@ -476,7 +456,18 @@ const updatePassword = async () => {
 
 // 獲取用戶獎章
 const fetchUserAchievements = async () => {
-  if (!authStore.isAuthenticated || !userId.value) {
+  // 獲取用戶ID，先檢查userId計算屬性
+  const currentUserId = userId.value;
+  
+  // 如果還沒有用戶ID，可能是因為資料還沒加載完成，暫時不獲取獎章
+  if (!currentUserId) {
+    console.log("等待用戶ID加載完成");
+    // 稍後再嘗試
+    setTimeout(() => {
+      if (userId.value) {
+        fetchUserAchievements();
+      }
+    }, 1000);
     return;
   }
 
@@ -484,14 +475,17 @@ const fetchUserAchievements = async () => {
   errorAchievements.value = null;
 
   try {
-    const token = authStore.getToken;
+    // 從localStorage獲取認證token
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      throw new Error("您尚未登入，請先登入");
+    }
+    
+    // 設置axios請求頭帶上token
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    
     const response = await axios.get(
-      `/api/tracking/achievements/user/${userId.value}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      `/api/tracking/achievements/user/${currentUserId}`
     );
 
     if (response.data) {
@@ -502,7 +496,7 @@ const fetchUserAchievements = async () => {
     }
   } catch (err) {
     console.error("獲取用戶獎章失敗", err);
-    errorAchievements.value = err.response?.data?.message || "無法獲取用戶獎章";
+    errorAchievements.value = err.message || "無法獲取用戶獎章";
   } finally {
     loadingAchievements.value = false;
   }
@@ -577,10 +571,18 @@ const getAchievementImage = (achievementType) => {
       return ""; // 如果有未知的獎章類型，返回空字串或一個預設圖片路徑
   }
 };
-// 頁面加載時同時獲取用戶資料和獎章
-onMounted(() => {
-  fetchUserProfile();
-  fetchUserAchievements();
+
+// 頁面加載時獲取用戶資料和獎章
+onMounted(async () => {
+  try {
+    // 先獲取用戶個人資料
+    await fetchUserProfile();
+    
+    // 然後獲取獎章資料
+    fetchUserAchievements();
+  } catch (error) {
+    console.error("頁面初始化失敗", error);
+  }
 });
 </script>
 

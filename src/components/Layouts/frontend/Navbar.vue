@@ -1,76 +1,4 @@
 <template>
-<<<<<<< HEAD
-    <header class="main-header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <router-link to="/" @click="handleLogoClick">
-                        <img src="@/assets/images/logo.png" alt="Logo" class="logo-icon" />
-                        享健你
-                        <span class="subtitle">遇見更好的自己</span>
-                    </router-link>
-                </div>
-                <nav class="main-nav">
-                    <ul>
-                        <li
-                            v-for="menu in filteredMenus"
-                            :key="menu.label"
-                            class="nav-item"
-                            @mouseenter="menu.open = true"
-                            @mouseleave="menu.open = false"
-                        >
-                            <a href="#" @click.prevent="menu.hash ? handleNavClick(menu) : null">
-                                {{ menu.label }}
-                                <span class="arrow" :class="{ open: menu.open }">▼</span>
-                            </a>
-                            <ul
-                                v-if="menu.children"
-                                class="dropdown horizontal"
-                                :class="{ show: menu.open }"
-                            >
-                                <li v-for="child in menu.children" :key="child.label">
-                                    <a href="#" @click.prevent="handleNavClick(child)">
-                                        {{ child.label }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- 未登錄 -->
-                <div class="header-buttons" v-if="!isAuthenticated">
-                    <el-button size="medium" @click="handleLogin">登入</el-button>
-                    <el-button type="primary" size="medium" @click="handleRegister">
-                        免費註冊
-                    </el-button>
-                </div>
-
-                <!-- 已登錄 -->
-                <div
-                    class="user-dropdown"
-                    v-else
-                    @mouseenter="userMenuOpen = true"
-                    @mouseleave="userMenuOpen = false"
-                >
-                    <div class="user-dropdown-toggle">
-                        <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" />
-                        {{ displayName }}
-                        <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
-                    </div>
-                    <ul class="dropdown" :class="{ show: userMenuOpen }">
-                        <li><router-link to="/user/profile">會員中心</router-link></li>
-                        <li><router-link to="/user/courses">我的課程</router-link></li>
-                        <li><router-link to="/shop/orders">我的訂單</router-link></li>
-                        <li><router-link to="/shop/cart">購物車</router-link></li>
-                        <li><router-link to="/user/fitness">健身成效</router-link></li>
-                        <li><router-link to="/user/profile">我的檔案</router-link></li>
-                        <li><a href="#" @click.prevent="handleLogout">登出</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </header>
-=======
   <header class="main-header">
     <div class="container">
       <div class="header-content">
@@ -150,13 +78,13 @@
             <li><router-link to="/shop/cart">購物車</router-link></li>
             <li><router-link to="/user/fitness">健身成效</router-link></li>
             <li><router-link to="/user/profile">我的檔案</router-link></li>
+            <li><a href="#" @click.prevent="handleBackendNav" v-if="isAdmin">後台管理系統</a></li>
             <li><a href="#" @click.prevent="handleLogout">登出</a></li>
           </ul>
         </div>
       </div>
     </div>
   </header>
->>>>>>> 4bc1a29974629ba9f3034902c9a20dd05f82418b
 </template>
     
 <script setup>
@@ -164,6 +92,7 @@ import { reactive, ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
+import { ElMessage } from "element-plus";
 
 const route = useRoute();
 const router = useRouter();
@@ -176,6 +105,29 @@ const userInfo = computed(() => {
   return authStore.getUserInfo;
 });
 const userMenuOpen = ref(false);
+
+// 判斷用戶是否為管理員
+const isAdmin = computed(() => {
+  // 從userInfo獲取角色
+  const info = userInfo.value;
+  
+  // 嘗試從localStorage獲取用戶信息
+  let localUserInfo;
+  try {
+    const storedInfo = localStorage.getItem("userInfo");
+    if (storedInfo) {
+      localUserInfo = JSON.parse(storedInfo);
+    }
+  } catch (error) {
+    console.error("解析localStorage中的userInfo失敗:", error);
+  }
+  
+  // 檢查角色 - 優先使用userInfo，然後使用localStorage中的信息
+  const role = (info && info.role) || (localUserInfo && localUserInfo.role);
+  
+  // 如果角色是admin，返回true
+  return role === 'admin';
+});
 
 // 計算顯示名稱
 const displayName = computed(() => {
@@ -325,6 +277,25 @@ const handleNavClick = (menuItem) => {
       router.push({ path: "/", hash: menuItem.hash });
     }
   }
+};
+
+// 處理後台管理系統跳轉
+const handleBackendNav = () => {
+  // 檢查是否有token
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    ElMessage.error("請先登入");
+    return;
+  }
+  
+  // 檢查是否有管理員權限
+  if (!isAdmin.value) {
+    ElMessage.error("您沒有管理員權限");
+    return;
+  }
+  
+  // 跳轉到後台管理系統
+  router.push("/backpage/dashboard");
 };
 </script>
 

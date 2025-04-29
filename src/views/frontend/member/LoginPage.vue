@@ -19,6 +19,9 @@
             <el-form-item>
               <el-button type="primary" class="login-button" @click="handleLogin" :loading="isLoading">登入</el-button>
             </el-form-item>
+            <el-form-item>
+              <el-button type="warning" class="quick-login-button" @click="handleQuickLogin">一鍵登入測試帳號</el-button>
+            </el-form-item>
             <div class="links">
 
               <router-link to="/user/register" class="register-link">還沒有帳號？立即註冊</router-link>
@@ -106,6 +109,15 @@ const handleLogin = async () => {
     isLoading.value = false;
   }
 };
+
+const handleQuickLogin = async () => {
+  // 填入測試帳號
+  loginForm.value.email = 'weilong@health.com';
+  loginForm.value.password = 'AAaa1234';
+  
+  // 執行登入
+  await handleLogin();
+};
 </script>
 
 <style scoped>
@@ -190,6 +202,24 @@ const handleLogin = async () => {
   background-color: var(--highlight-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.quick-login-button {
+  width: 100%;
+  height: 46px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background-color: #f59e0b;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  margin-top: -10px;
+}
+
+.quick-login-button:hover {
+  background-color: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 .error-message {
