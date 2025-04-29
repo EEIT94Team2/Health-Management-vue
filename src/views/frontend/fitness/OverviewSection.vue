@@ -10,9 +10,9 @@
     <div v-else-if="overviewData.length > 0" class="overview-container">
       <div class="time-range-selector">
         <el-radio-group v-model="selectedTimeRange" @change="fetchOverviewData">
-          <el-radio-button label="week">本週</el-radio-button>
-          <el-radio-button label="month">本月</el-radio-button>
-          <el-radio-button label="quarter">本季</el-radio-button>
+          <el-radio-button value="week">本週</el-radio-button>
+          <el-radio-button value="month">本月</el-radio-button>
+          <el-radio-button value="quarter">本季</el-radio-button>
         </el-radio-group>
       </div>
 

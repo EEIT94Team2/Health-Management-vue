@@ -108,15 +108,15 @@
                 prop="dateRecorded"
                 label="測量日期"
               ></el-table-column>
-              <el-table-column label="操作" width="100">
+              <el-table-column label="操作" width="205">
                 <template #default="scope">
                   <el-button
-                    size="small"
                     @click="openEditBodyDataDialog(scope.row)"
+                    :icon="'edit'"
                     >編輯</el-button
                   >
                   <el-button
-                    size="small"
+                    :icon="'delete'"
                     type="danger"
                     @click="openDeleteConfirmation(scope.row.id)"
                     >刪除</el-button
@@ -325,6 +325,9 @@
           </span>
         </template>
       </el-dialog>
+      <div class="chatbot-container-wrapper">
+        <Chatbot />
+      </div>
     </div>
   </div>
 </template>
@@ -342,8 +345,16 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
 import * as echarts from "echarts";
-import { ElMessage, ElTabs, ElTabPane, ElCard } from "element-plus";
+import {
+  ElMessage,
+  ElTabs,
+  ElTabPane,
+  ElCard,
+  ElSelect,
+  ElOption,
+} from "element-plus";
 import { useRoute, useRouter } from "vue-router";
+import { Edit, Delete, Search } from "@element-plus/icons-vue";
 
 // 導入分離出的組件
 import WorkoutRecordsManagement from "./WorkoutRecords.vue";
@@ -351,6 +362,7 @@ import BodyDataManager from "./BodyData.vue";
 import OverviewSection from "./OverviewSection.vue";
 import DietRecordsManagement from "./DietRecords.vue";
 import GoalsProgressManagement from "./GoalsProgress.vue";
+import Chatbot from "./Chatbot.vue";
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -419,30 +431,6 @@ const bodyDataForm = ref({
 });
 const viewBodyDataDialogVisible = ref(false);
 const viewBodyData = ref({});
-
-// 其他數據
-const exerciseTypes = ref([
-  "跑步",
-  "游泳",
-  "騎自行車",
-  "跳繩",
-  "瑜珈",
-  "健身房器械",
-  "徒手健身",
-  "高強度間歇訓練 (HIIT)",
-  "快走",
-  "爬山",
-  "滑雪",
-  "舞蹈",
-  "划船機",
-  "重訓",
-  "橢圓機",
-  "腳踏車競賽",
-  "打籃球",
-  "踢足球",
-  "攀岩",
-  "健走",
-]);
 
 // 飲食記錄相關
 const confirmDeleteBodyDataVisible = ref(false);
@@ -580,7 +568,7 @@ const saveBodyData = async () => {
   try {
     const payload = {
       ...bodyDataForm.value,
-      dateRecorded: bodyDataForm.value.date, // 將前端的 'date' 映射到後端的 'dateRecorded'
+      dateRecorded: bodyDataForm.value.date,
     };
     delete payload.date;
 
@@ -649,6 +637,15 @@ const handleTimeGranularityChange = (granularity) => {
 
 const handleCustomDateRangeChange = (value) => {
   customDateRange.value = value;
+};
+const handleDeleteBodyData = (id) => {
+  console.log("刪除身體數據，ID:", id);
+};
+
+const handleTabChange = (tabName) => {
+  console.log("切換到 Tab:", tabName);
+  activeTab.value = tabName;
+  router.push({ query: { tab: tabName } });
 };
 
 const fetchCustomDateRangeData = () => {
@@ -1700,5 +1697,12 @@ watch(customDateRange, (newRange) => {
 }
 .echarts-datazoom-slider text {
   display: none !important;
+}
+.chatbot-container-wrapper {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 20px;
+  width: calc(100% - 20px);
 }
 </style>

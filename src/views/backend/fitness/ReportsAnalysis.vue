@@ -43,6 +43,24 @@
         </template>
         <div class="stats-value">{{ dashboardStats.activeUsersThisWeek }}</div>
       </el-card>
+
+      <el-card class="stats-card">
+        <template #header>
+          <div class="card-header">
+            <span style="font-size: 1.8rem">📅 本月活躍用戶數</span>
+          </div>
+        </template>
+        <div class="stats-value">{{ dashboardStats.activeUsersThisMonth }}</div>
+      </el-card>
+
+      <el-card class="stats-card">
+        <template #header>
+          <div class="card-header">
+            <span style="font-size: 1.8rem">🗓️ 本年度活躍用戶數</span>
+          </div>
+        </template>
+        <div class="stats-value">{{ dashboardStats.activeUsersThisYear }}</div>
+      </el-card>
     </div>
   </div>
 </template>
@@ -51,12 +69,15 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
+import { Edit, Delete, Search } from "@element-plus/icons-vue";
 
 const dashboardStats = ref({
   totalWorkouts: 0,
   totalWorkoutMinutes: 0,
   totalCaloriesBurned: 0,
   activeUsersThisWeek: 0,
+  activeUsersThisMonth: 0, // 新增屬性
+  activeUsersThisYear: 0, // 新增屬性
 });
 
 onMounted(() => {

@@ -59,18 +59,17 @@
     <div v-if="isListVisible && workouts.length > 0" class="workout-list">
       <h3>運動記錄列表</h3>
       <el-table :data="workouts" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" />
         <el-table-column prop="exerciseType" label="運動類型" />
         <el-table-column prop="startTime" label="開始時間" />
         <el-table-column prop="exerciseDuration" label="持續時間 (分鐘)" />
         <el-table-column prop="caloriesBurned" label="消耗卡路里" />
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="205">
           <template #default="scope">
-            <el-button size="small" @click="editWorkout(scope.row)"
+            <el-button :icon="'edit'" @click="editWorkout(scope.row)"
               >編輯</el-button
             >
             <el-button
-              size="small"
+              :icon="'delete'"
               type="danger"
               @click="deleteWorkout(scope.row)"
               >刪除</el-button
@@ -86,7 +85,18 @@
     <el-dialog v-model="dialogVisible" title="編輯運動記錄">
       <el-form :model="workoutForm" label-width="120px">
         <el-form-item label="運動類型">
-          <el-input v-model="workoutForm.exerciseType" />
+          <el-select
+            v-model="workoutForm.exerciseType"
+            :key="dialogVisible"
+            ref="workoutTypeSelect"
+          >
+            <el-option
+              v-for="type in exerciseTypes"
+              :key="type"
+              :label="type"
+              :value="type"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="運動日期">
           <el-date-picker
@@ -205,6 +215,8 @@ import {
   ElTableColumn,
   ElButton,
   ElMessage,
+  ElSelect,
+  ElOption,
 } from "element-plus";
 import { useRouter } from "vue-router";
 
@@ -226,6 +238,29 @@ const authStore = useAuthStore();
 const currentTimeUnit = ref("week");
 const hasBodyMetrics = ref(false);
 const chartRef = ref(null);
+
+const exerciseTypes = ref([
+  "跑步",
+  "游泳",
+  "騎自行車",
+  "跳繩",
+  "瑜珈",
+  "健身房器械",
+  "徒手健身",
+  "高強度間歇訓練 (HIIT)",
+  "快走",
+  "爬山",
+  "滑雪",
+  "舞蹈",
+  "划船機",
+  "重訓",
+  "橢圓機",
+  "腳踏車競賽",
+  "打籃球",
+  "踢足球",
+  "攀岩",
+  "健走",
+]);
 
 // 新增/編輯彈窗相關
 const isListVisible = ref(false);
@@ -352,6 +387,10 @@ const fetchWorkouts = async (
     }));
 
     console.log("最終處理後的數據:", workouts.value);
+    console.log(
+      "fetchWorkouts 完成，準備生成圖表。chartRef.value:",
+      chartRef.value
+    );
     generateChart(unit, start, end);
   } catch (error) {
     console.error("取得運動紀錄失敗", error);
@@ -380,6 +419,10 @@ const generateChart = (timeUnit = "week", startDate = null, endDate = null) => {
       title: { text: "暫無運動數據", textStyle: { color: "white" } },
     };
     chartKey.value++;
+    console.log(
+      "generateChart 完成，chartOptions 已更新。chartRef.value:",
+      chartRef.value
+    );
     return;
   }
 
@@ -706,6 +749,7 @@ const openEditModal = () => {
       exerciseDuration: workoutToEdit.exerciseDuration,
     };
     dialogVisible.value = true;
+    console.log("打開編輯運動記錄對話框");
   } else if (selectedWorkouts.value.length > 1) {
     ElMessage.warning("請選擇一條記錄進行編輯");
   } else {
@@ -759,10 +803,10 @@ const deleteWorkoutRecord = async () => {
       (workout) => workout.recordId
     ); // 使用 recordId 刪除
     const headers = { Authorization: `Bearer ${authStore.getToken}` };
-    await axios.delete(`/api/tracking/exercise-records`, {
-      headers,
-      data: { ids: idsToDelete },
-    });
+    await axios.delete(
+      `/api/tracking/exercise-records?ids=${idsToDelete.join(",")}`,
+      { headers }
+    );
     ElMessage.success("運動記錄刪除成功");
     deleteConfirmVisible.value = false;
     fetchWorkouts(currentTimeUnit.value); // 重新獲取當前時間單位的數據
@@ -775,21 +819,18 @@ const deleteWorkoutRecord = async () => {
 };
 
 const downloadChart = () => {
-  if (chartRef.value && chartRef.value.echartsInstance) {
-    const chartInstance = chartRef.value.echartsInstance;
-    chartInstance.downloadAsImage({
-      name: `運動記錄圖表_${getTimeUnitLabel(currentTimeUnit.value)}`,
-      type: "png",
-      background: "white",
-    });
-  } else {
-    ElMessage.warning("圖表尚未準備好，請稍後再試。");
-  }
-};
-
-const handleSelectionChange = (val) => {
-  selectedWorkouts.value = val;
-  selectedWorkout.value = val.length === 1 ? val[0] : null;
+  setTimeout(() => {
+    if (chartRef.value && chartRef.value.echartsInstance) {
+      const chartInstance = chartRef.value.echartsInstance;
+      chartInstance.downloadAsImage({
+        name: `運動記錄圖表_${getTimeUnitLabel(currentTimeUnit.value)}`,
+        type: "png",
+        background: "white",
+      });
+    } else {
+      ElMessage.warning("圖表尚未準備好，請稍後再試。");
+    }
+  }, 500);
 };
 
 const openCustomDateRangeDialog = () => {
@@ -937,5 +978,60 @@ onMounted(() => {
   color: white;
   text-align: center;
   padding: 20px;
+}
+.el-select {
+  width: 100%; /* 讓選擇框佔滿容器寬度，如果需要的話 */
+}
+
+.el-select .el-input.is-focus .el-input__inner,
+.el-select .el-input__inner:focus {
+  border-color: #409eff;
+}
+
+.el-select .el-input__inner {
+  border: 2px solid #555 !important;
+  background-color: #333 !important;
+  color: #eee !important;
+  border-radius: 5px !important;
+  padding: 0 10px !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+.el-select:hover .el-input__inner {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: #555 !important;
+}
+
+.el-select .el-input__suffix {
+  color: #eee;
+}
+
+.el-select .el-input.is-active .el-input__suffix {
+  color: #409eff;
+}
+
+.el-select-dropdown {
+  border: 1px solid #555;
+  border-radius: 5px;
+  background-color: #444;
+  color: #eee;
+}
+
+.el-select-dropdown__item {
+  padding: 8px 15px;
+  cursor: pointer;
+  color: #eee;
+}
+
+.el-select-dropdown__item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.el-select-dropdown__item.is-selected {
+  background-color: #409eff;
+  color: white;
 }
 </style>

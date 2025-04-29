@@ -41,7 +41,10 @@
               ></el-date-picker>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="fetchWorkoutRecords"
+              <el-button
+                type="primary"
+                @click="fetchWorkoutRecords"
+                :icon="Search"
                 >查詢</el-button
               >
               <el-button @click="resetSearchForm">重置</el-button>
@@ -73,13 +76,13 @@
         :formatter="formatCalories"
       ></el-table-column>
       <el-table-column prop="exerciseDate" label="日期"></el-table-column>
-      <el-table-column label="操作" width="150">
+      <el-table-column label="操作" width="205">
         <template #default="scope">
-          <el-button size="small" @click="openEditDialog(scope.row)"
+          <el-button :icon="Edit" @click="openEditDialog(scope.row)"
             >編輯</el-button
           >
           <el-button
-            size="small"
+            :icon="Delete"
             type="danger"
             @click="handleDelete(scope.row.recordId)"
             >刪除</el-button
@@ -113,6 +116,7 @@
         </el-form-item>
         <el-form-item label="運動類型">
           <el-select
+            :key="editDialogVisible"
             v-model="editForm.exerciseType"
             placeholder="請選擇運動類型"
           >
@@ -151,7 +155,8 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import axios from "axios";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElSelect, ElOption } from "element-plus";
+import { Edit, Delete, Search } from "@element-plus/icons-vue";
 
 const workoutRecords = ref([]);
 const total = ref(0);
@@ -160,7 +165,7 @@ const pageSize = ref(10);
 const searchForm = reactive({
   userId: "",
   name: "",
-  type: "", // 修改為使用 select 的 value
+  type: "",
   dateRange: null,
 });
 
@@ -216,7 +221,7 @@ const fetchWorkoutRecords = async () => {
     size: pageSize.value,
     userId: searchForm.userId || undefined,
     userName: searchForm.name || undefined,
-    exerciseType: searchForm.type || undefined, // 直接使用 select 的 value
+    exerciseType: searchForm.type || undefined,
     startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
     endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
   };
@@ -256,7 +261,7 @@ const handleCurrentChange = (page) => {
 const resetSearchForm = () => {
   searchForm.userId = "";
   searchForm.name = "";
-  searchForm.type = ""; // 重置 select 的 value
+  searchForm.type = "";
   searchForm.dateRange = null;
   currentPage.value = 1;
   fetchWorkoutRecords();
@@ -279,6 +284,9 @@ const openEditDialog = (row) => {
     editForm.exerciseDate = null;
   }
   editDialogVisible.value = true;
+  setTimeout(() => {
+    console.log("Edit dialog is now visible");
+  }, 50);
 };
 
 const saveEdit = async () => {

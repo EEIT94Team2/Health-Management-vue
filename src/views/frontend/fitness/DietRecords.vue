@@ -1,149 +1,199 @@
 <template>
-  <div class="diet-data-management">
-    <div class="card-header">
-      <h2>飲食記錄</h2>
-      <div class="header-actions">
-        <el-button type="info" @click="openEditDialog(null)"
-          >新增資料</el-button
+  <div class="diet-chart-container">
+    <h1>飲食記錄</h1>
+
+    <div class="chart-header">
+      <div class="chart-controls">
+        <button
+          @click="changeTimeUnit('week')"
+          :class="{ active: currentTimeUnit === 'week' }"
         >
+          週
+        </button>
+        <button
+          @click="changeTimeUnit('month')"
+          :class="{ active: currentTimeUnit === 'month' }"
+        >
+          月
+        </button>
+        <button
+          @click="changeTimeUnit('quarter')"
+          :class="{ active: currentTimeUnit === 'quarter' }"
+        >
+          季
+        </button>
+        <button
+          @click="changeTimeUnit('year')"
+          :class="{ active: currentTimeUnit === 'year' }"
+        >
+          年
+        </button>
+        <button
+          @click="openCustomDateRangeDialog"
+          :class="{ active: currentTimeUnit === 'custom' }"
+        >
+          自訂
+        </button>
+      </div>
+      <button class="add-record-button" @click="openAddModal">新增記錄</button>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-section">
+        <h3>營養成分分佈</h3>
+        <v-chart
+          ref="nutritionPieChartRef"
+          :option="nutritionPieChartOptions"
+          :key="nutritionPieChartKey"
+          autoresize
+          class="echarts pie-chart"
+        />
+      </div>
+      <div class="chart-section">
+        <h3>餐別熱量分佈</h3>
+        <v-chart
+          ref="mealTimePieChartRef"
+          :option="mealTimePieChartOptions"
+          :key="mealTimePieChartKey"
+          autoresize
+          class="echarts pie-chart"
+        />
       </div>
     </div>
 
-    <div class="search-form-container">
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="餐別">
-          <el-select v-model="searchForm.mealtime" placeholder="選擇餐別">
-            <el-option label="全部" value=""></el-option>
-            <el-option label="早餐" value="早餐"></el-option>
-            <el-option label="午餐" value="午餐"></el-option>
-            <el-option label="晚餐" value="晚餐"></el-option>
-            <el-option label="點心" value="點心"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="日期範圍">
-          <el-date-picker
-            v-model="searchForm.dateRange"
-            type="daterange"
-            range-separator="-"
-            start-placeholder="開始日期"
-            end-placeholder="結束日期"
-            value-format="YYYY-MM-DD"
-          ></el-date-picker>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查詢</el-button>
-          <el-button @click="resetSearchForm">重置</el-button>
-        </el-form-item>
-      </el-form>
+    <div class="chart-actions">
+      <button @click="downloadChart">匯出圖片</button>
     </div>
 
-    <el-table :data="dietData" border style="width: 100%; margin-top: 15px">
-      <el-table-column prop="mealtime" label="餐別"></el-table-column>
-      <el-table-column
-        prop="foodName"
-        label="食物內容"
-        width="200"
-        show-overflow-tooltip
-      ></el-table-column>
-      <el-table-column prop="calories" label="總熱量 (大卡)"></el-table-column>
-      <el-table-column prop="protein" label="蛋白質 (克)"></el-table-column>
-      <el-table-column prop="carbs" label="碳水化合物 (克)"></el-table-column>
-      <el-table-column prop="fats" label="脂肪 (克)"></el-table-column>
-      <el-table-column prop="recordDate" label="記錄時間">
-        <template #default="scope">
-          {{ formatDate(scope.row.recordDate) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="150">
-        <template #default="scope">
-          <el-button size="small" @click="openEditDialog(scope.row)"
-            >編輯</el-button
-          >
-          <el-button
-            size="small"
-            type="danger"
-            @click="confirmDelete(scope.row.recordId)"
-            >刪除</el-button
-          >
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <div class="pagination">
-      <el-pagination
-        :current-page="currentPage"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+    <div class="list-toggle">
+      <button @click="toggleListVisible">
+        {{ isListVisible ? "收起數據列表" : "查看數據列表" }}
+      </button>
     </div>
 
-    <el-dialog
-      v-model="editDialogVisible"
-      :title="editForm.recordId ? '編輯飲食記錄' : '新增飲食記錄'"
-    >
-      <el-form :model="editForm" label-width="120px">
+    <div v-if="isListVisible && dietData.length > 0" class="diet-list">
+      <h3>飲食記錄列表</h3>
+      <el-table :data="dietData" @selection-change="handleSelectionChange">
+        <el-table-column prop="mealtime" label="餐別" />
+        <el-table-column
+          prop="foodName"
+          label="食物內容"
+          show-overflow-tooltip
+        />
+        <el-table-column prop="calories" label="總熱量 (大卡)" />
+        <el-table-column prop="protein" label="蛋白質 (克)" />
+        <el-table-column prop="carbs" label="碳水化合物 (克)" />
+        <el-table-column prop="fats" label="脂肪 (克)" />
+        <el-table-column label="記錄時間">
+          <template #default="scope">
+            {{ formatDate(scope.row.recordDate) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="205">
+          <template #default="scope">
+            <el-button :icon="'edit'" @click="editDietRecord(scope.row)"
+              >編輯</el-button
+            >
+            <el-button
+              :icon="'delete'"
+              type="danger"
+              @click="deleteDietRecord(scope.row)"
+              >刪除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <div v-else-if="isListVisible && dietData.length === 0" class="no-data">
+      暫無飲食記錄。
+    </div>
+
+    <el-dialog v-model="dialogVisible" title="編輯飲食記錄">
+      <el-form :model="dietForm" label-width="120px">
         <el-form-item label="食物名稱">
-          <el-input v-model="editForm.foodName"></el-input>
+          <el-input v-model="dietForm.foodName"></el-input>
         </el-form-item>
         <el-form-item label="餐別">
-          <el-select v-model="editForm.mealtime" placeholder="選擇餐別">
+          <el-select v-model="dietForm.mealtime" placeholder="選擇餐別">
             <el-option label="早餐" value="早餐"></el-option>
             <el-option label="午餐" value="午餐"></el-option>
             <el-option label="晚餐" value="晚餐"></el-option>
             <el-option label="點心" value="點心"></el-option>
           </el-select>
+        </el-form-item>
+        <el-form-item label="記錄日期">
+          <el-date-picker
+            v-model="dietForm.recordDate"
+            type="date"
+            placeholder="選擇日期"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="總熱量 (大卡)">
           <el-input-number
-            v-model="editForm.calories"
+            v-model="dietForm.calories"
             :min="0"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="蛋白質 (克)">
           <el-input-number
-            v-model="editForm.protein"
+            v-model="dietForm.protein"
             :min="0"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="碳水化合物 (克)">
-          <el-input-number v-model="editForm.carbs" :min="0"></el-input-number>
+          <el-input-number v-model="dietForm.carbs" :min="0"></el-input-number>
         </el-form-item>
         <el-form-item label="脂肪 (克)">
-          <el-input-number v-model="editForm.fats" :min="0"></el-input-number>
-        </el-form-item>
-        <el-form-item label="記錄時間">
-          <el-date-picker
-            v-model="editForm.recordDate"
-            type="datetime"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            format="YYYY-MM-DD HH:mm:ss"
-          ></el-date-picker>
+          <el-input-number v-model="dietForm.fats" :min="0"></el-input-number>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveEdit" :loading="isSaving"
-            >儲存</el-button
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitDietForm">確認</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="deleteConfirmVisible" title="確認刪除">
+      <p>確定要刪除選中的飲食記錄嗎？</p>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="deleteConfirmVisible = false">取消</el-button>
+          <el-button type="danger" @click="deleteDietRecordConfirmed"
+            >確認刪除</el-button
           >
         </span>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="confirmDeleteVisible" title="確認刪除">
-      <span>您確定要刪除此飲食記錄嗎？</span>
+    <el-dialog v-model="customDateRangeDialogVisible" title="自訂時間範圍">
+      <el-form label-width="120px">
+        <el-form-item label="開始日期">
+          <el-date-picker
+            v-model="customStartDate"
+            type="date"
+            placeholder="選擇開始日期"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="結束日期">
+          <el-date-picker
+            v-model="customEndDate"
+            type="date"
+            placeholder="選擇結束日期"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="confirmDeleteVisible = false">取消</el-button>
-          <el-button
-            type="danger"
-            @click="handleDeleteConfirmed"
-            :loading="isDeleting"
-            >確認</el-button
+          <el-button @click="customDateRangeDialogVisible = false"
+            >取消</el-button
+          >
+          <el-button type="primary" @click="applyCustomDateRange"
+            >應用</el-button
           >
         </span>
       </template>
@@ -152,279 +202,715 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, watch } from "vue";
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfQuarter,
+  endOfQuarter,
+  startOfYear,
+  endOfYear,
+  parseISO,
+} from "date-fns";
+import { ref, onMounted, watch } from "vue";
 import axios from "axios";
+import { use } from "echarts/core";
+import VChart from "vue-echarts";
+import { CanvasRenderer } from "echarts/renderers";
+import { PieChart } from "echarts/charts";
+import {
+  GridComponent,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+} from "echarts/components";
 import { useAuthStore } from "@/stores/auth";
-import { ElMessage } from "element-plus";
+import {
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElDatePicker,
+  ElInputNumber,
+  ElTable,
+  ElTableColumn,
+  ElButton,
+  ElMessage,
+  ElSelect,
+  ElOption,
+} from "element-plus";
+import { useRouter } from "vue-router";
 
-const authStore = useAuthStore();
+use([
+  CanvasRenderer,
+  PieChart,
+  GridComponent,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+]);
 
+const router = useRouter();
 const dietData = ref([]);
-const total = ref(0);
-const currentPage = ref(1);
-const pageSize = ref(10);
-const searchForm = reactive({
-  dateRange: null,
-  mealtime: "",
-});
+const nutritionPieChartOptions = ref({});
+const mealTimePieChartOptions = ref({});
+const nutritionPieChartKey = ref(0);
+const mealTimePieChartKey = ref(0);
+const authStore = useAuthStore();
+const currentTimeUnit = ref("week");
+const nutritionPieChartRef = ref(null);
+const mealTimePieChartRef = ref(null);
 
-const editDialogVisible = ref(false);
-const editForm = reactive({
+// 列表相關
+const isListVisible = ref(false);
+
+// 新增/編輯彈窗相關
+const dialogVisible = ref(false);
+const isEditing = ref(false);
+const dietForm = ref({
   recordId: null,
   foodName: "",
   mealtime: "",
-  calories: null,
-  protein: null,
-  carbs: null,
-  fats: null,
-  recordDate: new Date().toISOString().slice(0, 16).replace("T", " ") + ":00",
+  calories: 0,
+  protein: 0,
+  carbs: 0,
+  fats: 0,
+  recordDate: new Date(),
 });
-const isSaving = ref(false);
+const editingRecordId = ref(null);
 
-const confirmDeleteVisible = ref(false);
-const deletingRecordId = ref(null);
-const isDeleting = ref(false);
+// 刪除確認彈窗相關
+const deleteConfirmVisible = ref(false);
+const selectedRecords = ref([]);
+const selectedRecord = ref(null); // 用於編輯和刪除單個選中的記錄
 
-const fetchDietData = async (searchParams = {}) => {
-  const token = authStore.getToken;
-  const userId = authStore.userInfo?.id;
-  if (!userId) {
-    console.error("用戶 ID 未提供，無法獲取飲食記錄");
+// 自訂日期範圍相關
+const customDateRangeDialogVisible = ref(false);
+const customStartDate = ref(null);
+const customEndDate = ref(null);
+
+const fetchDietData = async (
+  unit = currentTimeUnit.value,
+  startDate = null,
+  endDate = null
+) => {
+  if (!authStore.userInfo?.id) {
+    console.log("沒有用戶ID，無法獲取數據");
     return;
   }
+
+  let apiUrl = `/api/tracking/nutrition/user/${authStore.userInfo.id}/date-range`; // 修改 API URL
+  const headers = {
+    Authorization: `Bearer ${authStore.getToken}`,
+  };
+
+  let start, end;
+
+  switch (unit) {
+    case "week":
+      start = startOfWeek(new Date(), { weekStartsOn: 1 });
+      end = endOfWeek(new Date(), { weekStartsOn: 1 });
+      apiUrl += `?startDate=${format(
+        start,
+        "yyyy-MM-dd"
+      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      break;
+    case "month":
+      start = startOfMonth(new Date());
+      end = endOfMonth(new Date());
+      apiUrl += `?startDate=${format(
+        start,
+        "yyyy-MM-dd"
+      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      break;
+    case "quarter":
+      start = startOfQuarter(new Date());
+      end = endOfQuarter(new Date());
+      apiUrl += `?startDate=${format(
+        start,
+        "yyyy-MM-dd"
+      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      break;
+    case "year":
+      start = startOfYear(new Date());
+      end = endOfYear(new Date());
+      apiUrl += `?startDate=${format(
+        start,
+        "yyyy-MM-dd"
+      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      break;
+    case "custom":
+      if (startDate && endDate) {
+        apiUrl += `?startDate=${format(
+          startDate,
+          "yyyy-MM-dd"
+        )}T00:00:00&endDate=${format(endDate, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      }
+      break;
+    default: // 默認為週視圖
+      start = startOfWeek(new Date(), { weekStartsOn: 1 });
+      end = endOfWeek(new Date(), { weekStartsOn: 1 });
+      apiUrl += `?startDate=${format(
+        start,
+        "yyyy-MM-dd"
+      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      break;
+  }
+
   try {
-    const response = await axios.get(`/api/tracking/nutrition/user/${userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params: {
-        page: searchParams.page ? searchParams.page - 1 : currentPage.value - 1,
-        size: searchParams.size || pageSize.value,
-        mealtime: searchParams.mealtime || undefined,
-        startDate: searchParams.dateRange
-          ? searchParams.dateRange[0]
-          : undefined,
-        endDate: searchParams.dateRange ? searchParams.dateRange[1] : undefined,
+    const response = await axios.get(apiUrl, { headers });
+    console.log(`API 原始回應 (date-range):`, response);
+
+    // 更健壯的數據處理
+    let data = [];
+    if (response.data && Array.isArray(response.data)) {
+      data = response.data;
+    } else if (
+      response.data &&
+      response.data.content &&
+      Array.isArray(response.data.content)
+    ) {
+      data = response.data.content;
+    }
+
+    console.log("處理後的數據 (date-range):", data);
+
+    dietData.value = data;
+    generateCharts(unit, start, end);
+  } catch (error) {
+    console.error("取得飲食記錄失敗 (date-range)", error);
+    ElMessage.error("無法獲取飲食記錄");
+  }
+};
+
+const toggleListVisible = () => {
+  isListVisible.value = !isListVisible.value;
+};
+
+const handleSelectionChange = (selection) => {
+  selectedRecords.value = selection;
+};
+
+const editDietRecord = (record) => {
+  selectedRecords.value = [record];
+  openEditModal();
+};
+
+const deleteDietRecord = (record) => {
+  selectedRecords.value = [record];
+  confirmDeleteRecord();
+};
+
+const generateCharts = (
+  timeUnit = "week",
+  startDate = null,
+  endDate = null
+) => {
+  console.log("開始生成圖表，數據項數:", dietData.value.length);
+  if (dietData.value.length === 0) {
+    nutritionPieChartOptions.value = {
+      title: { text: "暫無營養數據", textStyle: { color: "white" } },
+    };
+    mealTimePieChartOptions.value = {
+      title: { text: "暫無餐別數據", textStyle: { color: "white" } },
+    };
+    nutritionPieChartKey.value++;
+    mealTimePieChartKey.value++;
+    return;
+  }
+
+  // 計算營養素總量
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFats = 0;
+
+  // 計算不同餐別的熱量分佈
+  let breakfastCalories = 0;
+  let lunchCalories = 0;
+  let dinnerCalories = 0;
+  let snackCalories = 0;
+
+  dietData.value.forEach((item) => {
+    totalProtein += item.protein || 0;
+    totalCarbs += item.carbs || 0;
+    totalFats += item.fats || 0;
+
+    switch (item.mealtime) {
+      case "早餐":
+        breakfastCalories += item.calories || 0;
+        break;
+      case "午餐":
+        lunchCalories += item.calories || 0;
+        break;
+      case "晚餐":
+        dinnerCalories += item.calories || 0;
+        break;
+      case "點心":
+        snackCalories += item.calories || 0;
+        break;
+    }
+  });
+
+  // 配置營養素分佈圓餅圖
+  nutritionPieChartOptions.value = {
+    backgroundColor: "rgba(0,0,0,0.1)",
+    title: {
+      text: `營養素分佈 (${getTimeUnitLabel(timeUnit)})`,
+      textStyle: { color: "white" },
+      left: "center",
+    },
+    tooltip: {
+      trigger: "item",
+      formatter: "{a} <br/>{b}: {c}克 ({d}%)",
+    },
+    legend: {
+      orient: "vertical",
+      left: "left",
+      data: ["蛋白質", "碳水化合物", "脂肪"],
+      textStyle: { color: "white" },
+    },
+    series: [
+      {
+        name: "營養素",
+        type: "pie",
+        radius: ["50%", "70%"],
+        avoidLabelOverlap: false,
+        label: {
+          show: true,
+          position: "outside",
+          formatter: "{b}: {c}克 ({d}%)",
+          color: "white",
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 16,
+            fontWeight: "bold",
+          },
+        },
+        labelLine: {
+          show: true,
+        },
+        data: [
+          {
+            value: Math.round(totalProtein * 10) / 10,
+            name: "蛋白質",
+            itemStyle: { color: "#FF6384" },
+          },
+          {
+            value: Math.round(totalCarbs * 10) / 10,
+            name: "碳水化合物",
+            itemStyle: { color: "#36A2EB" },
+          },
+          {
+            value: Math.round(totalFats * 10) / 10,
+            name: "脂肪",
+            itemStyle: { color: "#FFCE56" },
+          },
+        ],
       },
-    });
-    dietData.value = response.data;
-    total.value = parseInt(response.headers["X-Total-Count"] || "0", 10);
-  } catch (error) {
-    console.error("獲取飲食記錄失敗", error);
-    ElMessage.error("獲取飲食記錄失敗");
-    if (error.response?.data?.message) {
-      ElMessage.error(error.response.data.message);
-    }
-  }
-};
+    ],
+  };
 
-const handleSearch = () => {
-  fetchDietData({ ...searchForm, page: 1 });
-  currentPage.value = 1;
-};
-
-const resetSearchForm = () => {
-  searchForm.dateRange = null;
-  searchForm.mealtime = "";
-  fetchDietData({ page: 1 });
-  currentPage.value = 1;
-};
-
-const handleSizeChange = (newSize) => {
-  pageSize.value = newSize;
-  fetchDietData({ size: newSize, page: currentPage.value });
-};
-
-const handleCurrentChange = (newPage) => {
-  currentPage.value = newPage;
-  fetchDietData({ page: newPage, size: pageSize.value });
-};
-
-const openEditDialog = (row) => {
-  if (row) {
-    Object.assign(editForm, row);
-  } else {
-    Object.assign(editForm, {
-      recordId: null,
-      foodName: "",
-      mealtime: "",
-      calories: null,
-      protein: null,
-      carbs: null,
-      fats: null,
-      recordDate:
-        new Date().toISOString().slice(0, 16).replace("T", " ") + ":00",
-    });
-  }
-  editDialogVisible.value = true;
-};
-
-const saveEdit = async () => {
-  isSaving.value = true;
-  try {
-    const token = authStore.getToken;
-    const userId = authStore.userInfo?.id;
-    if (!userId) {
-      console.error("用戶 ID 未提供，無法保存飲食記錄");
-      return;
-    }
-    const payload = { ...editForm, userId };
-    const apiEndpoint = editForm.recordId
-      ? `/api/tracking/nutrition/${editForm.recordId}`
-      : "/api/tracking/nutrition/add";
-    const httpMethod = editForm.recordId ? "put" : "post";
-
-    await axios[httpMethod](apiEndpoint, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+  // 配置餐別熱量分佈圓餅圖
+  mealTimePieChartOptions.value = {
+    backgroundColor: "rgba(0,0,0,0.1)",
+    title: {
+      text: `餐別熱量分佈 (${getTimeUnitLabel(timeUnit)})`,
+      textStyle: { color: "white" },
+      left: "center",
+    },
+    tooltip: {
+      trigger: "item",
+      formatter: "{a} <br/>{b}: {c}大卡 ({d}%)",
+    },
+    legend: {
+      orient: "vertical",
+      right: "right",
+      data: ["早餐", "午餐", "晚餐", "點心"],
+      textStyle: { color: "white" },
+    },
+    series: [
+      {
+        name: "餐別熱量",
+        type: "pie",
+        radius: "55%",
+        center: ["50%", "60%"],
+        label: {
+          show: true,
+          formatter: "{b}: {c}大卡 ({d}%)",
+          color: "white",
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 16,
+            fontWeight: "bold",
+          },
+        },
+        data: [
+          {
+            value: Math.round(breakfastCalories),
+            name: "早餐",
+            itemStyle: { color: "#4BC0C0" },
+          },
+          {
+            value: Math.round(lunchCalories),
+            name: "午餐",
+            itemStyle: { color: "#FF9F40" },
+          },
+          {
+            value: Math.round(dinnerCalories),
+            name: "晚餐",
+            itemStyle: { color: "#9966FF" },
+          },
+          {
+            value: Math.round(snackCalories),
+            name: "點心",
+            itemStyle: { color: "#FF6384" },
+          },
+        ],
       },
-    });
+    ],
+  };
 
-    ElMessage.success(`飲食記錄${editForm.recordId ? "更新" : "新增"}成功`);
-    editDialogVisible.value = false;
-    fetchDietData();
-  } catch (error) {
-    console.error(`飲食記錄${editForm.recordId ? "更新" : "新增"}失敗`, error);
-    ElMessage.error(`飲食記錄${editForm.recordId ? "更新" : "新增"}失敗`);
-    if (error.response?.data?.message) {
-      ElMessage.error(error.response.data.message);
-    }
-  } finally {
-    isSaving.value = false;
-  }
-};
-
-const confirmDelete = (id) => {
-  deletingRecordId.value = id;
-  confirmDeleteVisible.value = true;
-};
-
-const handleDeleteConfirmed = async () => {
-  isDeleting.value = true;
-  try {
-    const token = authStore.getToken;
-    await axios.delete(`/api/tracking/nutrition/${deletingRecordId.value}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    ElMessage.success("飲食記錄已刪除");
-    confirmDeleteVisible.value = false;
-    fetchDietData();
-  } catch (error) {
-    console.error("刪除飲食記錄失敗", error);
-    ElMessage.error("刪除飲食記錄失敗");
-    if (error.response?.data?.message) {
-      ElMessage.error(error.response.data.message);
-    }
-  } finally {
-    isDeleting.value = false;
-    deletingRecordId.value = null;
-  }
+  nutritionPieChartKey.value++;
+  mealTimePieChartKey.value++;
+  console.log("圖表生成完成");
 };
 
 const formatDate = (dateTimeString) => {
   if (!dateTimeString) {
     return "";
   }
-  const date = new Date(dateTimeString);
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const day = date.getDate().toString().padStart(2, "0");
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${year}/${month}/${day} ${hours}:${minutes}`;
+  try {
+    const date = new Date(dateTimeString);
+    return format(date, "yyyy/MM/dd HH:mm");
+  } catch (error) {
+    console.error("日期格式化錯誤", error);
+    return dateTimeString;
+  }
 };
 
-onMounted(() => {
-  fetchDietData();
+const getTimeUnitLabel = (unit) => {
+  switch (unit) {
+    case "week":
+      return "本週";
+    case "month":
+      return "本月";
+    case "quarter":
+      return "本季";
+    case "year":
+      return "本年";
+    case "custom":
+      return "自訂時間";
+    default:
+      return "本週";
+  }
+};
+
+const changeTimeUnit = (unit) => {
+  currentTimeUnit.value = unit;
+  if (unit !== "custom") {
+    fetchDietData(unit);
+  }
+};
+
+const openAddModal = () => {
+  isEditing.value = false;
+  dietForm.value = {
+    recordId: null,
+    foodName: "",
+    mealtime: "",
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
+    recordDate: new Date(),
+  };
+  dialogVisible.value = true;
+};
+
+const openEditModal = () => {
+  if (selectedRecords.value.length === 1) {
+    isEditing.value = true;
+    const recordToEdit = selectedRecords.value[0];
+    editingRecordId.value = recordToEdit.recordId;
+    dietForm.value = {
+      recordId: recordToEdit.recordId,
+      foodName: recordToEdit.foodName,
+      mealtime: recordToEdit.mealtime,
+      calories: recordToEdit.calories || 0,
+      protein: recordToEdit.protein || 0,
+      carbs: recordToEdit.carbs || 0,
+      fats: recordToEdit.fats || 0,
+      recordDate: new Date(recordToEdit.recordDate),
+    };
+    dialogVisible.value = true;
+    console.log("打開編輯飲食記錄對話框");
+  } else if (selectedRecords.value.length > 1) {
+    ElMessage.warning("請選擇一條記錄進行編輯");
+  } else {
+    ElMessage.warning("請選擇一條記錄");
+  }
+};
+
+const submitDietForm = async () => {
+  try {
+    const payload = {
+      ...dietForm.value,
+      recordDate: format(dietForm.value.recordDate, "yyyy-MM-dd HH:mm:ss"),
+      userId: authStore.userInfo.id,
+    };
+    const headers = { Authorization: `Bearer ${authStore.getToken}` };
+
+    if (isEditing.value && editingRecordId.value) {
+      await axios.put(
+        `/api/tracking/nutrition/${editingRecordId.value}`,
+        payload,
+        { headers }
+      );
+      ElMessage.success("飲食記錄更新成功");
+    } else {
+      await axios.post(`/api/tracking/nutrition/add`, payload, { headers });
+      ElMessage.success("飲食記錄新增成功");
+    }
+    dialogVisible.value = false;
+    fetchDietData(currentTimeUnit.value); // 重新獲取當前時間單位的數據
+  } catch (error) {
+    console.error("新增/編輯飲食記錄失敗", error);
+    ElMessage.error(`新增/編輯飲食記錄失敗: ${error.message}`);
+  }
+};
+
+const confirmDeleteRecord = () => {
+  if (selectedRecords.value.length >= 1) {
+    deleteConfirmVisible.value = true;
+  } else {
+    ElMessage.warning("請選擇至少一條記錄進行刪除");
+  }
+};
+
+const deleteDietRecordConfirmed = async () => {
+  try {
+    const idToDelete = selectedRecords.value[0].recordId;
+    const headers = { Authorization: `Bearer ${authStore.getToken}` };
+    await axios.delete(`/api/tracking/nutrition/${idToDelete}`, { headers });
+    ElMessage.success("飲食記錄刪除成功");
+    deleteConfirmVisible.value = false;
+    fetchDietData(currentTimeUnit.value); // 重新獲取當前時間單位的數據
+    selectedRecords.value = [];
+    selectedRecord.value = null;
+  } catch (error) {
+    console.error("刪除飲食記錄失敗", error);
+    ElMessage.error(`刪除飲食記錄失敗: ${error.message}`);
+  }
+};
+
+const downloadChart = () => {
+  setTimeout(() => {
+    // 下載營養素圓餅圖
+    if (
+      nutritionPieChartRef.value &&
+      nutritionPieChartRef.value.echartsInstance
+    ) {
+      const nutritionChartInstance = nutritionPieChartRef.value.echartsInstance;
+      nutritionChartInstance.downloadAsImage({
+        name: `營養素分佈圖_${getTimeUnitLabel(currentTimeUnit.value)}`,
+        type: "png",
+        background: "white",
+      });
+    }
+
+    // 下載餐別圓餅圖
+    if (
+      mealTimePieChartRef.value &&
+      mealTimePieChartRef.value.echartsInstance
+    ) {
+      const mealTimeChartInstance = mealTimePieChartRef.value.echartsInstance;
+      mealTimeChartInstance.downloadAsImage({
+        name: `餐別熱量分佈圖_${getTimeUnitLabel(currentTimeUnit.value)}`,
+        type: "png",
+        background: "white",
+      });
+    }
+  }, 500);
+};
+
+const openCustomDateRangeDialog = () => {
+  customDateRangeDialogVisible.value = true;
+};
+
+const applyCustomDateRange = () => {
+  if (customStartDate.value && customEndDate.value) {
+    currentTimeUnit.value = "custom";
+    fetchDietData("custom", customStartDate.value, customEndDate.value);
+    customDateRangeDialogVisible.value = false;
+  } else {
+    ElMessage.warning("請選擇開始和結束日期");
+  }
+};
+
+watch(currentTimeUnit, (newUnit) => {
+  if (newUnit !== "custom") {
+    fetchDietData(newUnit);
+  }
 });
 
-watch(
-  () => authStore.userInfo?.id,
-  (newUserId) => {
-    if (newUserId) {
-      fetchDietData();
-    }
+onMounted(() => {
+  console.log("組件掛載，開始獲取飲食數據");
+  if (authStore.userInfo?.id) {
+    fetchDietData();
+  } else {
+    console.error("用戶ID不存在，無法獲取數據");
+    ElMessage.warning("請先登入");
   }
-);
+});
 </script>
 
 <style scoped>
-.card-header {
+.echarts {
+  width: 100%;
+  height: 300px; /* 調整圖表高度 */
+  margin-bottom: 20px;
+}
+
+.pie-chart {
+  width: 100%;
+  height: 500;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.chart-section {
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.chart-section h3 {
+  color: white;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.diet-chart-container {
+  width: 100%;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.diet-chart-container h1 {
+  color: white;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-
-  h2 {
-    color: #fff !important;
-    font-size: 1.5rem;
-    margin: 0;
-  }
 }
 
-.header-actions {
+.chart-controls {
   display: flex;
-  justify-content: flex-end; /* 將子元素靠右對齊 */
-  align-items: center; /* 垂直方向居中對齊 */
-  gap: 10px; /* 如果 `header-actions` 裡面還有其他元素，可以設置間距 */
+  gap: 10px;
 }
 
-.search-form-container {
+.chart-controls button {
+  padding: 8px 15px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.chart-controls button.active {
+  background-color: #409eff;
+  color: white;
+  border-color: #409eff;
+}
+
+.chart-controls button:hover {
+  background-color: #e0e0e0;
+}
+
+.add-record-button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #8caae7;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.add-record-button:hover {
+  background-color: #67c23a;
+}
+
+.chart-actions {
+  display: flex;
+  justify-content: center;
   margin-bottom: 15px;
 }
 
-:deep(.el-form-item__label) {
-  color: #fff !important;
-  font-size: 1rem;
-  margin-bottom: 5px;
+.chart-actions button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #3376b8;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
 }
 
-/* 調整餐別下拉選單的寬度 */
-.search-form :deep(.el-select) {
-  width: 150px !important; /* 可以根據需要調整這個寬度值 */
+.chart-actions button:hover {
+  background-color: #67c23a;
 }
 
-.pagination {
-  margin-top: 20px;
+.list-toggle {
   display: flex;
-  justify-content: flex-end;
-  color: #fff !important;
+  justify-content: center;
+  margin-bottom: 15px;
 }
 
-.diet-data-management :deep(.el-form-item__label) {
-  color: #373535 !important; /* 一個淺灰色 */
-  opacity: 0.8;
+.list-toggle button {
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  color: #333;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
 }
 
-:deep(.el-table) {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.list-toggle button:hover {
+  background-color: #eee;
 }
 
-:deep(.el-table th.el-table__cell) {
-  background: linear-gradient(135deg, #10202b, #234567);
-  color: #fff !important;
-  font-size: 1rem !important;
+.workout-list {
+  margin-top: 20px;
+  color: white;
 }
 
-:deep(.el-table thead th:first-child) {
-  border-top-left-radius: 12px;
-}
-
-:deep(.el-table thead th:last-child) {
-  border-top-right-radius: 12px;
-}
-
-:deep(.el-table__body-wrapper) {
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  overflow: hidden;
-}
-
-:deep(.el-pagination__total),
-:deep(.el-pagination__jump),
-:deep(.el-pagination__pager li),
-:deep(.el-pagination__text) {
-  color: #fff !important;
+.no-data {
+  color: white;
+  text-align: center;
+  padding: 20px;
 }
 </style>

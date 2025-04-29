@@ -30,7 +30,9 @@
             </el-form-item>
 
             <el-form-item>
-              <el-button type="primary" @click="fetchBodyData">查詢</el-button>
+              <el-button type="primary" @click="fetchBodyData" :icon="Search"
+                >查詢</el-button
+              >
 
               <el-button @click="resetSearchForm">重置</el-button>
             </el-form-item>
@@ -44,7 +46,7 @@
     </template>
 
     <el-table :data="bodyData" border style="width: 100%">
-      <el-table-column prop="id" label="ID" width="50"></el-table-column>
+      <el-table-column prop="id" label="ID"></el-table-column>
 
       <el-table-column prop="userId" label="用戶 ID"></el-table-column>
 
@@ -71,18 +73,22 @@
         label="肌肉量 (公斤)"
       ></el-table-column>
 
-      <el-table-column prop="dateRecorded" label="測量日期"></el-table-column>
+      <el-table-column
+        prop="dateRecorded"
+        label="測量日期"
+        width="110"
+      ></el-table-column>
 
-      <el-table-column label="操作" width="150">
+      <el-table-column label="操作" width="205">
         <template #default="scope">
-          <el-button size="small" @click="openEditDialog(scope.row)"
+          <el-button @click="openEditDialog(scope.row)" :icon="Edit"
             >編輯</el-button
           >
 
           <el-button
-            size="small"
             type="danger"
             @click="handleDelete(scope.row.id)"
+            :icon="Delete"
             >刪除</el-button
           >
         </template>
@@ -188,6 +194,7 @@ import { ref, reactive, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
 import emitter from "@/utils/eventBus"; // 引入事件總線
+import { Edit, Delete, Search } from "@element-plus/icons-vue";
 
 const bodyData = ref([]);
 const total = ref(0);

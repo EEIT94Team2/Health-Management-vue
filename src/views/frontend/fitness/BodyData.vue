@@ -159,21 +159,17 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.body-data-manager {
-  /* 移除容器的內邊距，讓父組件的 el-card 控制 */
-}
-
 .card-header {
-  display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
 
 .card-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   color: var(--text-primary);
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .body-data-chart {
