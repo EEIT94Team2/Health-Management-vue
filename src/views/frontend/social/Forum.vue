@@ -94,6 +94,25 @@
 >
   {{ post.favorited ? "💚 已收藏" : "⭐ 收藏" }}
 </span>
+  <el-popover
+  placement="top"
+  width="200"
+  trigger="click"
+>
+  <template #reference>
+    <span class="action-button">🚨 檢舉</span>
+  </template>
+  <div class="report-options">
+    <el-radio-group v-model="selectedReportReason">
+      <el-radio-button label="廣告騷擾" />
+      <el-radio-button label="不當言論" />
+      <el-radio-button label="色情暴力" />
+      <el-radio-button label="其他" />
+    </el-radio-group>
+    <el-button type="warning" size="small" class="mt-2" @click="reportPost()">送出檢舉</el-button>
+  </div>
+</el-popover>
+
 </div>
 
       <!-- 🔸 留言區 -->
@@ -456,12 +475,31 @@ const pagedPosts = computed(() => {
   return sortedPosts.value.slice(start, start + pageSize);
 });
 
+// 檢舉
+const selectedReportReason = ref('');
+
+const reportPost = () => {
+  if (selectedReportReason.value) {
+    ElMessage.success(`✅ 已送出檢舉：${selectedReportReason.value}`);
+    selectedReportReason.value = '';
+  } else {
+    ElMessage.warning("請選擇檢舉原因");
+  }
+};
+
 const selectCategory = (cat) => {
   selectedCategory.value = cat;
   currentPage.value = 1;
 };
 
 onMounted(loadPosts);
+
+watch(currentPage, () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+});
 </script>
 
 <style scoped>
