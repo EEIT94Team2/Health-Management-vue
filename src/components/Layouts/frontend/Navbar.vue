@@ -53,7 +53,7 @@
                 >
                     <div class="user-dropdown-toggle">
                         <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" />
-                        {{ userInfo?.name || "用戶" }}
+                        {{ displayName }}
                         <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
                     </div>
                     <ul class="dropdown" :class="{ show: userMenuOpen }">
@@ -68,56 +68,9 @@
                 </div>
             </div>
         </div>
-
-        <nav class="main-nav">
-        <ul>
-          <li
-            v-for="menu in filteredMenus"
-            :key="menu.label"
-            class="nav-item"
-            @mouseenter="menu.open = true"
-            @mouseleave="menu.open = false">
-            <a href="#" @click.prevent="menu.hash ? handleNavClick(menu) : null">
-              {{ menu.label }}
-              <span class="arrow" :class="{ open: menu.open }">▼</span>
-            </a>
-            <ul v-if="menu.children" class="dropdown horizontal" :class="{ show: menu.open }">
-              <li v-for="child in menu.children" :key="child.label">
-                <a href="#" @click.prevent="handleNavClick(child)">
-                  {{ child.label }}
-                </a>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </nav>
-        <!-- 未登錄 -->
-        <div class="header-buttons" v-if="!isAuthenticated">
-          <el-button size="default" @click="handleLogin">登入</el-button> <el-button type="primary" size="default" @click="handleRegister">免費註冊</el-button>
-        </div>
-        
-        <!-- 已登錄 -->
-        <div class="user-dropdown" v-else @mouseenter="userMenuOpen = true" @mouseleave="userMenuOpen = false">
-          <div class="user-dropdown-toggle">
-            <img src="@/assets/images/user.jpg" alt="User" class="user-avatar" /> 
-            <span class="user-name" :title="userInfo?.name">{{ displayName }}</span>
-            <span class="arrow" :class="{ open: userMenuOpen }">▼</span>
-          </div>
-          <ul class="dropdown" :class="{ show: userMenuOpen }">
-            <li><router-link to="/user/profile">會員中心</router-link></li>
-            <li><router-link to="/user/courses">我的課程</router-link></li>
-            <li><router-link to="/user/orders">我的訂單</router-link></li>
-            <li><router-link to="/shop/cart">購物車</router-link></li>
-            <li><router-link to="/user/fitness">健身成效</router-link></li>
-            <li><router-link to="/user/profile">我的檔案</router-link></li>
-            <li><a href="#" @click.prevent="handleLogout">登出</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
+    </header>
 </template>
-
+    
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
