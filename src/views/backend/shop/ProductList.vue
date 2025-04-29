@@ -115,6 +115,12 @@
                     style="width: 100%"
                     @row-click="(row) => goToProductDetail(row.id)"
                 >
+                    <el-table-column prop="id" label="商品ID" width="80" align="center">
+                        <template #default="{ row }">
+                            <span class="id-tag">{{ row.id }}</span>
+                        </template>
+                    </el-table-column>
+
                     <el-table-column label="商品圖片" width="100">
                         <template #default="{ row }">
                             <el-image
@@ -167,7 +173,7 @@
                         <template #default="{ row }">
                             <el-button
                                 type="primary"
-                                size="large"
+                                size="default"
                                 @click.stop="quickAddToCart(row)"
                                 class="cart-button-list"
                             >
@@ -576,17 +582,31 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    font-size: 16px;
+    gap: 8px;
+    font-size: 14px;
     margin: 0 auto;
+    padding: 8px 15px;
+    border-radius: 6px;
+    background-color: #409eff;
+    color: #fff;
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cart-button:hover,
+.cart-button-list:hover {
+    background-color: #66b1ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .cart-icon {
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .cart-button-list {
-    width: 80%;
+    width: 90%;
 }
 
 .table-product-image {
@@ -614,5 +634,12 @@ onMounted(() => {
 
 .bold-text {
     font-weight: bold;
+}
+
+.id-tag {
+    background-color: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 12px;
 }
 </style>

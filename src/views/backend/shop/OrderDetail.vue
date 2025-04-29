@@ -44,14 +44,6 @@
                         <el-descriptions-item label="訂單金額">
                             <span class="price-tag">NT$ {{ order.totalAmount || 0 }}</span>
                         </el-descriptions-item>
-                        <el-descriptions-item label="支付狀態">
-                            <el-tag
-                                :type="order.paymentStatus === 'PAID' ? 'success' : 'warning'"
-                                effect="dark"
-                            >
-                                {{ order.paymentStatus === "PAID" ? "已支付" : "未支付" }}
-                            </el-tag>
-                        </el-descriptions-item>
                     </el-descriptions>
                 </div>
 
