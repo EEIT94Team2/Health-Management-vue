@@ -1,6 +1,6 @@
 <template>
   <div class="view-container">
-    <h1>論壇文章列表</h1>
+    <h2>論壇文章管理</h2>
 
     <!-- 🔍 主題篩選 -->
     <div class="category-tabs">
@@ -14,79 +14,120 @@
         {{ cat.label }}
       </el-button>
     </div>
-    
+    <!-- 放在 <template> 的 container 最外層 -->
+<div class="notification-wrapper">
+  <el-button type="warning" icon="Bell" @click="showNotifications = !showNotifications">
+    檢舉通知
+  </el-button>
 
+  <div v-if="showNotifications" class="notification-dropdown">
+    <p>🔔 使用者 Tim 檢舉留言不當內容</p>
+    <p>🔔 使用者 Sabrina 檢舉文章違規</p>
+    <p>🔔 使用者 Amy 檢舉留言不當內容</p>
+    <p>🔔 使用者 John 檢舉留言不當內容</p>
+    <p>🔔 使用者 Mark 檢舉文章違規</p>
+    <p>🔔 使用者 Mary 檢舉留言不當內容</p>
+  </div>
+</div>
+
+    <el-select v-model="sortOption" placeholder="排序方式" size="small" class="sort-select">
+  <el-option label="最新" value="newest" />
+  <el-option label="最多點閱" value="viewCount" />
+  <el-option label="最多按讚" value="likeCount" />
+</el-select>
     <!-- 🔍 查詢欄位 -->
     <div class="search-box">
       <el-input v-model="searchTitle" placeholder="搜尋文章標題..." class="mr-2" clearable />
       <el-input v-model="searchComment" placeholder="搜尋留言內容..." clearable />
     </div>
 
-    <!-- 展開文章 -->
-    <el-collapse accordion v-model="activePostId">
-      <el-collapse-item
-        v-for="post in filteredAndPagedPosts"
-        :key="post.id"
-        :name="post.id"
-      >
-        <template #title>
-          <strong>{{ post.title }}</strong>
-          <span style="margin-left: 10px; color: gray">
-            ｜{{ categoryMap[post.category] || post.category }}｜
-            👁️ {{ post.viewCount }} ｜
-            👍 {{ post.likeCount || 0 }} ｜
-            by {{ post.user?.name }} ｜
-            更新：{{ new Date(post.updatedAt).toLocaleString() }}
-          </span>
-          <el-button text size="small" type="danger" @click.stop="deletePost(post.id)">刪除</el-button>
-          <el-button text size="small" type="warning" @click.stop="warnPost(post.id)">⚠️ 警告</el-button>
-        </template>
+    <el-table
+  :data="sortedAndPagedPosts"
+  style="width: 100%"
+  stripe
+  border
+  row-key="id"
+  @expand-change="onExpandChange"
+>
+  <!-- 展開列 -->
+  <el-table-column type="expand">
+    <template #default="{ row }">
+      <div class="post-content">
+        <p>{{ row.content }}</p>
 
-        <div class="post-content">
-          <p>{{ post.content }}</p>
+        <div class="comment-box">
+          <h4>留言</h4>
+          <template v-if="comments[row.id]">
+            <ul v-if="filteredComments(row.id).length">
+              <li v-for="comment in filteredComments(row.id)" :key="comment.id" class="comment-item">
+                <div class="left">
+                  <strong>{{ comment.user?.name || '未知使用者' }}：</strong>
+                  <span v-if="editingCommentId !== comment.id">{{ comment.text }}</span>
+                  <el-input v-else v-model="editedCommentContent" size="small" class="inline-edit-input" />
+                </div>
+                <div class="right">
+                  <template v-if="comment.user?.name === currentUser.name">
+                    <el-button text size="small" @click="startEdit(comment)" v-if="editingCommentId !== comment.id">編輯</el-button>
+                    <el-button text size="small" @click="submitEdit(comment.id)" v-if="editingCommentId === comment.id">儲存</el-button>
+                    <el-button text size="small" type="danger" @click="deleteComment(comment.id)">刪除</el-button>
+                  </template>
+                  <el-button text size="small" type="warning" @click="warnComment(comment.id)">⚠️ 警告</el-button>
+                </div>
+              </li>
+            </ul>
+            <div v-else>沒有符合搜尋條件的留言</div>
+          </template>
+          <div v-else>尚無留言</div>
 
-          <!-- 留言區 -->
-          <div class="comment-box">
-            <h4>留言</h4>
-            <template v-if="comments[post.id]">
-              <ul v-if="filteredComments(post.id).length">
-                <li v-for="comment in filteredComments(post.id)" :key="comment.id" class="comment-item">
-                  <div class="left">
-                    <strong>{{ comment.user?.name || "未知使用者" }}：</strong>
-                    <span v-if="editingCommentId !== comment.id">{{ comment.text }}</span>
-                    <el-input
-                      v-else
-                      v-model="editedCommentContent"
-                      size="small"
-                      class="inline-edit-input"
-                    />
-                  </div>
-                  <div class="right">
-                    <template v-if="comment.user?.name === currentUser.name">
-                      <el-button text size="small" @click="startEdit(comment)" v-if="editingCommentId !== comment.id">編輯</el-button>
-                      <el-button text size="small" @click="submitEdit(comment.id)" v-if="editingCommentId === comment.id">儲存</el-button>
-                      <el-button text size="small" type="danger" @click="deleteComment(comment.id)">刪除</el-button>
-                    </template>
-                    <el-button text size="small" type="warning" @click="warnComment(comment.id)">⚠️ 警告</el-button>
-                  </div>
-                </li>
-              </ul>
-              <div v-else>沒有符合搜尋條件的留言</div>
-            </template>
-            <div v-else>尚無留言</div>
-
-            <el-input
-              type="textarea"
-              v-model="newComments[post.id]"
-              placeholder="輸入留言內容"
-              :rows="2"
-              class="mt-2"
-            />
-            <el-button type="primary" size="small" class="mt-1" @click="submitComment(post.id)">發表留言</el-button>
-          </div>
+          <el-input type="textarea" v-model="newComments[row.id]" placeholder="輸入留言內容" :rows="2" class="mt-2" />
+          <el-button type="primary" size="small" class="mt-1" @click="submitComment(row.id)">發表留言</el-button>
         </div>
-      </el-collapse-item>
-    </el-collapse>
+      </div>
+    </template>
+  </el-table-column>
+
+  <!-- 主題欄位 -->
+  <el-table-column label="主題" min-width="300">
+    <template #default="{ row }">
+      
+        <strong>{{ row.title }}</strong>
+        <span v-if="row.category">
+          （{{ categoryMap[row.category] || row.category }}）
+        </span>
+     
+    </template>
+  </el-table-column>
+
+  <!-- 作者 -->
+  <el-table-column label="作者" width="120">
+    <template #default="{ row }">
+      {{ row.user?.name || '未知使用者' }}
+    </template>
+  </el-table-column>
+
+  <!-- 按讚 / 點閱 -->
+  <el-table-column label="👍 / 👁️" width="100">
+    <template #default="{ row }">
+      {{ row.likeCount || 0 }} / {{ row.viewCount || 0 }}
+    </template>
+  </el-table-column>
+
+  <!-- 最後更新 -->
+  <el-table-column label="更新時間" width="180">
+    <template #default="{ row }">
+      {{ new Date(row.updatedAt).toLocaleString() }}
+    </template>
+  </el-table-column>
+
+  <!-- 操作 -->
+  <el-table-column label="操作" width="160">
+    <template #default="{ row }">
+      <el-button text size="small" type="danger" @click="deletePost(row.id)">刪除</el-button>
+      <el-button text size="small" type="warning" @click="warnPost(row.id)">⚠️ 警告</el-button>
+    </template>
+  </el-table-column>
+</el-table>
+
 
     <!-- 分頁功能 -->
     <div class="pagination-box">
@@ -127,6 +168,7 @@ const categories = [
   { label: "動機", value: "motivation" },
   { label: "問題", value: "question" },
 ];
+
 const categoryMap = {
   fitness: "健身",
   nutrition: "營養",
@@ -144,17 +186,48 @@ const filteredPosts = computed(() => {
     .filter((p) => p.title.includes(searchTitle.value.trim()));
 });
 
-const filteredAndPagedPosts = computed(() => {
+const sortedAndPagedPosts = computed(() => {
   const start = (currentPage.value - 1) * pageSize;
   const end = start + pageSize;
-  return filteredPosts.value.slice(start, end);
+  return sortedPosts.value.slice(start, end);
 });
+
+// 下拉選單
+const sortOption = ref("newest");
+const sortedPosts = computed(() => {
+  let list = filteredPosts.value.slice(); // ✅ 先複製原本的 filteredPosts 結果
+
+  if (sortOption.value === "viewCount") {
+    list.sort((a, b) => b.viewCount - a.viewCount);
+  } else if (sortOption.value === "likeCount") {
+    list.sort((a, b) => b.likeCount - a.likeCount);
+  } else {
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // 預設：最新
+  }
+
+  return list;
+});
+
+// 檢舉
+const showNotifications = ref(false);
+const reportVisible = ref(false);
+const reports = ref([
+  { id: 1, message: "使用者 John 檢舉留言不當內容" },
+  { id: 2, message: "使用者 Mary 檢舉文章違規" },
+]);
 
 const filteredComments = (postId) => {
   const list = comments[postId] || [];
   const keyword = searchComment.value.trim();
   if (!keyword) return list;
   return list.filter((c) => c.text?.includes(keyword));
+};
+const onExpandChange = async (row, expandedRows) => {
+  if (expandedRows.includes(row)) {
+    if (!comments[row.id]) {
+      await loadComments(row.id);
+    }
+  }
 };
 
 const loadPosts = async () => {
@@ -231,12 +304,19 @@ const deletePost = async (postId) => {
   }
 };
 
+const togglePost = async (postId) => {
+  activePostId.value = activePostId.value === postId ? null : postId;
+  if (activePostId.value && !comments[postId]) {
+    await loadComments(postId);
+  }
+};
+
 const warnPost = (postId) => {
-  ElMessageBox.alert(`這是展示用功能，實際上不會對 post ${postId} 採取任何行動`, "⚠️ 警告功能展示", { type: "warning" });
+  ElMessageBox.alert(`警告!!${postId}請注意論壇規章 `, "⚠️ 警告!!", { type: "warning" });
 };
 
 const warnComment = (commentId) => {
-  ElMessageBox.alert(`這是展示用功能，實際上不會對留言 ${commentId} 採取任何行動`, "⚠️ 警告功能展示", { type: "warning" });
+  ElMessageBox.alert(`警告!!${commentId}請注意論壇規章`, "⚠️ 警告!!", { type: "warning" });
 };
 
 const selectCategory = (cat) => {
@@ -256,7 +336,7 @@ onMounted(loadPosts);
 <style scoped>
 .view-container {
   padding: 20px;
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 .category-tabs {
@@ -266,29 +346,111 @@ onMounted(loadPosts);
   display: flex;
   margin-bottom: 20px;
 }
-.post-content {
-  margin-top: 10px;
-  padding: 10px 0;
-  border-top: 1px solid #ccc;
-}
-.comment-box {
-  margin-top: 15px;
-}
-.comment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-right: 10px;
-}
-.inline-edit-input {
-  width: 60%;
-  margin-left: 10px;
-}
 .mr-2 {
   margin-right: 10px;
 }
 .pagination-box {
   text-align: center;
   margin-top: 20px;
+}
+
+/* 展開留言區塊 */
+.el-table__expanded-cell {
+  padding: 20px !important;
+  background-color: #fafafa;
+  overflow: visible;
+}
+
+/* 留言整體外觀 */
+.post-content {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+/* 留言列表容器 */
+.comment-box {
+  margin-top: 15px;
+}
+
+/* 單筆留言彈性排版 */
+.comment-item {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+/* 左邊留言內容 */
+.comment-item .left {
+  flex: 1 1 auto;
+  word-break: break-word;
+  min-width: 200px;
+}
+
+/* 右邊按鈕列，保證不被壓扁 */
+.comment-item .right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 140px;
+}
+
+/* 編輯留言欄 */
+.inline-edit-input {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* 新留言輸入區 */
+.el-input.mt-2 {
+  width: 100%;
+  max-width: 600px;
+}
+.notification-wrapper {
+  position: absolute;
+  top: 80px;
+  right: 100px;
+  z-index: 999;
+}
+
+.notification-wrapper .el-button {
+  background-color: red;
+  color: white;
+  border: none;
+}
+
+.notification-dropdown {
+  margin-top: 10px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  width: 260px;
+  font-size: 14px;
+}
+/* 排序下拉選單靠左且寬度適中 */
+.sort-select {
+  width: 150px;
+  margin-right: 10px;
+}
+
+/* 通知下拉視窗 */
+.notification-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 30px;
+  width: 250px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 10px;
 }
 </style>

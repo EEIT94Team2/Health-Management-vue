@@ -199,6 +199,49 @@
                 <div class="feature-icon">
                   <el-icon><DArrowRight /></el-icon>
                 </div>
+            </section>
+
+            <!-- 社區區塊 -->
+            <section class="community-section" id="social">
+                <div class="section-container">
+                    <h2 class="section-title">加入健康 <span class="text-highlight">社區</span></h2>
+                    <div class="community-content">
+                        <div class="community-info">
+                            <p>與志同道合的健康夥伴分享心得、交流經驗，一起邁向更健康的生活。</p>
+                            <ul class="community-features">
+                                <li>
+                                    <router-link to="/social/forum" class="plain-link">
+                                    <el-icon><ChatDotRound /></el-icon> 健康討論區
+                                    </router-link>
+                                </li>
+                                <li>
+                                    <router-link to="/social/partner" class="plain-link">
+                                        <el-icon><Connection /></el-icon> 尋找運動夥伴</router-link>
+                                </li>
+                                <li>
+                                    <router-link to="/social/forumcreate" class="plain-link">
+                                        <el-icon><Share /></el-icon> 分享成功故事</router-link>
+                                </li>
+                                <li>
+                                    <router-link to="/social/UserSocialProfile" class="plain-link">
+                                        <el-icon><QuestionFilled /></el-icon> 個人檔案</router-link>
+                                </li>
+                            </ul>
+                            <el-button type="success" @click="goToForum">進入社區</el-button>
+                        </div>
+                        <div class="community-posts">
+                            <div class="forum-preview" v-for="post in recentPosts" :key="post.id">
+                                <h4>{{ post.title }}</h4>
+                                <p>{{ post.excerpt }}</p>
+                                <div class="post-meta">
+                                    <span>{{ post.author }}</span>
+                                    <span>{{ post.date }}</span>
+                                    <span>{{ post.comments }} 則留言</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 <h3>飲食追蹤</h3>
                 <p>記錄每日飲食攝入，分析營養成分，提供個人化飲食建議</p>
               </div>
@@ -210,6 +253,7 @@
               <div class="feature-card">
                 <div class="feature-icon">
                   <el-icon><Trophy /></el-icon>
+
                 </div>
                 <h3>運動記錄</h3>
                 <p>追蹤各類運動數據，科學安排訓練計劃，提升運動效果</p>
