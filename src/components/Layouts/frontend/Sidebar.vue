@@ -17,46 +17,46 @@
 </template>
 
 <script setup>
-import { useRouter, useRoute } from 'vue-router'
-import { ref, computed } from 'vue'
+import { useRouter, useRoute } from "vue-router";
+import { ref, computed } from "vue";
 
-const router = useRouter()
-const route = useRoute()
+const router = useRouter();
+const route = useRoute();
 
-const isHomepage = computed(() => route.path === '/')
+const isHomepage = computed(() => route.path === "/");
 
 const menus = ref([
-  { label: '熱門課程', hash: '#courses', icon: 'bi bi-fire' },
-  { label: '精選商品', hash: '#products', icon: 'bi bi-cart-fill' },
-  { label: '健康管理', hash: '#features', icon: 'bi bi-heart-fill' },
-  { label: '社群論壇', hash: '#social', icon: 'bi bi-chat-dots-fill' },
-  { label: '聯絡我們', hash: '#contact', icon: 'bi bi-telephone-fill' },
-  { label: '免費體驗', hash: '#contact', icon: 'bi bi-star-fill' },
-])
+  { label: "熱門課程", hash: "#courses", icon: "bi bi-fire" },
+  { label: "精選商品", hash: "#products", icon: "bi bi-cart-fill" },
+  { label: "健康管理", hash: "#features", icon: "bi bi-heart-fill" },
+  { label: "社群論壇", hash: "#social", icon: "bi bi-chat-dots-fill" },
+  { label: "聯絡我們", hash: "#contact", icon: "bi bi-telephone-fill" },
+  { label: "免費體驗", hash: "#contact", icon: "bi bi-star-fill" },
+]);
 
 const handleNavClick = (item) => {
   if (item.hash) {
-    const hash = item.hash
+    const hash = item.hash;
     if (isHomepage.value) {
-      const el = document.querySelector(hash)
+      const el = document.querySelector(hash);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth' })
+        el.scrollIntoView({ behavior: "smooth" });
       }
     } else {
-      router.push({ path: '/', hash })
+      router.push({ path: "/", hash });
     }
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
-@use 'sass:color';
+@use "sass:color";
 
 .sidebar-trigger {
   position: fixed;
-  top: 87px;
+  top: 18px;
   left: 70px;
-  background: rgba(#10202B, 50%);
+  background: rgba(#10202b, 50%);
   color: #fff;
   width: 50px;
   height: 50px;
@@ -70,7 +70,7 @@ const handleNavClick = (item) => {
   font-size: 2rem; /* 調整觸發圖示大小 */
 
   &:hover {
-    background: color.adjust(rgba(#10202B, 0.85), $lightness: -10%);
+    background: color.adjust(rgba(#10202b, 0.85), $lightness: -10%);
     transform: rotate(180deg); /* 滑鼠滑過時旋轉 180 度 */
   }
 
@@ -87,7 +87,7 @@ const handleNavClick = (item) => {
   width: auto;
   max-width: 280px;
   height: calc(100vh - 70px);
-  background: rgba(#10202B, 60%);
+  background: rgba(#10202b, 60%);
   color: #fff;
   z-index: 1000;
   transition: left 0.3s ease-in-out;

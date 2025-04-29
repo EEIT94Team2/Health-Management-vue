@@ -2,9 +2,13 @@
   <header class="main-header">
     <div class="container">
       <div class="header-content">
-        <div class="logo">
+        <div
+          class="logo"
+          @mouseenter="swapLogo(true)"
+          @mouseleave="swapLogo(false)"
+        >
           <router-link to="/" @click="handleLogoClick">
-            <img src="@/assets/images/logo.png" alt="Logo" class="logo-icon" />
+            <img :src="logoSrc" alt="Logo" class="logo-icon" />
             享健你
             <span class="subtitle">遇見更好的自己</span>
           </router-link>
@@ -162,6 +166,16 @@ const refreshUserName = async () => {
 
 const isHomepage = computed(() => route.path === "/");
 
+// Logo 圖片路徑
+const logoDefault = new URL("@/assets/images/logo.png", import.meta.url).href;
+const logoHover = new URL("@/assets/images/logoup.png", import.meta.url).href;
+
+const logoSrc = ref(logoDefault);
+
+const swapLogo = (hovering) => {
+  logoSrc.value = hovering ? logoHover : logoDefault;
+};
+
 const handleLogoClick = (event) => {
   if (isHomepage.value) {
     event.preventDefault();
@@ -187,8 +201,8 @@ const handleLogout = () => {
 
 const menus = reactive([
   {
-    label: "課程管理",
-    children: [{ label: "課程列表", hash: "#courses" }],
+    label: "課程專區",
+    children: [{ label: "課程列表", path: "/courses" }],
     open: false,
   },
   {
@@ -212,11 +226,11 @@ const menus = reactive([
   {
     label: "社群論壇",
     children: [
-      { label: '論壇首頁', path: '/social/forumhome' },
-      { label: '文章列表', path: '/social/forum' },
-      { label: '發表文章', path: '/social/forumcreate' },
-      { label: '尋找夥伴', path: '/social/partner' },
-      { label: '個人檔案', path: '/social/UserSocialProfile' },
+      { label: "論壇首頁", path: "/social/forumhome" },
+      { label: "文章列表", path: "/social/forum" },
+      { label: "發表文章", path: "/social/forumcreate" },
+      { label: "尋找夥伴", path: "/social/partner" },
+      { label: "個人檔案", path: "/social/UserSocialProfile" },
     ],
     open: false,
   },
