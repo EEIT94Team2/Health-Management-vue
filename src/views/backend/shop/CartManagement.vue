@@ -39,7 +39,10 @@
                         <template #default="scope">
                             <div v-if="scope.row.product" class="cart-product-image">
                                 <el-image
-                                    :src="scope.row.product.image || defaultImageBase64"
+                                    :src="
+                                        getValidImageUrl(scope.row.product.image) ||
+                                        defaultImageBase64
+                                    "
                                     fit="cover"
                                     :preview-teleported="true"
                                     :preview-src-list="
@@ -49,6 +52,14 @@
                                     :z-index="9999"
                                     @error="handleImageError"
                                     alt="商品圖片"
+                                    :data-original-url="scope.row.product.image"
+                                    lazy
+                                    style="
+                                        max-width: 100px;
+                                        max-height: 100px;
+                                        width: auto;
+                                        height: auto;
+                                    "
                                 >
                                     <template #error>
                                         <div class="image-error">
@@ -201,9 +212,9 @@ const cartItems = ref([]);
 const loading = ref(false);
 const isComponentMounted = ref(true);
 
-// 默認的Base64圖片
+// 默認的Base64圖片 (1x1 像素透明圖片，極小尺寸)
 const defaultImageBase64 =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAAW0lEQVR4nO3BAQ0AAADCoPdPbQ8HFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8GaJHAABYAX31QAAAABJRU5ErkJggg==";
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 // 检查用户是否已登录
 const checkLogin = () => {
@@ -215,26 +226,69 @@ const checkLogin = () => {
     return true;
 };
 
-/**
- * 檢查圖片URL是否有效
- * 如果是有效的HTTP URL，保持不變
- * 如果是相對路徑，轉換為絕對路徑
- * 如果無效，返回空字符串（將使用默認Base64圖片）
- */
+// 驗證圖片URL
 const getValidImageUrl = (url) => {
-    if (!url) return "";
+    // 如果url為空，返回空白圖片
+    if (!url) {
+        return "";
+    }
 
-    // 如果已經是HTTP URL，直接返回
-    if (url.match(/^(https?:\/\/)/)) {
+    // 增強咖啡圖片檢測，添加更多可能的關鍵詞和模式
+    const coffeeKeywords = [
+        "coffee",
+        "咖啡",
+        "café",
+        "kaffee",
+        "espresso",
+        "latte",
+        "cappuccino",
+        "mocha",
+    ];
+
+    // 檢查URL或文件名中是否包含咖啡相關關鍵詞
+    const isCoffeeImage = coffeeKeywords.some((keyword) =>
+        url.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    if (isCoffeeImage) {
+        console.log("檢測到咖啡相關圖片URL:", url);
+        // 優先使用咖啡專用圖片
+        const coffeeImageBase64 =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAsTAAALEwEAmpwYAAABOUlEQVR4nO2UMUvDQBTHf1dFBwcXRQfpVMXFQYiDOHWrg6ODH8JZcHfxK+jkbKGjq4MLDg4qKEJdHQQHle7Z5AIxNDQx0YL4h+PuffeO/717eXCnCGgCPWAEjIEQeAPegDdpj+QdSDsS787Aq0APKOcJlZScXTx/Al5k7YHAUw3SXEgBXhA/0zCAdWXfpnNIq1FlcZJFy6YSW8KBLNKXjFc1kVZsxrTkQlqykYvLhYqaZiw7MbDI+a5KrlGVTXTGKMQXXCeunJPYwI6h/QA+ZRxI/S72twgcZxGJIgz8z5fqKKFt2ALujddZi60CcG+c+ylbq4puoQq4BiLDRF9EDfCkvM9i/nYxasCr0hYlqwNdpZ+7yFRYBVpm5T6Bkdg4lPWXBdtYz3SvAswi9eVVfgHxOHCcF1G7iwAAAABJRU5ErkJggg==";
+        return coffeeImageBase64;
+    }
+
+    // 檢查是否為Base64格式
+    if (url.startsWith("data:image")) {
+        // 如果Base64串太長(大於5000)，可能導致請求頭過大，返回空白圖片
+        if (url.length > 5000) {
+            console.log("Base64圖片太大，使用替代圖片");
+            return "";
+        }
         return url;
     }
 
-    // 如果是相對路徑但不是以/開頭，添加/
-    if (!url.startsWith("/")) {
-        return "/" + url;
+    // 處理以//開頭的URL（協議相對URL）
+    if (url.startsWith("//")) {
+        return "https:" + url;
     }
 
-    return url;
+    // 處理絕對URL（以http或https開頭）
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+
+    // 處理相對路徑
+    // 根據環境變量確定基礎URL
+    const baseUrl =
+        process.env.NODE_ENV === "production"
+            ? "https://your-production-domain.com" // 替換為實際生產環境域名
+            : "http://localhost:8080"; // 開發環境域名
+
+    // 刪除開頭的斜槓，避免雙重斜槓
+    const cleanUrl = url.startsWith("/") ? url.substring(1) : url;
+
+    return `${baseUrl}/${cleanUrl}`;
 };
 
 // 获取购物车内容
@@ -340,37 +394,12 @@ const removeFromCart = async (cartItemId) => {
         }
 
         console.log(`從購物車移除商品: itemId=${cartItemId}, userId=${userId}`);
-        const response = await apiRemoveFromCart(cartItemId, userId);
+        await apiRemoveFromCart({
+            cartItemId: cartItemId,
+        });
 
-        // 根據HTTP狀態碼判斷成功
-        if (response && response.status === 200) {
-            await fetchCartItems();
-            ElMessage.success("已從購物車移除");
-            return;
-        }
-
-        // 檢查各種可能的成功響應數據結構
-        if (response && response.data) {
-            // 情況1: {success: true, ...}
-            if (response.data.success === true) {
-                await fetchCartItems();
-                ElMessage.success("已從購物車移除");
-                return;
-            }
-
-            // 情況2: 直接返回的數據沒有明確的錯誤信息
-            if (!response.data.message && !response.data.error) {
-                await fetchCartItems();
-                ElMessage.success("已從購物車移除");
-                return;
-            }
-
-            // 有明確的錯誤信息
-            throw new Error(response.data.message || response.data.error || "移除失敗");
-        } else {
-            // 無法解析響應
-            throw new Error("無法處理服務器響應");
-        }
+        await fetchCartItems();
+        ElMessage.success("已從購物車移除");
     } catch (error) {
         if (error === "cancel") {
             // 用戶取消操作，不顯示錯誤
@@ -463,12 +492,59 @@ const clearCart = async () => {
 
 // 處理圖片加載錯誤
 const handleImageError = (e) => {
-    // 使用簡單的Base64編碼灰色圖片作為備用，避免外部依賴
-    const grayImageBase64 =
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAAW0lEQVR4nO3BAQ0AAADCoPdPbQ8HFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8GaJHAABYAX31QAAAABJRU5ErkJggg==";
+    console.log("圖片加載失敗，URL:", e.target.src);
 
-    // 設置為本地Base64圖片以避免再次網絡請求
-    e.target.src = grayImageBase64;
+    // 獲取原始圖片URL（從data屬性或當前src）
+    const originalUrl =
+        e.target.dataset.originalUrl || e.target.getAttribute("original-src") || e.target.src;
+    console.log("原始圖片URL:", originalUrl);
+
+    // 檢查是否為咖啡相關圖片
+    const coffeeKeywords = [
+        "coffee",
+        "咖啡",
+        "café",
+        "kaffee",
+        "espresso",
+        "latte",
+        "cappuccino",
+        "mocha",
+    ];
+    const isCoffeeImage = coffeeKeywords.some((keyword) =>
+        (originalUrl || "").toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // 保存原始圖片URL以便調試
+    if (!e.target.hasAttribute("original-src")) {
+        e.target.setAttribute("original-src", e.target.src);
+    }
+
+    // 優先處理咖啡圖片
+    if (isCoffeeImage) {
+        console.log("檢測到咖啡圖片，使用專用替代圖片");
+        const coffeeImageBase64 =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAsTAAALEwEAmpwYAAABOUlEQVR4nO2UMUvDQBTHf1dFBwcXRQfpVMXFQYiDOHWrg6ODH8JZcHfxK+jkbKGjq4MLDg4qKEJdHQQHle7Z5AIxNDQx0YL4h+PuffeO/717eXCnCGgCPWAEjIEQeAPegDdpj+QdSDsS787Aq0APKOcJlZScXTx/Al5k7YHAUw3SXEgBXhA/0zCAdWXfpnNIq1FlcZJFy6YSW8KBLNKXjFc1kVZsxrTkQlqykYvLhYqaZiw7MbDI+a5KrlGVTXTGKMQXXCeunJPYwI6h/QA+ZRxI/S72twgcZxGJIgz8z5fqKKFt2ALujddZi60CcG+c+ylbq4puoQq4BiLDRF9EDfCkvM9i/nYxasCr0hYlqwNdpZ+7yFRYBVpm5T6Bkdg4lPWXBdtYz3SvAswi9eVVfgHxOHCcF1G7iwAAAABJRU5ErkJggg==";
+        e.target.src = coffeeImageBase64;
+        e.target.dataset.retried = "true";
+        e.target.onerror = null; // 防止再次觸發error事件
+        return;
+    }
+
+    // 檢查是否已嘗試過替代圖片
+    if (e.target.dataset.retried === "true") {
+        // 已經嘗試過，使用最小備用圖片
+        const grayImageBase64 =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+        e.target.src = grayImageBase64;
+        console.log("切換到最小備用圖片");
+    } else {
+        // 首次嘗試，使用咖啡圖片作為通用備用圖
+        const coffeeImageBase64 =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAsTAAALEwEAmpwYAAABOUlEQVR4nO2UMUvDQBTHf1dFBwcXRQfpVMXFQYiDOHWrg6ODH8JZcHfxK+jkbKGjq4MLDg4qKEJdHQQHle7Z5AIxNDQx0YL4h+PuffeO/717eXCnCGgCPWAEjIEQeAPegDdpj+QdSDsS787Aq0APKOcJlZScXTx/Al5k7YHAUw3SXEgBXhA/0zCAdWXfpnNIq1FlcZJFy6YSW8KBLNKXjFc1kVZsxrTkQlqykYvLhYqaZiw7MbDI+a5KrlGVTXTGKMQXXCeunJPYwI6h/QA+ZRxI/S72twgcZxGJIgz8z5fqKKFt2ALujddZi60CcG+c+ylbq4puoQq4BiLDRF9EDfCkvM9i/nYxasCr0hYlqwNdpZ+7yFRYBVpm5T6Bkdg4lPWXBdtYz3SvAswi9eVVfgHxOHCcF1G7iwAAAABJRU5ErkJggg==";
+        e.target.src = coffeeImageBase64;
+        e.target.dataset.retried = "true";
+        console.log("切換到咖啡備用圖片");
+    }
 
     // 防止再次觸發error事件
     e.target.onerror = null;

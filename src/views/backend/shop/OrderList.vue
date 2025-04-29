@@ -3,8 +3,8 @@
         <el-card class="order-container">
             <template #header>
                 <div class="order-header">
-                    <h2>{{ isAdmin ? "訂單管理" : "我的訂單" }}</h2>
-                    <div class="filter-container" v-if="isAdmin">
+                    <h2>訂單管理</h2>
+                    <div class="filter-container">
                         <el-input
                             v-model="searchQuery"
                             placeholder="搜索訂單"
@@ -41,7 +41,6 @@
                             end-placeholder="結束日期"
                             format="YYYY-MM-DD"
                             value-format="YYYY-MM-DD"
-                            style="max-width: 280px"
                             @change="fetchOrders"
                         />
                     </div>
@@ -61,39 +60,36 @@
             </div>
 
             <div v-else class="order-content">
-                <el-table :data="orders" style="width: 100%">
-                    <el-table-column prop="id" label="訂單編號" width="120" />
+                <el-table :data="orders" style="width: 100%" border stripe>
+                    <el-table-column prop="id" label="訂單編號" width="100" />
 
-                    <el-table-column prop="createdAt" label="下單時間" width="180">
+                    <el-table-column prop="createdAt" label="下單時間" width="160">
                         <template #default="{ row }">
                             {{ formatDate(row.createdAt) }}
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="訂單金額" width="120">
-                        <template #default="{ row }"> ${{ row.totalAmount }} </template>
+                    <el-table-column label="訂單金額" width="120" align="right">
+                        <template #default="{ row }">
+                            <span class="price-tag">${{ row.totalAmount }}</span>
+                        </template>
                     </el-table-column>
 
-                    <el-table-column prop="status" label="訂單狀態" width="120">
+                    <el-table-column prop="status" label="訂單狀態" width="100" align="center">
                         <template #default="{ row }">
-                            <el-tag :type="getStatusType(row.status)">
+                            <el-tag :type="getStatusType(row.status)" effect="dark">
                                 {{ getStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="商品數量" width="120">
+                    <el-table-column label="商品數量" width="100" align="center">
                         <template #default="{ row }">
                             {{ getItemsQuantity(row) }}
                         </template>
                     </el-table-column>
 
-                    <el-table-column
-                        prop="userName"
-                        label="用戶郵箱"
-                        min-width="120"
-                        v-if="isAdmin"
-                    >
+                    <el-table-column prop="userName" label="用戶" min-width="180" v-if="isAdmin">
                         <template #default="{ row }">
                             <div
                                 v-if="
@@ -101,7 +97,11 @@
                                     row.userName !== '未知用戶' &&
                                     row.userName !== '未知用户'
                                 "
+                                class="user-info"
                             >
+                                <el-avatar :size="28" class="user-avatar">
+                                    {{ row.userName.substring(0, 1).toUpperCase() }}
+                                </el-avatar>
                                 {{ row.userName }}
                             </div>
                             <div v-else>
@@ -121,29 +121,33 @@
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="操作" width="160" fixed="right">
+                    <el-table-column label="操作" width="180" fixed="right" align="center">
                         <template #default="{ row }">
-                            <el-button
-                                type="primary"
-                                size="small"
-                                @click="viewOrder(row.id)"
-                                class="view-btn"
-                            >
-                                查看詳情
-                            </el-button>
+                            <div class="operation-buttons">
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click="viewOrder(row.id)"
+                                    class="view-btn"
+                                    :icon="View"
+                                >
+                                    查看
+                                </el-button>
 
-                            <el-button
-                                v-if="
-                                    row.status &&
-                                    (row.status.toLowerCase().includes('pending') ||
-                                        row.status === 'PENDING_PAYMENT')
-                                "
-                                type="success"
-                                size="small"
-                                @click="goToPayment(row)"
-                            >
-                                支付
-                            </el-button>
+                                <el-button
+                                    v-if="
+                                        row.status &&
+                                        (row.status.toLowerCase().includes('pending') ||
+                                            row.status === 'PENDING_PAYMENT')
+                                    "
+                                    type="success"
+                                    size="small"
+                                    @click="goToPayment(row)"
+                                    :icon="Wallet"
+                                >
+                                    支付
+                                </el-button>
+                            </div>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -157,6 +161,7 @@
                         :total="total"
                         @size-change="handleSizeChange"
                         @current-change="handleCurrentChange"
+                        background
                     />
                 </div>
             </div>
@@ -168,7 +173,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { Search } from "@element-plus/icons-vue";
+import { Search, View, Wallet } from "@element-plus/icons-vue";
 import { useAuthStore } from "@/stores/auth";
 import { getOrders, getOrdersByUserId } from "@/api/shop";
 import axios from "axios";
@@ -469,6 +474,7 @@ onMounted(() => {
 .order-container {
     max-width: 1200px;
     margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .order-header {
@@ -476,48 +482,36 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    gap: 15px;
+}
+
+.order-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #303133;
 }
 
 .filter-container {
-    margin-bottom: 15px;
     display: flex;
+    gap: 15px;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
-    max-width: 550px;
 }
 
 .search-input {
-    width: 150px !important;
+    width: 240px;
 }
 
 .status-select {
-    width: 100px !important;
+    width: 140px;
 }
 
 .date-picker {
-    width: auto !important;
-    max-width: 260px !important;
-}
-
-:deep(.el-date-editor--daterange) {
-    max-width: 260px !important;
-}
-
-:deep(.el-range-editor.el-input__wrapper) {
-    width: auto !important;
-    max-width: 260px !important;
-}
-
-:deep(.el-date-editor .el-range-input) {
-    max-width: 80px !important;
-}
-
-:deep(.el-date-editor--daterange.el-input) {
-    max-width: 260px !important;
+    width: 260px;
 }
 
 .loading-container {
-    padding: 20px;
+    padding: 20px 0;
 }
 
 .empty-orders {
@@ -525,25 +519,70 @@ onMounted(() => {
     text-align: center;
 }
 
+.order-content {
+    margin-top: 20px;
+}
+
 .pagination {
     margin-top: 20px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
+}
+
+.price-tag {
+    color: #f56c6c;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-avatar {
+    background-color: #409eff;
+    color: white;
+    font-weight: bold;
 }
 
 .user-id-text {
+    color: #909399;
     cursor: pointer;
-    color: #409eff;
-    text-decoration: underline;
-    display: flex;
-    align-items: center;
 }
 
 .user-id-text:hover {
-    opacity: 0.8;
+    color: #409eff;
+    text-decoration: underline;
+}
+
+.operation-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
 }
 
 .view-btn {
-    margin-bottom: 5px;
+    min-width: 70px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-container {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input,
+    .status-select,
+    .date-picker {
+        width: 100%;
+    }
 }
 </style>

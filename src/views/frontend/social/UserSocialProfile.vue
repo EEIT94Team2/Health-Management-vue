@@ -124,16 +124,25 @@
         </template>
       </el-dialog>
     </div>
-    <el-dialog v-model="showFriendDialog" title="好友清單" width="500px" class="friend-dialog">
-    <div>
-      <div class="friend-section-title">📨 收到的邀請</div>
-      <ul>
-        <li v-for="invite in receivedInvites" :key="invite.id">
-        👤 {{ invite.inviterId }}
-        <el-button size="small" type="success" @click="acceptInvite(invite.id)">接受</el-button>
-        <el-button size="small" type="danger" @click="rejectInvite(invite.id)">拒絕</el-button>
-        </li>
-      </ul>
+   <!-- 好友清單 Dialog -->
+   <el-dialog v-model="showFriendDialog" title="好友清單" width="500px" class="friend-dialog">
+      <div>
+        <div class="friend-section-title">📨 收到的邀請</div>
+        <ul v-if="receivedInvites.length">
+  <li v-for="invite in receivedInvites" :key="invite.id" class="friend-invite-item">
+    <div class="invite-info">
+      <div class="friend-avatar">{{ invite.inviterName?.charAt(0) || '?' }}</div>
+      <div class="invite-details">
+        <div class="friend-name">{{ invite.inviterName || '未知使用者' }}</div>
+        <div class="invite-actions">
+          <el-button size="small" type="success" @click="acceptInvite(invite.id)">接受</el-button>
+          <el-button size="small" type="danger" @click="rejectInvite(invite.id)">拒絕</el-button>
+        </div>
+      </div>
+    </div>
+  </li>
+</ul>
+        <p v-else>目前沒有收到邀請</p>
 
       <div class="friend-section-title">👯 我的好友</div>
       <ul>
@@ -144,6 +153,9 @@
     <el-button size="small" type="primary" class="invite-btn" @click="openTrainingDialog(f)">
       💪 邀請訓練
     </el-button>
+    <el-button size="small" type="danger" class="remove-btn" @click="removeFriend(f.friendId)">
+          ❌ 刪除
+        </el-button>
   </div>
 </li>
       </ul>
@@ -256,63 +268,100 @@ const showFriendDialog = ref(false)
 const myFriends = ref([])
 const showTrainingListDialog = ref(false)
 
+// 載入好友與邀請資料
 const loadFriendData = async () => {
   try {
     const token = localStorage.getItem("token")
+    const headers = { Authorization: `Bearer ${token}` }
+
     const [inviteRes, friendRes] = await Promise.all([
-      axios.get("/api/friend-invitations/received", {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
-      axios.get("/api/friends", {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
+      axios.get("/api/friend-invitations/received", { headers }),
+      axios.get("/api/friends", { headers }),
     ])
+
     receivedInvites.value = inviteRes.data
-    myFriends.value = friendRes.data 
+    myFriends.value = friendRes.data
     showFriendDialog.value = true
   } catch (err) {
-    console.error(err)
+    console.error("載入好友資料失敗", err)
     ElMessage.error("載入好友資料失敗")
   }
 }
-
-const loadFriends = async () => {
+const refreshInviteCount = async () => {
   try {
     const token = localStorage.getItem("token");
-    const res = await axios.get("/api/friends", {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await axios.get("/api/friend-invitations/received", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
     });
-    myFriends.value = res.data; // 預期每筆包含 friendId 與 name
+    pendingInvites.value = res.data.length;
   } catch (err) {
-    console.error("取得好友失敗", err);
-    ElMessage.error("無法載入好友清單");
+    console.error("更新邀請通知數失敗", err);
   }
 };
+// 單獨載入好友（非邀請）
+const loadFriends = async () => {
+  try {
+    const token = localStorage.getItem("token")
+    const headers = { Authorization: `Bearer ${token}` }
 
+    const res = await axios.get("/api/friends", { headers })
+    myFriends.value = res.data
+  } catch (err) {
+    console.error("取得好友失敗", err)
+    ElMessage.error("無法載入好友清單")
+  }
+}
+
+// 接受邀請
 const acceptInvite = async (id) => {
   try {
-    await axios.post(`/api/friend-invitations/${id}/accept`)
+    await axios.post(`/api/friend-invitations/${id}/accept`, null, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    })
     ElMessage.success("已接受邀請")
-    await loadFriendData()          // 重新載入好友清單
-    await refreshInviteCount()      // 更新通知數量
+    await loadFriendData()
+    await refreshInviteCount()
   } catch (err) {
-    console.error(err)
+    console.error("接受邀請失敗", err)
     ElMessage.error("接受失敗")
   }
 }
 
+// 拒絕邀請
 const rejectInvite = async (id) => {
   try {
-    await axios.post(`/api/friend-invitations/${id}/reject`)
+    await axios.post(`/api/friend-invitations/${id}/reject`, null, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    })
     ElMessage.info("已拒絕邀請")
-    await loadFriendData()          // 重新載入好友清單
-    await refreshInviteCount()      // 更新通知數量
+    await loadFriendData()
+    await refreshInviteCount()
   } catch (err) {
-    console.error(err)
+    console.error("拒絕邀請失敗", err)
     ElMessage.error("拒絕失敗")
   }
 }
-  
+onMounted(() => {
+  refreshInviteCount();
+});
+
+const removeFriend = async (friendId) => {
+  try {
+    const token = localStorage.getItem("token");
+    await axios.delete(`/api/friends/${friendId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    ElMessage.success("✅ 已刪除好友");
+    await loadFriendData(); // 重新載入好友
+  } catch (err) {
+    console.error("刪除好友失敗", err);
+    ElMessage.error("❌ 刪除好友失敗");
+  }
+};
 // 訓練邀請
 const showTrainingDialog = ref(false)
 const pendingTraining = ref(0)
@@ -504,7 +553,7 @@ const submitEdit = async () => {
   .action-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 15px;
     justify-content: center;
     margin-top: 20px;
   }
@@ -715,7 +764,9 @@ const submitEdit = async () => {
   color: #fff;
 }
 .friend-invite-item {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
 }
 
 .invite-info {
@@ -724,9 +775,20 @@ const submitEdit = async () => {
   justify-content: space-between;
   gap: 12px;
 }
-
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: green;
+  color: #fff;
+  font-size: 20px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
 .invite-details {
   flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .invite-actions {

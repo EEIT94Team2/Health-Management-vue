@@ -115,6 +115,12 @@
                     style="width: 100%"
                     @row-click="(row) => goToProductDetail(row.id)"
                 >
+                    <el-table-column prop="id" label="商品ID" width="80" align="center">
+                        <template #default="{ row }">
+                            <span class="id-tag">{{ row.id }}</span>
+                        </template>
+                    </el-table-column>
+
                     <el-table-column label="商品圖片" width="100">
                         <template #default="{ row }">
                             <el-image
@@ -167,7 +173,7 @@
                         <template #default="{ row }">
                             <el-button
                                 type="primary"
-                                size="large"
+                                size="default"
                                 @click.stop="quickAddToCart(row)"
                                 class="cart-button-list"
                             >
@@ -425,17 +431,7 @@ const quickAddToCart = async (product) => {
                 return;
             }
 
-            // 情況2: 直接返回data對象
-            if (
-                response.data.id ||
-                response.data.productId ||
-                (response.data.data && (response.data.data.id || response.data.data.productId))
-            ) {
-                ElMessage.success("已添加到購物車");
-                return;
-            }
-
-            // 情況3: 沒有明確錯誤信息
+            // 情況2: 直接返回的數據沒有明確的錯誤信息
             if (!response.data.message && !response.data.error) {
                 ElMessage.success("已添加到購物車");
                 return;
@@ -443,13 +439,10 @@ const quickAddToCart = async (product) => {
 
             // 有明確的錯誤信息
             throw new Error(response.data.message || response.data.error || "添加失敗");
-        } else {
-            // 無法解析響應
-            throw new Error("無法處理服務器響應");
         }
     } catch (error) {
         console.error("添加到購物車失敗:", error);
-        ElMessage.error(`添加失敗: ${error.message || "未知錯誤"}`);
+        ElMessage.error(error.message || "添加到購物車失敗");
     } finally {
         loading.value = false;
     }
@@ -589,17 +582,31 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    font-size: 16px;
+    gap: 8px;
+    font-size: 14px;
     margin: 0 auto;
+    padding: 8px 15px;
+    border-radius: 6px;
+    background-color: #409eff;
+    color: #fff;
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cart-button:hover,
+.cart-button-list:hover {
+    background-color: #66b1ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .cart-icon {
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .cart-button-list {
-    width: 80%;
+    width: 90%;
 }
 
 .table-product-image {
@@ -627,5 +634,12 @@ onMounted(() => {
 
 .bold-text {
     font-weight: bold;
+}
+
+.id-tag {
+    background-color: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 12px;
 }
 </style>

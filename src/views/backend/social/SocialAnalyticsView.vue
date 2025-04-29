@@ -22,14 +22,14 @@
         <v-chart :option="mostFavoritedOption" style="height: 300px" />
       </div>
   
-      <div class="chart-card">
+      <div v-if="false" class="chart-card">
         <h3>👤 發文最多的使用者 TOP 5</h3>
-        <v-chart :option="mostActiveUsersOption" style="height: 300px" />
+       <v-chart :option="mostActiveUsersOption" style="height: 300px" />
       </div>
-  
-      <div class="chart-card">
+
+      <div v-if="false" class="chart-card">
         <h3>🧑‍🤝‍🧑 好友數最多 TOP 5</h3>
-        <v-chart :option="mostFriendsOption" style="height: 300px" />
+         <v-chart :option="mostFriendsOption" style="height: 300px" />
       </div>
   
       <div class="chart-card">
@@ -68,6 +68,9 @@
       axios.get('/api/analytics/users/top-friends'),
       axios.get('/api/analytics/training-invitations')
     ])
+
+    const topLikedTitles = likedPosts.data.titles.slice(0, 5);
+    const topLikedCounts = likedPosts.data.counts.slice(0, 5);
   
     monthlyPostOption.value = {
       xAxis: { type: 'category', data: postStats.data.months },
@@ -82,9 +85,9 @@
     }
   
     mostLikedOption.value = {
-      xAxis: { type: 'category', data: likedPosts.data.titles },
-      yAxis: { type: 'value' },
-      series: [{ data: likedPosts.data.counts, type: 'bar' }]
+    xAxis: { type: 'category', data: topLikedTitles },
+    yAxis: { type: 'value' },
+    series: [{ data: topLikedCounts, type: 'bar' }]
     }
   
     mostFavoritedOption.value = {

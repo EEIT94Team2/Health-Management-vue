@@ -42,7 +42,14 @@
   
       <!-- 通知列表 -->
       <div class="section invite-section">
-        <h3>訓練邀請通知</h3>
+        <h3 class="invite-header">
+  訓練邀請通知
+  <transition name="badge-bounce">
+    <span v-if="pendingTrainingCount > 0" class="badge">
+      {{ pendingTrainingCount }}
+    </span>
+  </transition>
+</h3>
         <div v-if="invitations.length === 0">尚無邀請</div>
         <div v-else class="invite-list">
           <div v-for="i in invitations" :key="i.id" class="invite-card">
@@ -50,15 +57,18 @@
             <div class="message">
               {{ i.senderName }}：{{ i.message }}
             </div>
-            <div class="actions" v-if="i.status === 'PENDING'">
-              <el-button size="small" type="primary" @click="respondInvitation(i.id, 'ACCEPTED')">接受</el-button>
-              <el-button size="small" type="danger" @click="respondInvitation(i.id, 'REJECTED')">拒絕</el-button>
-            </div>
-            <div v-else class="response">已{{ i.status === 'ACCEPTED' ? '接受' : '拒絕' }}</div>
+            <div class="actions" v-if="i.status?.toUpperCase() === 'PENDING'">
+              <el-button size="small" type="primary" class="accept-btn" @click="respondInvitation(i.id, 'ACCEPTED')">接受</el-button>
+              <el-button size="small" type="danger" class="reject-btn" @click="respondInvitation(i.id, 'REJECTED')">拒絕</el-button>
+</div>
+<div v-else class="response">
+  已{{ i.status?.toUpperCase() === 'ACCEPTED' ? '接受' : '拒絕' }}
+</div>
           </div>
         </div>
       </div>
     </div>
+    
   </template>
   
   <script setup>
@@ -85,27 +95,36 @@
   };
   
   const loadInvitations = async () => {
-    const res = await axios.get('/api/training/invitations');
-    invitations.value = res.data;
-  };
+  const res = await axios.get('/api/training-invitations/received');
+  invitations.value = res.data;
+};
   
   const inviteTraining = async (friendId) => {
     try {
       const friend = friends.value.find(f => f.friendId === friendId);
-      const { value: message } = await ElMessageBox.prompt('請輸入邀請訊息', '發送訓練邀請', {
-        confirmButtonText: '送出',
-        cancelButtonText: '取消',
-        inputPlaceholder: '今晚 19:00 一起健身！',
-      });
+      const { value: message } = await ElMessageBox.prompt(
+  '<strong style="color:#4caf50;">請輸入訓練邀請訊息：</strong>',
+  '💪 發送訓練邀請',
+  {
+    dangerouslyUseHTMLString: true,
+    confirmButtonText: '送出',
+    cancelButtonText: '取消',
+    inputPlaceholder: '今晚 19:00 一起健身！',
+    customClass: 'training-prompt'
+  }
+);
       if (!message) return;
       friend.inviting = true;
-      await axios.post('/api/training/invitations', { receiverId: friendId, message });
+      await axios.post('/api/training-invitations/invite', {
+  receiverId: friendId,
+  message
+});
       loadInvitations();
     } catch {}
   };
   
   const respondInvitation = async (id, status) => {
-    await axios.put(`/api/training/invitations/${id}`, { status });
+    await axios.put(`/api/training-invitations/respond/${id}?status=${status}`);
     loadInvitations();
   };
   
@@ -113,6 +132,10 @@
     loadFriends();
     loadInvitations();
   });
+
+  const pendingTrainingCount = computed(() =>
+  invitations.value.filter(i => i.status === 'PENDING').length
+);
   </script>
   
   <style scoped>
@@ -244,5 +267,64 @@
   .invite-btn {
     margin-left: auto;
   }
+  .invite-header {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  background-color: #f56c6c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 50%;
+  padding: 4px 8px;
+  animation: badge-pulse 1.5s infinite;
+}
+
+/* 動畫：微抖動或放大縮小 */
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+/* Vue transition */
+.badge-bounce-enter-active,
+.badge-bounce-leave-active {
+  transition: transform 0.4s;
+}
+.badge-bounce-enter-from,
+.badge-bounce-leave-to {
+  transform: scale(0);
+}
+
+.accept-btn {
+  background-color: #4caf50 !important;
+  color: white !important;
+  border: none;
+  font-weight: bold;
+  transition: 0.2s;
+}
+.accept-btn:hover {
+  background-color: #43a047 !important;
+}
+
+.reject-btn {
+  background-color: #e53935 !important;
+  color: white !important;
+  border: none;
+  font-weight: bold;
+  transition: 0.2s;
+}
+.reject-btn:hover {
+  background-color: #c62828 !important;
+}
+
   </style>
   
