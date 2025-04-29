@@ -38,6 +38,12 @@
         <el-menu-item index="/backpage/courses">
           <span>課程列表</span>
         </el-menu-item>
+        <el-menu-item index="/backpage/enrollments">
+          <span>報名課程</span>
+        </el-menu-item>
+        <el-menu-item index="/backpage/trailBooking">
+          <span>預約課程</span>
+        </el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu v-if="checkPermission(['admin', 'shop'])" index="shop">
@@ -207,6 +213,12 @@ const handleSelect = (index, indexPath) => {
       break;
     case "/backpage/courses":
       title = "課程列表";
+      break;
+    case "/backpage/enrollments":
+      title = "報名課程";
+      break;
+    case "/backpage/trailBooking":
+      title = "預約課程";
       break;
     case "/backpage/shop/products":
       title = "商品列表";
