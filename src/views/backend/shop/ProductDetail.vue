@@ -41,6 +41,9 @@
                 <el-col :span="14">
                     <div class="product-info">
                         <h1 class="product-name">{{ product.name }}</h1>
+                        <div class="product-id">
+                            商品ID: <span class="id-value">{{ product.id }}</span>
+                        </div>
                         <div class="product-price">${{ product.price }}</div>
                         <div class="product-stock">庫存: {{ product.stockQuantity }} 件</div>
                         <div class="product-description">
@@ -193,6 +196,12 @@ onMounted(() => {
     margin-bottom: 20px;
     color: #333;
     font-weight: bold;
+}
+
+.product-id {
+    font-size: 16px;
+    color: #606266;
+    margin-bottom: 15px;
 }
 
 .product-price {

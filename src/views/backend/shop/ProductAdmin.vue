@@ -66,6 +66,12 @@
 
             <div v-else>
                 <el-table v-loading="loading" :data="products" style="width: 100%">
+                    <el-table-column prop="id" label="商品ID" width="80" align="center">
+                        <template #default="{ row }">
+                            <span class="id-tag">{{ row.id }}</span>
+                        </template>
+                    </el-table-column>
+
                     <el-table-column label="商品圖片" width="120">
                         <template #default="{ row }">
                             <el-image
@@ -648,6 +654,19 @@ onMounted(() => {
     font-size: 20px;
 }
 
+/* 添加描述和操作列之間的實線分隔 */
+:deep(.el-table__row) {
+    td:nth-last-child(2) {
+        border-right: 1px solid #dcdfe6;
+    }
+}
+
+:deep(.el-table__header) {
+    th:nth-last-child(2) {
+        border-right: 1px solid #dcdfe6;
+    }
+}
+
 .table-actions {
     display: flex;
     justify-content: space-around;
@@ -686,6 +705,14 @@ onMounted(() => {
 .low-stock {
     color: #f56c6c;
     font-weight: bold;
+}
+
+.id-tag {
+    background-color: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
 }
 
 .image-upload {

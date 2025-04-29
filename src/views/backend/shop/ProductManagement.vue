@@ -1,22 +1,22 @@
 <template>
     <div class="product-management">
-        <el-card class="management-container">
+        <el-card class="management-container" :body-style="{ padding: '0px' }">
             <template #header>
                 <div class="management-header">
-                    <h2>商品管理</h2>
-                    <div class="search-actions">
-                        <el-input 
-                            v-model="searchKeyword" 
-                            placeholder="搜索商品" 
+                    <h2 class="management-title">商品管理後台</h2>
+                    <div class="header-controls">
+                        <el-input
+                            v-model="searchKeyword"
+                            placeholder="搜索商品"
                             class="search-input"
-                            clearable 
+                            clearable
                             @keyup.enter="handleSearch"
                         >
                             <template #append>
                                 <el-button icon="Search" @click="handleSearch"></el-button>
                             </template>
                         </el-input>
-                        
+
                         <el-dropdown @command="handleFilterCommand" class="price-filter">
                             <el-button>
                                 價格篩選 <el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -25,16 +25,20 @@
                                 <el-dropdown-menu>
                                     <el-dropdown-item command="all">全部商品</el-dropdown-item>
                                     <el-dropdown-item command="low">低價 (< $100)</el-dropdown-item>
-                                    <el-dropdown-item command="medium">中價 ($100 - $500)</el-dropdown-item>
-                                    <el-dropdown-item command="high">高價 (> $500)</el-dropdown-item>
+                                    <el-dropdown-item command="medium"
+                                        >中價 ($100 - $500)</el-dropdown-item
+                                    >
+                                    <el-dropdown-item command="high"
+                                        >高價 (> $500)</el-dropdown-item
+                                    >
                                     <el-dropdown-item command="custom">自定義價格</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
-                        
-                        <el-button type="success" size="large" @click="showAddDialog" class="add-product-btn">
-                            <el-icon class="add-icon"><Plus /></el-icon>
-                            <span class="bold-text">新增商品</span>
+
+                        <el-button type="success" class="add-product-btn" @click="showAddDialog">
+                            <el-icon><Plus /></el-icon>
+                            新增商品
                         </el-button>
                     </div>
                 </div>
@@ -48,99 +52,85 @@
                     sub-title="抱歉，只有管理員才能訪問此頁面"
                 >
                     <template #extra>
-                        <el-button type="primary" @click="$router.push('/shop/products')">返回商品列表</el-button>
+                        <el-button type="primary" @click="$router.push('/shop/products')"
+                            >返回商品列表</el-button
+                        >
                     </template>
                 </el-result>
             </div>
 
-            <div v-else>
-                <el-table v-loading="loading" :data="products" style="width: 100%">
-                    <el-table-column label="商品圖片" width="120">
+            <div v-else class="table-container">
+                <el-table v-loading="loading" :data="products" style="width: 100%" :border="false">
+                    <el-table-column prop="id" label="商品ID" width="90" align="center">
                         <template #default="{ row }">
-                            <el-image 
-                                :src="row.imageUrl || 'https://via.placeholder.com/100x100?text=No+Image'" 
-                                fit="cover" 
+                            {{ row.id }}
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column label="商品圖片" width="150" align="center">
+                        <template #default="{ row }">
+                            <el-image
+                                :src="
+                                    row.imageUrl ||
+                                    'https://via.placeholder.com/100x100?text=No+Image'
+                                "
+                                fit="cover"
                                 class="product-image"
                                 :preview-src-list="row.imageUrl ? [row.imageUrl] : []"
                                 :initial-index="0"
-                                :z-index="9999"
-                                preview-teleported
                             />
                         </template>
                     </el-table-column>
 
                     <el-table-column prop="name" label="商品名稱" min-width="180" />
 
-                    <el-table-column prop="price" label="價格" width="120">
-                        <template #default="{ row }"> ${{ row.price }} </template>
+                    <el-table-column prop="price" label="價格" width="120" align="right">
+                        <template #default="{ row }"> ${{ Math.floor(row.price) }} </template>
                     </el-table-column>
 
-                    <el-table-column prop="stockQuantity" label="庫存" width="120">
+                    <el-table-column prop="stockQuantity" label="庫存" width="110" align="center">
                         <template #default="{ row }">
-                            <el-tooltip
-                                :content="row.stockQuantity < 50 ? '庫存不足，請及時補貨' : '庫存充足'"
-                                placement="top"
-                            >
-                                <span :class="{'low-stock': row.stockQuantity < 50}">{{ row.stockQuantity }}</span>
-                            </el-tooltip>
-                        </template>
-                        <template #header>
-                            <span>庫存</span>
-                            <el-tooltip content="庫存少於50時會顯示紅色提示" placement="top">
-                                <el-icon><InfoFilled /></el-icon>
-                            </el-tooltip>
+                            <span :class="{ 'low-stock': row.stockQuantity < 50 }">
+                                {{ row.stockQuantity }}
+                            </span>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column label="描述" min-width="220">
                         <template #default="{ row }">
-                            <el-tooltip 
-                                :content="row.description" 
-                                placement="top" 
-                                :show-after="500"
-                                effect="light"
-                                max-width="300"
-                            >
-                                <div class="description-text">{{ row.description }}</div>
-                            </el-tooltip>
+                            <div class="description-text">{{ row.description }}</div>
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="操作" width="220" fixed="right">
+                    <el-table-column label="操作" width="220" align="center">
                         <template #default="{ row }">
                             <div class="table-actions">
-                                <el-tooltip content="查看" placement="top">
-                                    <el-button 
-                                        type="primary" 
-                                        circle 
-                                        size="large"
-                                        @click="$router.push(`/shop/products/${row.id}`)"
-                                    >
-                                        <el-icon class="action-icon"><View /></el-icon>
-                                    </el-button>
-                                </el-tooltip>
-                                
-                                <el-tooltip content="編輯" placement="top">
-                                    <el-button 
-                                        type="warning" 
-                                        circle 
-                                        size="large"
-                                        @click="showEditDialog(row)"
-                                    >
-                                        <el-icon class="action-icon"><Tools /></el-icon>
-                                    </el-button>
-                                </el-tooltip>
-                                
-                                <el-tooltip content="刪除" placement="top">
-                                    <el-button 
-                                        type="danger" 
-                                        circle 
-                                        size="large"
-                                        @click="handleDelete(row)"
-                                    >
-                                        <el-icon class="action-icon"><CircleClose /></el-icon>
-                                    </el-button>
-                                </el-tooltip>
+                                <el-button
+                                    type="warning"
+                                    circle
+                                    @click="showEditDialog(row)"
+                                    class="action-button edit-button"
+                                >
+                                    <el-icon><Edit /></el-icon>
+                                </el-button>
+
+                                <el-button
+                                    type="primary"
+                                    circle
+                                    @click="$router.push(`/shop/products/${row.id}`)"
+                                    class="action-button view-button"
+                                >
+                                    <el-icon><View /></el-icon>
+                                </el-button>
+
+                                <el-button
+                                    type="danger"
+                                    circle
+                                    @click="handleDelete(row)"
+                                    class="action-button delete-button"
+                                >
+                                    <el-icon><Delete /></el-icon>
+                                </el-button>
                             </div>
                         </template>
                     </el-table-column>
@@ -220,10 +210,20 @@
         <el-dialog v-model="priceRangeDialogVisible" title="自定義價格範圍" width="400px">
             <el-form :model="priceRangeForm">
                 <el-form-item label="最低價格">
-                    <el-input-number v-model="priceRangeForm.minPrice" :min="0" :precision="2" style="width: 100%" />
+                    <el-input-number
+                        v-model="priceRangeForm.minPrice"
+                        :min="0"
+                        :precision="2"
+                        style="width: 100%"
+                    />
                 </el-form-item>
                 <el-form-item label="最高價格">
-                    <el-input-number v-model="priceRangeForm.maxPrice" :min="0" :precision="2" style="width: 100%" />
+                    <el-input-number
+                        v-model="priceRangeForm.maxPrice"
+                        :min="0"
+                        :precision="2"
+                        style="width: 100%"
+                    />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -238,18 +238,28 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from 'vue-router';
-import { Edit, Delete, Plus, ArrowDown, Search, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
+import { useRouter } from "vue-router";
+import {
+    Edit,
+    Delete,
+    Plus,
+    ArrowDown,
+    Search,
+    View,
+    Tools,
+    CircleClose,
+    InfoFilled,
+} from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
-import { 
-    getProducts, 
-    createProduct, 
-    updateProduct, 
-    deleteProduct, 
+import {
+    getProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
     searchProducts,
     getProductsByPriceRange,
-    uploadImage as uploadImageApi
+    uploadImage as uploadImageApi,
 } from "@/api/shop";
 
 const router = useRouter();
@@ -266,19 +276,19 @@ const searchKeyword = ref("");
 const priceRangeDialogVisible = ref(false);
 const priceRangeForm = ref({
     minPrice: 0,
-    maxPrice: 1000
+    maxPrice: 1000,
 });
 
 // 在 script setup 中添加當前篩選條件的狀態
 const currentPriceFilter = ref({
     active: false,
     minPrice: 0,
-    maxPrice: 100000
+    maxPrice: 100000,
 });
 
 // 检查是否为管理员
 const isAdmin = computed(() => {
-  return authStore.userRole === 'admin';
+    return authStore.userRole === "admin";
 });
 
 const form = ref({
@@ -300,7 +310,7 @@ const rules = {
 // 獲取商品列表
 const fetchProducts = async () => {
     if (!isAdmin.value) return;
-    
+
     loading.value = true;
     try {
         const response = await getProducts();
@@ -317,11 +327,11 @@ const fetchProducts = async () => {
 // 修改處理搜索函數
 const handleSearch = async () => {
     if (!isAdmin.value) return;
-    
+
     loading.value = true;
     try {
         let filteredProducts = [];
-        
+
         // 根據搜索關鍵詞獲取商品
         if (searchKeyword.value.trim()) {
             const response = await searchProducts(searchKeyword.value);
@@ -330,15 +340,16 @@ const handleSearch = async () => {
             const response = await getProducts();
             filteredProducts = response.data;
         }
-        
+
         // 如果有價格篩選條件，再按價格篩選
         if (currentPriceFilter.value.active) {
-            filteredProducts = filteredProducts.filter(product => 
-                product.price >= currentPriceFilter.value.minPrice && 
-                product.price <= currentPriceFilter.value.maxPrice
+            filteredProducts = filteredProducts.filter(
+                (product) =>
+                    product.price >= currentPriceFilter.value.minPrice &&
+                    product.price <= currentPriceFilter.value.maxPrice
             );
         }
-        
+
         products.value = filteredProducts;
         total.value = filteredProducts.length;
     } catch (error) {
@@ -351,38 +362,38 @@ const handleSearch = async () => {
 
 // 修改處理價格篩選命令函數
 const handleFilterCommand = (command) => {
-    if (command === 'custom') {
+    if (command === "custom") {
         priceRangeDialogVisible.value = true;
         return;
     }
-    
-    switch(command) {
-        case 'all':
+
+    switch (command) {
+        case "all":
             currentPriceFilter.value.active = false;
             break;
-        case 'low':
+        case "low":
             currentPriceFilter.value = {
                 active: true,
                 minPrice: 0,
-                maxPrice: 100
+                maxPrice: 100,
             };
             break;
-        case 'medium':
+        case "medium":
             currentPriceFilter.value = {
                 active: true,
                 minPrice: 100,
-                maxPrice: 500
+                maxPrice: 500,
             };
             break;
-        case 'high':
+        case "high":
             currentPriceFilter.value = {
                 active: true,
                 minPrice: 500,
-                maxPrice: 100000
+                maxPrice: 100000,
             };
             break;
     }
-    
+
     // 應用搜索和價格篩選
     handleSearch();
 };
@@ -392,11 +403,11 @@ const handlePriceRangeFilter = () => {
     currentPriceFilter.value = {
         active: true,
         minPrice: priceRangeForm.value.minPrice,
-        maxPrice: priceRangeForm.value.maxPrice
+        maxPrice: priceRangeForm.value.maxPrice,
     };
-    
+
     priceRangeDialogVisible.value = false;
-    
+
     // 應用搜索和價格篩選
     handleSearch();
 };
@@ -416,7 +427,7 @@ const handleCurrentChange = (val) => {
 // 顯示新增對話框
 const showAddDialog = () => {
     if (!isAdmin.value) return;
-    
+
     isEdit.value = false;
     form.value = {
         name: "",
@@ -431,7 +442,7 @@ const showAddDialog = () => {
 // 顯示編輯對話框
 const showEditDialog = (row) => {
     if (!isAdmin.value) return;
-    
+
     isEdit.value = true;
     form.value = { ...row };
     dialogVisible.value = true;
@@ -440,7 +451,7 @@ const showEditDialog = (row) => {
 // 處理刪除
 const handleDelete = async (row) => {
     if (!isAdmin.value) return;
-    
+
     try {
         await ElMessageBox.confirm("確定要刪除此商品嗎？", "提示", {
             confirmButtonText: "確定",
@@ -465,16 +476,16 @@ const handleDelete = async (row) => {
 // 處理表單提交
 const handleSubmit = async () => {
     if (!formRef.value) return;
-    
+
     await formRef.value.validate(async (valid) => {
         if (valid) {
             try {
                 loading.value = true;
-                
+
                 // 表單資料準備好後再提交
                 const submitForm = async () => {
                     const productData = { ...form.value };
-                    
+
                     if (isEdit.value) {
                         await updateProduct(form.value.id, productData);
                         ElMessage.success("商品更新成功");
@@ -482,41 +493,41 @@ const handleSubmit = async () => {
                         await createProduct(productData);
                         ElMessage.success("商品添加成功");
                     }
-                    
+
                     dialogVisible.value = false;
                     resetForm();
                     fetchProducts();
                 };
-                
+
                 // 如果圖片是 base64 格式且以 data:image 開頭，則先上傳圖片
-                if (form.value.imageUrl && form.value.imageUrl.startsWith('data:image')) {
+                if (form.value.imageUrl && form.value.imageUrl.startsWith("data:image")) {
                     try {
                         // 將 base64 轉換為文件對象
-                        const base64Data = form.value.imageUrl.split(',')[1];
-                        const blob = base64ToBlob(base64Data, 'image/jpeg');
-                        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-                        
+                        const base64Data = form.value.imageUrl.split(",")[1];
+                        const blob = base64ToBlob(base64Data, "image/jpeg");
+                        const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+
                         // 創建 FormData 對象
                         const formData = new FormData();
-                        formData.append('file', file);
-                        
+                        formData.append("file", file);
+
                         // 上傳圖片
                         const response = await uploadImageApi(formData);
-                        
+
                         // 更新表單中的圖片 URL
                         form.value.imageUrl = response.data;
-                        ElMessage.success('圖片上傳成功');
+                        ElMessage.success("圖片上傳成功");
                     } catch (error) {
-                        console.error('圖片上傳失敗:', error);
-                        ElMessage.warning('圖片上傳失敗，將直接使用base64格式');
+                        console.error("圖片上傳失敗:", error);
+                        ElMessage.warning("圖片上傳失敗，將直接使用base64格式");
                     }
                 }
-                
+
                 // 提交表單
                 await submitForm();
             } catch (error) {
                 console.error("提交失敗:", error);
-                ElMessage.error("提交失敗: " + (error.response?.data?.message || '未知錯誤'));
+                ElMessage.error("提交失敗: " + (error.response?.data?.message || "未知錯誤"));
             } finally {
                 loading.value = false;
             }
@@ -528,33 +539,33 @@ const handleSubmit = async () => {
 const base64ToBlob = (base64, mimeType) => {
     const byteCharacters = atob(base64);
     const byteArrays = [];
-    
+
     for (let offset = 0; offset < byteCharacters.length; offset += 512) {
         const slice = byteCharacters.slice(offset, offset + 512);
-        
+
         const byteNumbers = new Array(slice.length);
         for (let i = 0; i < slice.length; i++) {
             byteNumbers[i] = slice.charCodeAt(i);
         }
-        
+
         const byteArray = new Uint8Array(byteNumbers);
         byteArrays.push(byteArray);
     }
-    
+
     return new Blob(byteArrays, { type: mimeType });
 };
 
 // 圖片上傳前的驗證
 const beforeUpload = (file) => {
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
     const isSizeValid = file.size / 1024 / 1024 < 5;
 
     if (!isImage) {
-        ElMessage.error('只能上傳圖片文件!');
+        ElMessage.error("只能上傳圖片文件!");
         return false;
     }
     if (!isSizeValid) {
-        ElMessage.error('圖片大小不能超過5MB!');
+        ElMessage.error("圖片大小不能超過5MB!");
         return false;
     }
     return true;
@@ -564,16 +575,16 @@ const beforeUpload = (file) => {
 const uploadImage = async (options) => {
     try {
         const formData = new FormData();
-        formData.append('file', options.file);
-        
+        formData.append("file", options.file);
+
         const response = await uploadImageApi(formData);
         form.value.imageUrl = response.data;
-        
+
         options.onSuccess(response.data);
-        ElMessage.success('圖片上傳成功');
+        ElMessage.success("圖片上傳成功");
     } catch (error) {
         options.onError(error);
-        ElMessage.error('圖片上傳失敗');
+        ElMessage.error("圖片上傳失敗");
     }
 };
 
@@ -599,16 +610,16 @@ const resetForm = () => {
 
 onMounted(() => {
     if (!authStore.isLoggedIn) {
-        ElMessage.warning('請先登入');
-        router.push('/member/login');
+        ElMessage.warning("請先登入");
+        router.push("/member/login");
         return;
     }
-    
+
     if (!isAdmin.value) {
-        ElMessage.error('只有管理員才能訪問此頁面');
+        ElMessage.error("只有管理員才能訪問此頁面");
         return;
     }
-    
+
     fetchProducts();
 });
 </script>
@@ -621,53 +632,139 @@ onMounted(() => {
 .management-container {
     max-width: 1200px;
     margin: 0 auto;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.management-title {
+    font-size: 22px;
+    margin: 0;
+    color: #333;
 }
 
 .management-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ebeef5;
 }
 
-.search-actions {
+.header-controls {
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 10px;
 }
 
 .search-input {
     width: 250px;
 }
 
-.price-filter {
-    margin-right: 10px;
-}
-
 .add-product-btn {
     display: flex;
     align-items: center;
     gap: 5px;
-    background-color: #67c23a;
     font-weight: bold;
 }
 
-.add-icon {
-    font-size: 20px;
+.table-container {
+    padding: 0;
+}
+
+/* 徹底移除所有表格線條 */
+:deep(.el-table) {
+    --el-table-border-color: transparent;
+    --el-table-border: 0px;
+}
+
+:deep(.el-table--border),
+:deep(.el-table--group) {
+    border: none;
+}
+
+:deep(.el-table--border::after),
+:deep(.el-table--group::after) {
+    display: none;
+}
+
+:deep(.el-table td),
+:deep(.el-table th.is-leaf) {
+    border: none;
+}
+
+:deep(.el-table tr) {
+    border-top: 1px solid #f5f7fa;
+}
+
+:deep(.el-table .cell) {
+    padding-right: 0;
+}
+
+:deep(.el-table--border .el-table__inner-wrapper::after) {
+    display: none;
+}
+
+:deep(.el-table--enable-row-hover .el-table__body tr:hover > td) {
+    background-color: #f5f7fa;
+}
+
+:deep(.el-table::before) {
+    display: none;
+}
+
+:deep(.el-table__inner-wrapper::before) {
+    display: none;
+}
+
+:deep(.el-table .el-table__cell) {
+    border: none !important;
+}
+
+:deep(.el-table .el-table__row) {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+:deep(.el-table .el-table__row:last-child) {
+    border-bottom: none;
 }
 
 .table-actions {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     gap: 10px;
 }
 
-.action-icon {
-    font-size: 18px;
+.action-button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-button {
+    background-color: #e6a23c;
+    border-color: #e6a23c;
+}
+
+.edit-button:hover {
+    background-color: #d49430;
+    border-color: #d49430;
+}
+
+.view-button {
+    background-color: #409eff;
+    border-color: #409eff;
+}
+
+.delete-button {
+    background-color: #f56c6c;
+    border-color: #f56c6c;
 }
 
 .product-image {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     border-radius: 4px;
     object-fit: cover;
 }
@@ -681,10 +778,22 @@ onMounted(() => {
 
 .pagination {
     margin-top: 20px;
+    padding: 0 20px 20px;
     display: flex;
     justify-content: flex-end;
 }
 
+.access-denied {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.low-stock {
+    color: #f56c6c;
+    font-weight: bold;
+}
+
+/* 對話框相關樣式 */
 .image-upload {
     border: 1px dashed #d9d9d9;
     border-radius: 6px;
@@ -722,17 +831,20 @@ onMounted(() => {
     margin-top: 10px;
 }
 
-.access-denied {
-    padding: 40px 20px;
-    text-align: center;
-}
+@media (max-width: 768px) {
+    .management-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 
-.low-stock {
-    color: #f56c6c;
-    font-weight: bold;
-}
+    .header-controls {
+        width: 100%;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
 
-.bold-text {
-    font-weight: bold;
+    .search-input {
+        width: 100%;
+    }
 }
 </style>

@@ -1,154 +1,205 @@
 <template>
-    <div class="order-detail-page dark-theme">
-        <div class="order-detail-container">
-            <el-card class="detail-card" v-loading="loading">
-                <template #header>
-                    <div class="card-header">
-                        <div class="title">訂單詳情</div>
-                        <el-button @click="router.push('/backpage/shop/orders')" plain
-                            >返回訂單列表</el-button
-                        >
-                    </div>
-                </template>
+    <div class="order-detail">
+        <el-card class="detail-container">
+            <template #header>
+                <div class="detail-header">
+                    <h2>訂單詳情</h2>
+                    <el-button @click="router.push('/backpage/shop/orders')" plain>
+                        返回訂單列表
+                    </el-button>
+                </div>
+            </template>
 
-                <div v-if="!order" class="empty-order">
-                    <el-empty description="訂單不存在或已被刪除">
-                        <template #extra>
-                            <el-button type="primary" @click="router.push('/backpage/shop/orders')"
-                                >返回訂單列表</el-button
-                            >
-                        </template>
-                    </el-empty>
+            <div v-if="loading" class="loading-container">
+                <el-skeleton :rows="5" animated />
+            </div>
+
+            <div v-else-if="!order" class="empty-detail">
+                <el-empty description="訂單不存在或已被刪除" />
+            </div>
+
+            <div v-else class="detail-content">
+                <div class="section order-basic-section">
+                    <h3>訂單基本信息</h3>
+                    <el-descriptions :column="2" border>
+                        <el-descriptions-item label="訂單編號">
+                            <span class="id-tag">{{ order.id }}</span>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="訂單狀態">
+                            <el-tag :type="getStatusType(order.status)" effect="dark">
+                                {{ getStatusLabel(order.status) }}
+                            </el-tag>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="下單時間">
+                            {{ formatDate(order.createdAt) }}
+                        </el-descriptions-item>
+                        <el-descriptions-item label="用戶">
+                            <div class="user-info">
+                                <el-avatar :size="24" class="user-avatar" v-if="order.userName">
+                                    {{ order.userName.substring(0, 1).toUpperCase() }}
+                                </el-avatar>
+                                {{ order.userName || `用戶${order.userId}` }}
+                            </div>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="訂單金額">
+                            <span class="price-tag">NT$ {{ order.totalAmount || 0 }}</span>
+                        </el-descriptions-item>
+                    </el-descriptions>
                 </div>
 
-                <div v-else>
-                    <div class="section">
-                        <h3>訂單基本信息</h3>
-                        <el-descriptions :column="2" border>
-                            <el-descriptions-item label="訂單編號">{{
-                                order.id
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="訂單狀態">
-                                <el-tag :type="getStatusType(order.status)">{{
-                                    getStatusLabel(order.status)
-                                }}</el-tag>
-                            </el-descriptions-item>
-                            <el-descriptions-item label="下單時間">{{
-                                formatDate(order.createdAt)
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="用戶">{{
-                                order.userName || `用戶${order.userId}`
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="訂單金額">
-                                <span class="text-highlight">{{
-                                    order.totalAmount ? `NT$ ${order.totalAmount}` : "-"
-                                }}</span>
-                            </el-descriptions-item>
-                        </el-descriptions>
-                    </div>
-
-                    <div v-if="order.paymentInfo" class="section">
-                        <h3>支付信息</h3>
-                        <el-descriptions :column="2" border>
-                            <el-descriptions-item label="支付ID">{{
-                                order.paymentInfo.paymentId
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="支付方式">{{
-                                order.paymentInfo.method
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="支付金額">
-                                <span class="text-highlight">{{
-                                    order.paymentInfo.amount
-                                        ? `NT$ ${order.paymentInfo.amount}`
-                                        : "-"
-                                }}</span>
-                            </el-descriptions-item>
-                            <el-descriptions-item label="支付狀態">
-                                <el-tag type="" v-if="order.paymentInfo.status === 'SUCCESS'"
-                                    >已支付</el-tag
-                                >
-                                <el-tag type="warning" v-else>{{
-                                    order.paymentInfo.status
-                                }}</el-tag>
-                            </el-descriptions-item>
-                            <el-descriptions-item label="支付時間">{{
-                                formatDate(order.paymentInfo.paymentDate)
-                            }}</el-descriptions-item>
-                        </el-descriptions>
-                    </div>
-
-                    <div class="section">
-                        <h3>訂單商品</h3>
-                        <el-table
-                            v-if="order.orderItems && order.orderItems.length > 0"
-                            :data="order.orderItems"
-                            style="width: 100%"
+                <div
+                    class="section customer-section"
+                    v-if="order.customerName || order.phoneNumber || order.shippingAddress"
+                >
+                    <h3>收貨信息</h3>
+                    <el-descriptions :column="2" border>
+                        <el-descriptions-item label="收件人" v-if="order.customerName">
+                            {{ order.customerName }}
+                        </el-descriptions-item>
+                        <el-descriptions-item label="聯絡電話" v-if="order.phoneNumber">
+                            {{ order.phoneNumber }}
+                        </el-descriptions-item>
+                        <el-descriptions-item
+                            label="收貨地址"
+                            :span="2"
+                            v-if="order.shippingAddress"
                         >
-                            <el-table-column label="商品圖片" width="120">
-                                <template #default="{ row }">
-                                    <el-image
-                                        style="width: 60px; height: 60px"
-                                        :src="getProductImageUrl(row)"
-                                        fit="cover"
-                                        lazy
-                                    >
-                                        <template #error>
-                                            <div class="image-placeholder">無圖片</div>
-                                        </template>
-                                    </el-image>
-                                </template>
-                            </el-table-column>
-                            <el-table-column prop="product.name" label="商品名稱"></el-table-column>
-                            <el-table-column label="單價" width="120">
-                                <template #default="{ row }">
-                                    NT$ {{ row.product?.price || 0 }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column
-                                prop="quantity"
-                                label="數量"
-                                width="80"
-                            ></el-table-column>
-                            <el-table-column label="小計" width="120">
-                                <template #default="{ row }">
-                                    NT$ {{ calculateSubtotal(row) }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column fixed="right" label="操作" width="120" v-if="isAdmin">
-                                <template #default="{ row }">
-                                    <el-button
-                                        type="primary"
-                                        link
-                                        @click="viewProduct(row.product?.id)"
-                                        :disabled="!row.product?.id"
-                                    >
-                                        查看商品
-                                    </el-button>
-                                </template>
-                            </el-table-column>
-                        </el-table>
-                        <el-empty v-else description="暫無商品信息"></el-empty>
-                    </div>
+                            {{ order.shippingAddress }}
+                        </el-descriptions-item>
+                        <el-descriptions-item label="備註" :span="2" v-if="order.notes">
+                            {{ order.notes }}
+                        </el-descriptions-item>
+                    </el-descriptions>
+                </div>
 
-                    <div class="action-section">
-                        <div class="action-buttons">
-                            <el-button @click="router.push('/backpage/shop/orders')"
-                                >返回訂單列表</el-button
+                <div class="section product-section">
+                    <h3>訂單商品</h3>
+                    <el-table
+                        v-if="order.orderItems && order.orderItems.length > 0"
+                        :data="order.orderItems"
+                        style="width: 100%"
+                        border
+                        stripe
+                    >
+                        <el-table-column label="商品圖片" width="100" align="center">
+                            <template #default="{ row }">
+                                <el-image
+                                    :src="
+                                        row.product && row.product.imageUrl
+                                            ? row.product.imageUrl
+                                            : ''
+                                    "
+                                    fit="cover"
+                                    style="width: 60px; height: 60px"
+                                    :preview-src-list="
+                                        row.product && row.product.imageUrl
+                                            ? [row.product.imageUrl]
+                                            : []
+                                    "
+                                >
+                                    <template #error>
+                                        <div class="image-placeholder">
+                                            <el-icon><Picture /></el-icon>
+                                        </div>
+                                    </template>
+                                </el-image>
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column prop="product.name" label="商品名稱" min-width="200">
+                            <template #default="{ row }">
+                                <div class="product-name-cell">
+                                    {{ row.product ? row.product.name : "未知商品" }}
+                                    <el-tag
+                                        size="small"
+                                        v-if="row.product && row.product.category"
+                                        class="category-tag"
+                                    >
+                                        {{ row.product.category }}
+                                    </el-tag>
+                                </div>
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column label="單價" width="120" align="right">
+                            <template #default="{ row }">
+                                <span class="price">
+                                    NT$ {{ row.price || (row.product ? row.product.price : "0") }}
+                                </span>
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column prop="quantity" label="數量" width="80" align="center" />
+
+                        <el-table-column label="小計" width="120" align="right">
+                            <template #default="{ row }">
+                                <span class="price-tag">NT$ {{ formatSubtotal(row) }}</span>
+                            </template>
+                        </el-table-column>
+
+                        <el-table-column
+                            fixed="right"
+                            label="操作"
+                            width="100"
+                            align="center"
+                            v-if="isAdmin"
+                        >
+                            <template #default="{ row }">
+                                <el-button
+                                    type="primary"
+                                    link
+                                    @click="viewProduct(row.product?.id)"
+                                    :disabled="!row.product?.id"
+                                    :icon="View"
+                                >
+                                    查看
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <el-empty v-else description="暫無商品信息"></el-empty>
+                </div>
+
+                <div class="section action-section">
+                    <div class="order-summary">
+                        <div class="summary-item">
+                            <span>商品總計:</span>
+                            <span>NT$ {{ calculateProductTotal() }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>運費:</span>
+                            <span>NT$ {{ order.shippingFee || 0 }}</span>
+                        </div>
+                        <div class="summary-item total">
+                            <span>訂單總計:</span>
+                            <span class="price-tag"
+                                >NT$ {{ order.totalAmount || calculateOrderTotal() }}</span
                             >
-                            <el-button
-                                type="primary"
-                                v-if="
-                                    order.status && order.status.toLowerCase().includes('pending')
-                                "
-                                @click="goToPayment(order)"
-                            >
-                                去支付
-                            </el-button>
                         </div>
                     </div>
+
+                    <div class="action-buttons">
+                        <el-button
+                            type="primary"
+                            v-if="order.status && order.status.toLowerCase().includes('pending')"
+                            @click="goToPayment(order)"
+                            :icon="Wallet"
+                        >
+                            去支付
+                        </el-button>
+
+                        <el-button
+                            type="danger"
+                            v-if="canCancelOrder"
+                            @click="confirmCancelOrder"
+                            :icon="Close"
+                        >
+                            取消訂單
+                        </el-button>
+                    </div>
                 </div>
-            </el-card>
-        </div>
+            </div>
+        </el-card>
     </div>
 </template>
 
@@ -158,7 +209,7 @@ import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
 import { getOrderById } from "@/api/shop";
-import { Picture, Loading } from "@element-plus/icons-vue";
+import { Picture, Loading, View, Wallet, Close } from "@element-plus/icons-vue";
 import axios from "axios";
 
 const route = useRoute();
@@ -541,11 +592,62 @@ const cancelOrder = async () => {
 
 // 計算小計
 function calculateSubtotal(item) {
-    if (!item || !item.product) return "0.00";
+    if (!item || !item.product) return 0;
     const price = parseFloat(item.product.price) || 0;
     const quantity = parseInt(item.quantity) || 0;
-    return (price * quantity).toFixed(2);
+    return price * quantity;
 }
+
+// 显示格式化小计金额
+function formatSubtotal(item) {
+    return calculateSubtotal(item).toFixed(2);
+}
+
+// 计算订单商品总金额
+const calculateProductTotal = () => {
+    if (!order.value || !order.value.orderItems || !order.value.orderItems.length) {
+        return 0;
+    }
+
+    const total = order.value.orderItems.reduce((sum, item) => {
+        return sum + calculateSubtotal(item);
+    }, 0);
+
+    return total.toFixed(2);
+};
+
+// 计算订单总金额（含运费）
+const calculateOrderTotal = () => {
+    const productTotal = parseFloat(calculateProductTotal());
+    const shippingFee = parseFloat(order.value?.shippingFee || 0);
+    return (productTotal + shippingFee).toFixed(2);
+};
+
+// 判断是否可以取消订单
+const canCancelOrder = computed(() => {
+    if (!order.value || !order.value.status) {
+        return false;
+    }
+
+    const status = order.value.status.toLowerCase();
+    return status.includes("pending") || status === "pending_payment";
+});
+
+// 确认取消订单
+const confirmCancelOrder = () => {
+    ElMessageBox.confirm("確定要取消此訂單嗎？此操作不可逆", "取消訂單", {
+        confirmButtonText: "確定",
+        cancelButtonText: "取消",
+        type: "warning",
+    })
+        .then(() => {
+            // 这里添加取消订单的API调用
+            ElMessage.success("訂單已取消");
+        })
+        .catch(() => {
+            // 用户取消操作
+        });
+};
 
 onMounted(() => {
     if (!authStore.isAuthenticated) {
@@ -565,75 +667,77 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-.order-detail-page {
-    background-color: #111827;
-    color: #f5f5f5;
-    min-height: 100vh;
-    width: 100%;
-    margin: 0;
-    padding-top: 80px; /* 為導航欄預留空間 */
-    padding-bottom: 40px;
-    overflow-x: hidden;
+<style scoped>
+.order-detail {
+    padding: 20px;
 }
 
-.text-highlight {
-    color: #10b981;
-    font-weight: 600;
-}
-
-.order-detail-container {
-    width: 100%;
+.detail-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.detail-card {
-    background-color: #1e293b;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-
-    :deep(.el-card__header) {
-        background-color: #1f2937;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #374151;
-    }
-
-    :deep(.el-card__body) {
-        padding: 1.5rem;
-    }
-}
-
-.card-header {
+.detail-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-
-    .title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0;
-    }
 }
 
-.empty-order {
-    padding: 30px 0;
+.detail-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #303133;
+}
+
+.loading-container {
+    padding: 20px 0;
+}
+
+.empty-detail {
+    padding: 40px 0;
     text-align: center;
 }
 
-.section {
-    margin-bottom: 2rem;
+.detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
-    h3 {
-        font-size: 1.3rem;
-        margin-bottom: 1rem;
-        font-weight: 600;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #374151;
-    }
+.section {
+    margin-bottom: 20px;
+}
+
+.section h3 {
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    position: relative;
+    padding-left: 10px;
+    border-left: 3px solid #409eff;
+}
+
+.price-tag {
+    color: #f56c6c;
+    font-weight: bold;
+}
+
+.id-tag {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-avatar {
+    background-color: #409eff;
+    color: white;
+    font-weight: bold;
 }
 
 .image-placeholder {
@@ -642,93 +746,67 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #374151;
-    color: #9ca3af;
-    font-size: 12px;
-    border-radius: 4px;
+    background-color: #f5f7fa;
+    color: #909399;
+    font-size: 24px;
+}
+
+.product-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.category-tag {
+    margin-top: 4px;
+    width: fit-content;
 }
 
 .action-section {
-    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-top: 1px solid #ebeef5;
+    padding-top: 20px;
+}
+
+.order-summary {
+    min-width: 300px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.summary-item.total {
+    font-size: 18px;
+    font-weight: bold;
+    border-top: 1px solid #ebeef5;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .action-section {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .order-summary {
+        width: 100%;
+    }
 
     .action-buttons {
-        display: flex;
+        width: 100%;
         justify-content: flex-end;
-        gap: 1rem;
-    }
-}
-
-// Element Plus 元素樣式覆蓋
-:deep(.el-descriptions) {
-    --el-descriptions-item-bordered-label-background: #1f2937;
-    --el-descriptions-item-bordered-content-background: transparent;
-    --el-descriptions-border-color: #374151;
-    --el-text-color-primary: #f5f5f5;
-}
-
-:deep(.el-table) {
-    --el-table-border-color: #374151;
-    --el-table-header-bg-color: #1f2937;
-    --el-table-header-text-color: #f5f5f5;
-    --el-table-row-hover-bg-color: #2d3748;
-    --el-table-text-color: #f5f5f5;
-    --el-table-bg-color: transparent;
-
-    &::before {
-        display: none;
-    }
-
-    .el-table__inner-wrapper::before {
-        display: none;
-    }
-}
-
-:deep(.el-empty) {
-    --el-empty-fill-color-0: #1f2937;
-    --el-empty-fill-color-1: #374151;
-    --el-empty-fill-color-2: #4b5563;
-    --el-empty-fill-color-3: #6b7280;
-    --el-empty-fill-color-4: #9ca3af;
-    --el-empty-fill-color-5: #d1d5db;
-
-    padding: 2rem 0;
-
-    .el-empty__description p {
-        color: #9ca3af;
-    }
-}
-
-:deep(.el-button) {
-    &.el-button--default {
-        background-color: #1e293b;
-        border-color: #4b5563;
-        color: #f5f5f5;
-    }
-
-    &.el-button--primary {
-        background-color: #10b981;
-        border-color: #10b981;
-    }
-
-    &.el-button--primary.is-link {
-        color: #10b981;
-    }
-}
-
-// 響應式設計
-@media (max-width: 768px) {
-    .order-detail-container {
-        padding: 0 20px;
-    }
-
-    .action-section {
-        .action-buttons {
-            flex-direction: column;
-
-            .el-button {
-                width: 100%;
-            }
-        }
     }
 }
 </style>

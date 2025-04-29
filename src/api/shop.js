@@ -1,4 +1,5 @@
 import axios from "@/api/config/axios";
+import { useAuthStore } from "@/stores/auth";
 
 // 配置請求攔截器，添加統一的錯誤處理
 axios.interceptors.request.use(
@@ -252,7 +253,8 @@ export const getCartItems = () => {
 export const addItemToCart = (cartRequest) => {
     // 确保请求中包含userId
     if (!cartRequest.userId) {
-        const userId = getUserId();
+        const authStore = useAuthStore();
+        const userId = authStore.userInfo?.id || getUserId();
         if (!userId) {
             return Promise.reject(new Error("用戶未登入，無法添加到購物車"));
         }
@@ -295,7 +297,10 @@ export const removeFromCart = (cartRequest) => {
         return Promise.reject(new Error("購物車項目ID不能為空"));
     }
 
-    const userId = getUserId();
+    // 使用useAuthStore从Pinia获取用户ID
+    const authStore = useAuthStore();
+    const userId = authStore.userInfo?.id || getUserId();
+
     if (!userId) {
         return Promise.reject(new Error("用戶未登入，無法移除商品"));
     }
@@ -306,7 +311,10 @@ export const removeFromCart = (cartRequest) => {
 };
 
 export const clearCart = () => {
-    const userId = getUserId();
+    // 使用useAuthStore从Pinia获取用户ID
+    const authStore = useAuthStore();
+    const userId = authStore.userInfo?.id || getUserId();
+
     if (!userId) {
         return Promise.reject(new Error("用戶未登入，無法清空購物車"));
     }
