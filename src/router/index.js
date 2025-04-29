@@ -14,6 +14,12 @@ import GymPage from "@/views/frontend/GymPage.vue";
 // 課程管理
 import CourseList from "@/views/backend/course/CourseList.vue";
 import CourseForm from "@/views/backend/course/CourseForm.vue";
+import EnrollmentList from "@/views/backend/course/EnrollmentList.vue";
+import TrailBooking from "@/views/backend/course/TrailBooking.vue";
+import Courses from "@/views/frontend/course/CoursePage.vue";
+import EnrollmentStatusPage from "@/views/frontend/course/EnrollmentStatusPage.vue"; // 修改後的查看狀態頁
+import RegularEnrollmentPage from "@/views/frontend/course/RegularEnrollmentPage.vue"; // 報名常規課程頁
+import TrialBookingPage from "@/views/frontend/course/TrialBookingPage.vue"; // 預約體驗課程頁
 
 // 會員中心
 import MemberLoginView from "@/views/backend/member/MemberLoginView.vue";
@@ -34,13 +40,15 @@ import ProductAdmin from "@/views/backend/shop/ProductAdmin.vue";
 import ForumHomeView from "@/views/backend/social/ForumHomeView.vue";
 import ForumPostsView from "@/views/backend/social/ForumPostsView.vue";
 import ForumCreateView from "@/views/backend/social/ForumCreateView.vue";
+import SocialAnalyticsView from "@/views/backend/social/SocialAnalyticsView.vue";
 
 // 追蹤成效
-import AdminDietRecords from "@/views/backend/fitness/back/DietRecords.vue";
-import AdminExerciseRecords from "@/views/backend/fitness/back/ExerciseRecords.vue";
-import AdminBodyData from "@/views/backend/fitness/back/BodyData.vue";
-import AdminGoalsProgress from "@/views/backend/fitness/back/GoalsProgress.vue";
-import ReportsAnalysis from "@/views/backend/fitness/back/ReportsAnalysis.vue";
+import AdminDietRecords from "@/views/backend/fitness/DietRecords.vue";
+import AdminExerciseRecords from "@/views/backend/fitness/ExerciseRecords.vue";
+import AdminBodyData from "@/views/backend/fitness/BodyData.vue";
+import AdminGoalsProgress from "@/views/backend/fitness/GoalsProgress.vue";
+import ReportsAnalysis from "@/views/backend/fitness/ReportsAnalysis.vue";
+import AdminAchievement from "@/views/backend/fitness/Achievement.vue";
 
 // 錯誤頁面
 import Forbidden403 from "@/views/403.vue";
@@ -51,114 +59,184 @@ const routes = [
         path: "/",
         component: FrontendLayout,
         children: [
-
-          {
-            path: '',
-            name: 'HomePage',
-            component: HomePage,
-            meta: { title: '首頁' }
-          },
-          {
-            path: 'courses',
-            name: 'Courses',
-            component: Courses,
-            meta: { title: '課程' }
-          },
-          // 前台商城路由
-          {
-            path: 'shop/products',
-            name: 'FrontProductList',
-            component: () => import('@/views/frontend/shop/ProductList.vue'),
-            meta: { title: '商品列表' }
-          },
-          {
-            path: 'shop/products/:id',
-            name: 'FrontProductDetail',
-            component: () => import('@/views/frontend/shop/ProductDetail.vue'),
-            meta: { title: '商品詳情' }
-          },
-          {
-            path: 'shop/cart',
-            name: 'FrontCart',
-            component: () => import('@/views/frontend/shop/Cart.vue'),
-            meta: { title: '購物車', requiresAuth: true }
-          },
-          {
-            path: 'shop/checkout',
-            name: 'FrontCheckout',
-            component: () => import('@/views/frontend/shop/Checkout.vue'),
-            meta: { title: '結帳', requiresAuth: true }
-          },
-          {
-            path: 'shop/orders',
-            name: 'FrontOrderList',
-            component: () => import('@/views/frontend/shop/OrderList.vue'),
-            meta: { title: '我的訂單', requiresAuth: true }
-          },
-          {
-            path: 'shop/orders/:id',
-            name: 'FrontOrderDetail',
-            component: () => import('@/views/frontend/shop/OrderDetail.vue'),
-            meta: { title: '訂單詳情', requiresAuth: true }
-          },
-          {
-            path: 'user/login',
-            name: 'FrontLogin',
-            component: () => import('@/views/frontend/member/LoginPage.vue'),
-            meta: { title: '會員登入' }
-          },
-          {
-            path: 'user/register',
-            name: 'FrontRegister',
-            component: () => import('@/views/frontend/member/RegisterPage.vue'),
-            meta: { title: '會員註冊' }
-          },
-          {
-            path: 'user/forgot-password',
-            name: 'ForgotPassword',
-            component: () => import('@/views/frontend/member/ForgotPasswordView.vue'),
-            meta: { title: '忘記密碼' }
-          },
-          {
-            path: 'user/reset-password',
-            name: 'ResetPassword',
-            component: () => import('@/views/frontend/member/ResetPasswordView.vue'),
-            meta: { title: '重設密碼' }
-          },
-          {
-            path: 'user/profile',
-            name: 'FrontProfile',
-            component: () => import('@/views/frontend/member/ProfileView.vue'),
-            meta: { title: '會員中心', requiresAuth: true }
-          },
-          {
-            path: "forum",
-            name: "FrontendForum",
-            component: () => import("@/views/frontend/social/Forum.vue"),
-            meta: { title: "健康討論區" }
-        },
-        {
-            path: "UserSocialProfile",
-            name: "UserSocialProfile",
-            component: () => import("@/views/frontend/social/UserSocialProfile.vue"),
-            meta: { title: "個人檔案" }
-        },
-        ]
-
+            {
+                path: "",
+                name: "HomePage",
+                component: HomePage,
+                meta: { title: "首頁" },
+            },
+            {
+                path: '/courses',
+                name: 'Courses',
+                component: Courses,
+                meta: { title: '課程' }
+              },
+              {
+                path: '/my-enrollment-status', // 查看所有課程與我的狀態頁面路徑
+                name: 'my-enrollment-status',
+                component: EnrollmentStatusPage,
+                meta: { title: '我的課程狀態' } // 通常需要登入才能看自己的狀態
+              },
+              {
+                path: '/courses/regular-enrollment', // 報名常規課程頁面路徑
+                name: 'regular-enrollment',
+                component: RegularEnrollmentPage,
+                meta: { title: '報名常規課程' } // 需要登入才能報名
+              },
+               {
+                path: '/courses/trial-booking', // 預約體驗課程頁面路徑
+                name: 'trial-booking',
+                component: TrialBookingPage,
+                meta: { title: '預約體驗課' } // 需要登入才能預約
+              },
+            // 前台商城路由
+            {
+                path: "shop/products",
+                name: "FrontProductList",
+                component: () => import("@/views/frontend/shop/ProductList.vue"),
+                meta: { title: "商品列表" },
+            },
+            {
+                path: "shop/products/:id",
+                name: "FrontProductDetail",
+                component: () => import("@/views/frontend/shop/ProductDetail.vue"),
+                meta: { title: "商品詳情" },
+            },
+            {
+                path: "shop/cart",
+                name: "FrontCart",
+                component: () => import("@/views/frontend/shop/Cart.vue"),
+                meta: { title: "購物車", requiresAuth: true },
+            },
+            {
+                path: "shop/checkout",
+                name: "FrontCheckout",
+                component: () => import("@/views/frontend/shop/Checkout.vue"),
+                meta: { title: "結帳", requiresAuth: true },
+            },
+            {
+                path: "shop/orders",
+                name: "FrontOrderList",
+                component: () => import("@/views/frontend/shop/OrderList.vue"),
+                meta: { title: "我的訂單", requiresAuth: true },
+            },
+            {
+                path: "shop/orders/:id",
+                name: "FrontOrderDetail",
+                component: () => import("@/views/frontend/shop/OrderDetail.vue"),
+                meta: { title: "訂單詳情", requiresAuth: true },
+            },
+            {
+                path: "user/login",
+                name: "FrontLogin",
+                component: () => import("@/views/frontend/member/LoginPage.vue"),
+                meta: { title: "會員登入" },
+            },
+            {
+                path: "user/register",
+                name: "FrontRegister",
+                component: () => import("@/views/frontend/member/RegisterPage.vue"),
+                meta: { title: "會員註冊" },
+            },
+            {
+                path: "user/forgot-password",
+                name: "ForgotPassword",
+                component: () => import("@/views/frontend/member/ForgotPasswordView.vue"),
+                meta: { title: "忘記密碼" },
+            },
+            {
+                path: "user/reset-password",
+                name: "ResetPassword",
+                component: () => import("@/views/frontend/member/ResetPasswordView.vue"),
+                meta: { title: "重設密碼" },
+            },
+            {
+                path: "user/profile",
+                name: "FrontProfile",
+                component: () => import("@/views/frontend/member/ProfileView.vue"),
+                meta: { title: "會員中心", requiresAuth: true },
+            },
+            {
+                path: "social/forumhome",
+                name: "FrontendForumHome",
+                component: () => import("@/views/frontend/social/ForumHomeView.vue"),
+                meta: { title: "論壇首頁" },
+            },
+            {
+                path: "social/forum",
+                name: "FrontendForum",
+                component: () => import("@/views/frontend/social/Forum.vue"),
+                meta: { title: "健康討論區" },
+            },
+            {
+                path: "social/UserSocialProfile",
+                name: "UserSocialProfile",
+                component: () => import("@/views/frontend/social/UserSocialProfile.vue"),
+                meta: { title: "個人檔案" },
+            },
+            {
+                path: "social/forumcreate",
+                name: "FrontendForumCreateView",
+                component: () => import("@/views/frontend/social/ForumCreateView.vue"),
+                meta: { title: "發表文章" },
+            },
+            {
+                path: "social/partner",
+                name: "Partner",
+                component: () => import("@/views/frontend/social/FindWorkoutPartner.vue"),
+                meta: { title: "尋找夥伴" },
+            },
+            {
+                path: "user/fitness",
+                name: "Fitness",
+                component: () => import("@/views/frontend/fitness/Fitness.vue"),
+                meta: { title: "健身成效" },
+            },
+            {
+                path: "user/achievements",
+                name: "UserAchievements",
+                component: () => import("@/views/frontend/fitness/Achievements.vue"),
+                meta: { title: "我的獎章" },
+            },
+            {
+                path: "user/body-data",
+                name: "UserBodyData",
+                component: () => import("@/views/frontend/fitness/BodyData.vue"),
+                meta: { title: "我的身體數據" },
+            },
+            {
+                path: "user/diet-records",
+                name: "UserDietRecords",
+                component: () => import("@/views/frontend/fitness/DietRecords.vue"),
+                meta: { title: "我的飲食記錄" },
+            },
+            {
+                path: "user/workouts",
+                name: "UserWorkoutRecords",
+                component: () => import("@/views/frontend/fitness/WorkoutRecords.vue"),
+                meta: { title: "我的運動記錄" },
+            },
+            {
+                path: "user/goals",
+                name: "UserGoalsProgress",
+                component: () => import("@/views/frontend/fitness/GoalsProgress.vue"),
+                meta: { title: "我的健身目標" },
+            },
+        ],
     },
     // 添加重設密碼直接路徑
     {
-        path: '/reset-password',
-        name: 'DirectResetPassword',
-        component: () => import('@/views/frontend/member/ResetPasswordView.vue'),
-        meta: { title: '重設密碼' }
+        path: "/reset-password",
+        name: "DirectResetPassword",
+        component: () => import("@/views/frontend/member/ResetPasswordView.vue"),
+        meta: { title: "重設密碼" },
     },
     // 添加OAuth回調路由
     {
-        path: '/oauth/callback',
-        name: 'OAuthCallback',
-        component: () => import('@/views/oauth/OAuthCallback.vue'),
-        meta: { title: 'OAuth登入處理' }
+        path: "/oauth/callback",
+        name: "OAuthCallback",
+        component: () => import("@/views/oauth/OAuthCallback.vue"),
+        meta: { title: "OAuth登入處理" },
     },
     {
         path: "/gym",
@@ -200,6 +278,18 @@ const routes = [
                 name: "CourseEdit",
                 component: CourseForm,
                 meta: { title: "編輯課程", hidden: true, requiresAuth: true },
+            },
+            {
+                path: "enrollments",
+                name: "EnrollmentList",
+                component: EnrollmentList,
+                meta: { title: "報名紀錄", icon: "Document", requiresAuth: true }
+            },
+            {
+                path: "trailBooking",
+                name: "TrailBooking",
+                component: TrailBooking,
+                meta: { title: "預約紀錄", icon: "Document", requiresAuth: true }
             },
 
             // 會員中心
@@ -300,7 +390,13 @@ const routes = [
                 component: ForumCreateView,
                 meta: { title: "發表文章", requiresAuth: true },
             },
-
+            {
+                path: "social/analytics",
+                name: "SocialAnalytics",
+                component: SocialAnalyticsView,
+                meta: { title: "社群分析", requiresAuth: true },
+            },
+            // 追蹤成效
             {
                 path: "fitness/admin/workouts",
                 name: "AdminWorkouts",
@@ -338,6 +434,17 @@ const routes = [
                 component: AdminGoalsProgress,
                 meta: {
                     title: "目標與進度",
+                    requiresAuth: true,
+                    isAdmin: true,
+                },
+            },
+            // 後台獎章管理
+            {
+                path: "fitness/admin/achievements",
+                name: "AdminAchievement",
+                component: AdminAchievement,
+                meta: {
+                    title: "獎章管理",
                     requiresAuth: true,
                     isAdmin: true,
                 },

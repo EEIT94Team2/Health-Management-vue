@@ -1,23 +1,19 @@
 <template>
     <div class="payment-simulation">
+        <!-- 將返回按鈕放在卡片外部，整個標題區域之前 -->
+        <div class="top-navigation">
+            <el-button class="back-button" @click="$router.push('/shop/orders')">
+                <el-icon class="el-icon--left"><arrow-left /></el-icon>返回訂單列表
+            </el-button>
+        </div>
+
         <el-card class="simulation-container" v-loading="loading">
             <template #header>
                 <div class="simulation-header">
-                    <h2>支付模擬系統</h2>
-                    <div class="right">
-                        <el-button
-                            type="success"
-                            v-if="
-                                currentOrder &&
-                                (currentOrder.status === 'PENDING_PAYMENT' ||
-                                    currentOrder.status?.toLowerCase().includes('pending'))
-                            "
-                            @click="processPayment"
-                        >
-                            立即支付訂單
-                        </el-button>
-                        <el-tag v-else type="warning">當前訂單暫時不支援支付</el-tag>
+                    <div class="left-side">
+                        <h2>支付模擬系統</h2>
                     </div>
+                    <div class="right"></div>
                 </div>
             </template>
 
@@ -60,7 +56,6 @@
                         <div class="payment-platform">
                             <h5>支付平台</h5>
                             <el-radio-group v-model="selectedPaymentPlatform">
-                                <el-radio label="STANDARD">標準支付</el-radio>
                                 <el-radio label="NEWEBPAY">藍新金流</el-radio>
                             </el-radio-group>
                         </div>
@@ -69,8 +64,6 @@
                             <h5>支付方式</h5>
                             <el-radio-group v-model="selectedPaymentMethod">
                                 <el-radio label="CREDIT_CARD">信用卡</el-radio>
-                                <el-radio label="ALIPAY">支付寶</el-radio>
-                                <el-radio label="WECHAT_PAY">微信支付</el-radio>
                                 <el-radio
                                     v-if="selectedPaymentPlatform === 'NEWEBPAY'"
                                     label="LINEPAY"
@@ -95,10 +88,6 @@
                         </div>
 
                         <div class="payment-actions">
-                            <el-button
-                                @click="$router.push(`/backpage/shop/orders/${currentOrder.id}`)"
-                                >返回訂單</el-button
-                            >
                             <el-button type="primary" @click="processPayment">確認支付</el-button>
                         </div>
                     </el-card>
@@ -1000,7 +989,24 @@ onMounted(async () => {
 
 <style scoped>
 .payment-simulation {
-    padding: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    padding-top: 30px; /* 減少頂部間距 */
+}
+
+/* 頂部導航區域 */
+.top-navigation {
+    display: flex;
+    max-width: 1000px;
+    margin: 0 auto;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+/* 返回按鈕樣式 */
+.back-button {
+    font-size: 14px;
 }
 
 .simulation-container {
@@ -1011,6 +1017,11 @@ onMounted(async () => {
 .simulation-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
+
+.left-side {
+    display: flex;
     align-items: center;
 }
 

@@ -174,45 +174,52 @@
                 </div>
             </section>
 
-            <!-- 核心功能區塊 -->
+            <!-- 功能區塊 -->
             <section class="features-section" id="features">
                 <div class="section-container">
                     <h2 class="section-title">
                         健康管理 <span class="text-highlight">核心功能</span>
                     </h2>
                     <div class="feature-cards">
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <el-icon><DArrowRight /></el-icon>
+                        <router-link to="/user/fitness?tab=diet-records" class="feature-link">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <el-icon><DArrowRight /></el-icon>
+                                </div>
+                                <h3>飲食追蹤</h3>
+                                <p>記錄每日飲食攝入，分析營養成分，提供個人化飲食建議</p>
                             </div>
-                            <h3>飲食追蹤</h3>
-                            <p>記錄每日飲食攝入，分析營養成分，提供個人化飲食建議</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <el-icon><Trophy /></el-icon>
+                        </router-link>
+                        <router-link to="/user/fitness?tab=workout-records" class="feature-link">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <el-icon><Trophy /></el-icon>
+                                </div>
+                                <h3>運動記錄</h3>
+                                <p>追蹤各類運動數據，科學安排訓練計劃，提升運動效果</p>
                             </div>
-                            <h3>運動記錄</h3>
-                            <p>追蹤各類運動數據，科學安排訓練計劃，提升運動效果</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <el-icon><DataAnalysis /></el-icon>
+                        </router-link>
+                        <router-link to="/user/fitness?tab=body-data" class="feature-link">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <el-icon><DataAnalysis /></el-icon>
+                                </div>
+                                <h3>身體指標</h3>
+                                <p>監測體重、體脂等關鍵指標，視覺化呈現健康趨勢</p>
                             </div>
-                            <h3>身體指標</h3>
-                            <p>監測體重、體脂等關鍵指標，視覺化呈現健康趨勢</p>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <el-icon><Calendar /></el-icon>
+                        </router-link>
+                        <router-link to="/user/fitness?tab=goals-progress" class="feature-link">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <el-icon><Calendar /></el-icon>
+                                </div>
+                                <h3>目標設定</h3>
+                                <p>設定個人健康目標，系統智能追蹤進度，提供階段性反饋</p>
                             </div>
-                            <h3>目標設定</h3>
-                            <p>設定個人健康目標，系統智能追蹤進度，提供階段性反饋</p>
-                        </div>
+                        </router-link>
                     </div>
                 </div>
             </section>
-
             <!-- 儀表板預覽區塊 -->
             <section class="dashboard-preview" id="fitness">
                 <div class="section-container">
@@ -262,21 +269,24 @@
                             <p>與志同道合的健康夥伴分享心得、交流經驗，一起邁向更健康的生活。</p>
                             <ul class="community-features">
                                 <li>
-                                    <router-link to="/forum" class="plain-link">
-                                    <el-icon><ChatDotRound /></el-icon> 健康討論區
+                                    <router-link to="/social/forum" class="plain-link">
+                                        <el-icon><ChatDotRound /></el-icon> 健康討論區
                                     </router-link>
                                 </li>
                                 <li>
-                                    <router-link to="/forum" class="plain-link">
-                                        <el-icon><Connection /></el-icon> 尋找運動夥伴</router-link>
+                                    <router-link to="/social/partner" class="plain-link">
+                                        <el-icon><Connection /></el-icon> 尋找運動夥伴
+                                    </router-link>
                                 </li>
                                 <li>
-                                    <router-link to="/forum" class="plain-link">
-                                        <el-icon><Share /></el-icon> 分享成功故事</router-link>
+                                    <router-link to="/social/forumcreate" class="plain-link">
+                                        <el-icon><Share /></el-icon> 分享成功故事
+                                    </router-link>
                                 </li>
                                 <li>
-                                    <router-link to="/UserSocialProfile" class="plain-link">
-                                        <el-icon><QuestionFilled /></el-icon> 個人檔案</router-link>
+                                    <router-link to="/social/UserSocialProfile" class="plain-link">
+                                        <el-icon><QuestionFilled /></el-icon> 個人檔案
+                                    </router-link>
                                 </li>
                             </ul>
                             <el-button type="success" @click="goToForum">進入社區</el-button>
@@ -907,41 +917,41 @@ export default {
         // 在 onMounted 中处理 Google OAuth 登录重定向后的 URL 参数
         onMounted(() => {
             fetchPopularProducts();
-            
+
             // 检查 URL 中是否有 token 参数（Google OAuth 登录重定向后）
             const token = route.query.token;
             const userId = route.query.userId;
             const email = route.query.email;
             const role = route.query.role;
-            
-            console.log('檢查URL參數:', { token, userId, email, role });
-            
+
+            console.log("檢查URL參數:", { token, userId, email, role });
+
             if (token) {
-                console.log('從 URL 參數中獲取到 token，儲存登入狀態');
-                
+                console.log("從 URL 參數中獲取到 token，儲存登入狀態");
+
                 // 保存 token 和用户信息到 localStorage
-                localStorage.setItem('authToken', token);
-                if (role) localStorage.setItem('userRole', role);
-                
+                localStorage.setItem("authToken", token);
+                if (role) localStorage.setItem("userRole", role);
+
                 // 如果有 userId 和 email，创建一个简单的用户信息对象
                 if (userId && email) {
                     const userInfo = { id: userId, email: email };
-                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    localStorage.setItem("userInfo", JSON.stringify(userInfo));
                 }
-                
+
                 // 配置 axios 默认请求头
-                import('axios').then(({ default: axios }) => {
-                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                import("axios").then(({ default: axios }) => {
+                    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
                 });
-                
+
                 // 清除 URL 参数（可选）
-                router.replace('/');
-                
+                router.replace("/");
+
                 // 显示登录成功消息
                 ElMessage({
-                    message: '使用 Google 帳號登入成功！',
-                    type: 'success',
-                    duration: 2000
+                    message: "使用 Google 帳號登入成功！",
+                    type: "success",
+                    duration: 2000,
                 });
             }
         });
@@ -1355,6 +1365,13 @@ export default {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 2rem;
         width: 100%;
+
+        .feature-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            height: 100%;
+        }
 
         .feature-card {
             background-color: var(--card-bg);
@@ -2059,14 +2076,14 @@ export default {
 
 //連結-無底線且不改風格
 .plain-link {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
 }
 //連結-無互動
 .plain-link:hover {
-  color: inherit;
-  background-color: transparent;
+    color: inherit;
+    background-color: transparent;
 }
 
 /* 響應式設計 */

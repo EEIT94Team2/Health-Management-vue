@@ -1,46 +1,61 @@
 <template>
-  <div>
-    <h1>健身紀錄管理</h1>
-
-    <el-form :inline="true" :model="searchForm" class="search-form">
-      <el-form-item label="用戶 ID">
-        <el-input
-          v-model="searchForm.userId"
-          placeholder="輸入用戶 ID"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="姓名">
-        <el-input v-model="searchForm.name" placeholder="輸入姓名"></el-input>
-      </el-form-item>
-      <el-form-item label="運動類型">
-        <el-select
-          v-model="searchForm.type"
-          placeholder="請選擇運動類型"
-          style="width: 200px"
-        >
-          <el-option
-            v-for="type in exerciseTypes"
-            :key="type"
-            :label="type"
-            :value="type"
-          ></el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item label="日期範圍">
-        <el-date-picker
-          v-model="searchForm.dateRange"
-          type="daterange"
-          range-separator="-"
-          start-placeholder="開始日期"
-          end-placeholder="結束日期"
-          value-format="YYYY-MM-DD"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="fetchWorkoutRecords">查詢</el-button>
-        <el-button @click="resetSearchForm">重置</el-button>
-      </el-form-item>
-    </el-form>
+  <el-card class="workout-management-container">
+    <template #header>
+      <div class="workout-management-header">
+        <div class="search-and-add">
+          <el-form :inline="true" :model="searchForm" class="search-form">
+            <el-form-item label="用戶 ID">
+              <el-input
+                v-model="searchForm.userId"
+                placeholder="輸入用戶 ID"
+              ></el-input>
+            </el-form-item>
+            <el-form-item label="姓名">
+              <el-input
+                v-model="searchForm.name"
+                placeholder="輸入姓名"
+              ></el-input>
+            </el-form-item>
+            <el-form-item label="運動類型">
+              <el-select
+                v-model="searchForm.type"
+                placeholder="請選擇運動類型"
+                style="width: 200px"
+              >
+                <el-option
+                  v-for="type in exerciseTypes"
+                  :key="type"
+                  :label="type"
+                  :value="type"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="日期範圍">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="daterange"
+                range-separator="-"
+                start-placeholder="開始日期"
+                end-placeholder="結束日期"
+                value-format="YYYY-MM-DD"
+              ></el-date-picker>
+            </el-form-item>
+            <el-form-item>
+              <el-button
+                type="primary"
+                @click="fetchWorkoutRecords"
+                :icon="Search"
+                >查詢</el-button
+              >
+              <el-button @click="resetSearchForm">重置</el-button>
+            </el-form-item>
+          </el-form>
+          <el-button type="info" @click="openEditDialog(null)"
+            >新增資料</el-button
+          >
+        </div>
+      </div>
+    </template>
 
     <el-table :data="workoutRecords" border style="width: 100%">
       <el-table-column prop="recordId" label="ID" width="80"></el-table-column>
@@ -61,13 +76,13 @@
         :formatter="formatCalories"
       ></el-table-column>
       <el-table-column prop="exerciseDate" label="日期"></el-table-column>
-      <el-table-column label="操作" width="150">
+      <el-table-column label="操作" width="205">
         <template #default="scope">
-          <el-button size="small" @click="openEditDialog(scope.row)"
+          <el-button :icon="Edit" @click="openEditDialog(scope.row)"
             >編輯</el-button
           >
           <el-button
-            size="small"
+            :icon="Delete"
             type="danger"
             @click="handleDelete(scope.row.recordId)"
             >刪除</el-button
@@ -76,14 +91,7 @@
       </el-table-column>
     </el-table>
 
-    <div
-      style="
-        margin-top: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
+    <div class="pagination">
       <el-pagination
         v-model:currentPage="currentPage"
         v-model:page-size="pageSize"
@@ -93,10 +101,12 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-      <el-button @click="openEditDialog(null)">新增資料</el-button>
     </div>
 
-    <el-dialog v-model="editDialogVisible" title="新增/編輯運動紀錄">
+    <el-dialog
+      v-model="editDialogVisible"
+      :title="editForm.recordId ? '編輯運動紀錄' : '新增運動紀錄'"
+    >
       <el-form :model="editForm" label-width="120px">
         <el-form-item label="用戶 ID">
           <el-input
@@ -106,6 +116,7 @@
         </el-form-item>
         <el-form-item label="運動類型">
           <el-select
+            :key="editDialogVisible"
             v-model="editForm.exerciseType"
             placeholder="請選擇運動類型"
           >
@@ -138,13 +149,14 @@
         </span>
       </template>
     </el-dialog>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import axios from "axios";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElSelect, ElOption } from "element-plus";
+import { Edit, Delete, Search } from "@element-plus/icons-vue";
 
 const workoutRecords = ref([]);
 const total = ref(0);
@@ -153,7 +165,7 @@ const pageSize = ref(10);
 const searchForm = reactive({
   userId: "",
   name: "",
-  type: "", // 修改為使用 select 的 value
+  type: "",
   dateRange: null,
 });
 
@@ -209,7 +221,7 @@ const fetchWorkoutRecords = async () => {
     size: pageSize.value,
     userId: searchForm.userId || undefined,
     userName: searchForm.name || undefined,
-    exerciseType: searchForm.type || undefined, // 直接使用 select 的 value
+    exerciseType: searchForm.type || undefined,
     startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
     endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
   };
@@ -249,7 +261,7 @@ const handleCurrentChange = (page) => {
 const resetSearchForm = () => {
   searchForm.userId = "";
   searchForm.name = "";
-  searchForm.type = ""; // 重置 select 的 value
+  searchForm.type = "";
   searchForm.dateRange = null;
   currentPage.value = 1;
   fetchWorkoutRecords();
@@ -272,6 +284,9 @@ const openEditDialog = (row) => {
     editForm.exerciseDate = null;
   }
   editDialogVisible.value = true;
+  setTimeout(() => {
+    console.log("Edit dialog is now visible");
+  }, 50);
 };
 
 const saveEdit = async () => {
@@ -324,15 +339,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.workout-management-container {
+  max-width: 1200px; /* 限制卡片最大寬度，使其不會佔滿整個螢幕 */
+  margin: 20px auto; /* 上下留白，水平居中 */
+}
+
+.workout-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px; /* 搜尋表單與表格間距 */
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.search-and-add {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* 搜尋表單與新增按鈕間距 */
+}
+
 .search-form {
-  margin-bottom: 20px;
+  margin-right: 10px; /* 搜尋表單內元素間距已由 el-form-item 控制 */
 }
 
 .pagination {
-  display: inline-block;
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end; /* 分頁器靠右 */
 }
 
 .el-button {
-  margin-left: 10px; /* 保持與重置按鈕的間距 */
+  margin-left: 5px; /* 按鈕之間的間距 */
 }
 </style>

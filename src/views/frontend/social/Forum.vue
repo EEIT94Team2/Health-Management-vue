@@ -30,14 +30,23 @@
     class="search-input"
   />
 </div>
-<!-- 排序選單 -->
-<div class="sort-box">
-  <label for="sortType">排序依據：</label>
-  <select id="sortType" v-model="sortType">
-    <option value="newest">最新</option>
-    <option value="mostCommented">最多留言</option>
-    <option value="mostViewed">最多瀏覽</option>
-  </select>
+
+<!-- 📌 發表文章 + 排序選單 同一列 -->
+<div class="action-bar">
+  <!-- 左邊按鈕 -->
+  <el-button type="success" @click="goToCreatePost" class="post-button">
+    ➕ 發表文章
+  </el-button>
+
+  <!-- 右邊排序 -->
+  <div class="sort-box">
+    <label for="sortType">排序依據：</label>
+    <select id="sortType" v-model="sortType">
+      <option value="newest">最新</option>
+      <option value="mostViewed">最熱門</option>
+      <option value="mostCommented">最多留言</option>
+    </select>
+  </div>
 </div>
     <!-- 每篇文章卡片+分頁 -->
     <div class="post-card" v-for="post in pagedPosts" :key="post.id">
@@ -85,6 +94,25 @@
 >
   {{ post.favorited ? "💚 已收藏" : "⭐ 收藏" }}
 </span>
+  <el-popover
+  placement="top"
+  width="200"
+  trigger="click"
+>
+  <template #reference>
+    <span class="action-button">🚨 檢舉</span>
+  </template>
+  <div class="report-options">
+    <el-radio-group v-model="selectedReportReason">
+      <el-radio-button label="廣告騷擾" />
+      <el-radio-button label="不當言論" />
+      <el-radio-button label="色情暴力" />
+      <el-radio-button label="其他" />
+    </el-radio-group>
+    <el-button type="warning" size="small" class="mt-2" @click="reportPost()">送出檢舉</el-button>
+  </div>
+</el-popover>
+
 </div>
 
       <!-- 🔸 留言區 -->
@@ -176,6 +204,7 @@
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
+import { useRouter } from 'vue-router';
 
 const posts = ref([]);
 const comments = reactive({});
@@ -212,23 +241,49 @@ const selectedCategory = ref("all");
 const pageSize = 10;
 const currentPage = ref(1);
 
+// 發表文章
+const router = useRouter();
+const goToCreatePost = () => {
+  router.push('/social/forumcreate');
+};
+
 // 交流
 const userDialogVisible = ref(false)
 const selectedUser = ref(null)
 const authorMood = ref("")
 
-const showUserPopup = (user) => {
+const showUserPopup = async (user) => {
   selectedUser.value = user
   userDialogVisible.value = true
 
-  // ✅ 從 localStorage 抓心情
-  const moodKey = `userMood_${user.name}`
-  const savedMood = localStorage.getItem(moodKey)
-  authorMood.value = savedMood || "這位使用者尚未留下心情"
+  // ⏬ 顯示心情（前端模擬）
+  try {
+    const moodKey = `userMood_${user.name}`
+    const mood = localStorage.getItem(moodKey)
+    authorMood.value = mood || "這位使用者尚未留下心情"
+  } catch (err) {
+    authorMood.value = "無法載入心情資料"
+  }
 }
 
-const sendFriendRequest = () => {
-  ElMessage.success(`已送出好友邀請給 ${selectedUser.value?.name}`)
+// 發送好友邀請
+const sendFriendRequest = async () => {
+  try {
+    const token = localStorage.getItem("token")
+    await axios.post(`/api/friend-invitations/${selectedUser.value.userId}`, null, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    ElMessage.success(`已送出好友邀請給 ${selectedUser.value.name}`)
+  } catch (err) {
+    if (err.response?.status === 400) {
+      ElMessage.warning(err.response.data) // 顯示後端回傳的錯誤訊息，例如已邀請
+    } else {
+      ElMessage.error("發送好友邀請失敗")
+    }
+    console.error(err)
+  }
 }
 
 const sendTrainingInvite = () => {
@@ -298,7 +353,13 @@ const toggleExpand = async (postId) => {
   // 如果剛剛展開 + 還沒讀過 → 呼叫後端增加瀏覽數
   if (expandedPosts[postId] && !viewedPosts[postId]) {
     try {
-      await axios.get(`/api/posts/${postId}`);  // ✅ 這裡會觸發後端 viewCount++
+      await axios.get(`/api/posts/${postId}`);  // 後端增加瀏覽數
+       // 更新前端畫面中的 viewCount
+       const post = pagedPosts.value.find(p => p.id === postId);
+      if (post) {
+        post.viewCount = (post.viewCount || 0) + 1;
+      }
+
       viewedPosts[postId] = true;
     } catch (err) {
       console.error("增加瀏覽數失敗", err);
@@ -414,12 +475,31 @@ const pagedPosts = computed(() => {
   return sortedPosts.value.slice(start, start + pageSize);
 });
 
+// 檢舉
+const selectedReportReason = ref('');
+
+const reportPost = () => {
+  if (selectedReportReason.value) {
+    ElMessage.success(`✅ 已送出檢舉：${selectedReportReason.value}`);
+    selectedReportReason.value = '';
+  } else {
+    ElMessage.warning("請選擇檢舉原因");
+  }
+};
+
 const selectCategory = (cat) => {
   selectedCategory.value = cat;
   currentPage.value = 1;
 };
 
 onMounted(loadPosts);
+
+watch(currentPage, () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+});
 </script>
 
 <style scoped>
@@ -489,12 +569,26 @@ onMounted(loadPosts);
   font-size: 15px;
 }
 
+/* 發文+排序樣式 */
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
 
+/* 左側發表文章按鈕 */
+.post-button {
+  background-color: #444;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
 
-/* 排序樣式 */
+/* 右側排序選單樣式 */
 .sort-box {
   text-align: right;
-  margin-bottom: 10px;
   color: #ccc;
 }
 .sort-box select {
@@ -530,9 +624,9 @@ onMounted(loadPosts);
 
   .view-count {
   position: absolute;
-  top: 90px;
-  right: 16px;
-  font-size: 14px;
+  bottom: 5px;
+  right: 5px;
+  font-size: 10px;
   color: #ccc;
   background-color: rgba(0, 0, 0, 0.3);
   padding: 2px 8px;
@@ -804,3 +898,4 @@ onMounted(loadPosts);
   content: "💬";
 }
 </style>
+
