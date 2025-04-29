@@ -36,7 +36,9 @@
               ></el-date-picker>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="fetchDietData">查詢</el-button>
+              <el-button type="primary" @click="fetchDietData" :icon="Search"
+                >查詢</el-button
+              >
               <el-button @click="resetSearchForm">重置</el-button>
             </el-form-item>
           </el-form>
@@ -61,13 +63,13 @@
           {{ formatDate(scope.row.recordDate) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150">
+      <el-table-column label="操作" width="205">
         <template #default="scope">
-          <el-button size="small" @click="openEditDialog(scope.row)"
+          <el-button @click="openEditDialog(scope.row)" :icon="Edit"
             >編輯</el-button
           >
           <el-button
-            size="small"
+            :icon="Delete"
             type="danger"
             @click="handleDelete(scope.row.recordId)"
             >刪除</el-button
@@ -152,6 +154,7 @@
 import { ref, reactive, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
+import { Edit, Delete, Search } from "@element-plus/icons-vue";
 
 const dietData = ref([]);
 const total = ref(0);
