@@ -425,17 +425,7 @@ const quickAddToCart = async (product) => {
                 return;
             }
 
-            // 情況2: 直接返回data對象
-            if (
-                response.data.id ||
-                response.data.productId ||
-                (response.data.data && (response.data.data.id || response.data.data.productId))
-            ) {
-                ElMessage.success("已添加到購物車");
-                return;
-            }
-
-            // 情況3: 沒有明確錯誤信息
+            // 情況2: 直接返回的數據沒有明確的錯誤信息
             if (!response.data.message && !response.data.error) {
                 ElMessage.success("已添加到購物車");
                 return;
@@ -443,13 +433,10 @@ const quickAddToCart = async (product) => {
 
             // 有明確的錯誤信息
             throw new Error(response.data.message || response.data.error || "添加失敗");
-        } else {
-            // 無法解析響應
-            throw new Error("無法處理服務器響應");
         }
     } catch (error) {
         console.error("添加到購物車失敗:", error);
-        ElMessage.error(`添加失敗: ${error.message || "未知錯誤"}`);
+        ElMessage.error(error.message || "添加到購物車失敗");
     } finally {
         loading.value = false;
     }
