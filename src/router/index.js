@@ -184,7 +184,7 @@ const routes = [
                 path: "social/partner",
                 name: "Partner",
                 component: () => import("@/views/frontend/social/FindWorkoutPartner.vue"),
-                meta: { title: "發表文章" },
+                meta: { title: "尋找夥伴" },
             },
             {
                 path: "user/fitness",
@@ -437,13 +437,6 @@ const routes = [
                     requiresAuth: true,
                     isAdmin: true,
                 },
-            },
-            // 前台社群 - 尋找夥伴
-            {
-                path: "social/partner",
-                name: "Partner",
-                component: () => import("@/views/frontend/social/FindWorkoutPartner.vue"),
-                meta: { title: "尋找夥伴" },
             },
             // 後台獎章管理
             {

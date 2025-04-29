@@ -112,7 +112,7 @@
       <el-sub-menu index="social">
         <template #title>
           <el-icon><ChatSquare /></el-icon>
-          <span>論壇</span>
+          <span>論壇管理</span>
         </template>
         <el-menu-item index="/backpage/social/home">
           <span>論壇首頁</span>
