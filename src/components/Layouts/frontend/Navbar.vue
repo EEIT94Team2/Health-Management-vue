@@ -2,9 +2,13 @@
   <header class="main-header">
     <div class="container">
       <div class="header-content">
-        <div class="logo">
+        <div
+          class="logo"
+          @mouseenter="swapLogo(true)"
+          @mouseleave="swapLogo(false)"
+        >
           <router-link to="/" @click="handleLogoClick">
-            <img src="@/assets/images/logo.png" alt="Logo" class="logo-icon" />
+            <img :src="logoSrc" alt="Logo" class="logo-icon" />
             享健你
             <span class="subtitle">遇見更好的自己</span>
           </router-link>
@@ -74,6 +78,7 @@
             <li><router-link to="/shop/cart">購物車</router-link></li>
             <li><router-link to="/user/fitness">健身成效</router-link></li>
             <li><router-link to="/user/profile">我的檔案</router-link></li>
+            <li><a href="#" @click.prevent="handleBackendNav" v-if="isAdmin">後台管理系統</a></li>
             <li><a href="#" @click.prevent="handleLogout">登出</a></li>
           </ul>
         </div>
@@ -81,12 +86,13 @@
     </div>
   </header>
 </template>
-
+    
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
+import { ElMessage } from "element-plus";
 
 const route = useRoute();
 const router = useRouter();
@@ -99,6 +105,29 @@ const userInfo = computed(() => {
   return authStore.getUserInfo;
 });
 const userMenuOpen = ref(false);
+
+// 判斷用戶是否為管理員
+const isAdmin = computed(() => {
+  // 從userInfo獲取角色
+  const info = userInfo.value;
+  
+  // 嘗試從localStorage獲取用戶信息
+  let localUserInfo;
+  try {
+    const storedInfo = localStorage.getItem("userInfo");
+    if (storedInfo) {
+      localUserInfo = JSON.parse(storedInfo);
+    }
+  } catch (error) {
+    console.error("解析localStorage中的userInfo失敗:", error);
+  }
+  
+  // 檢查角色 - 優先使用userInfo，然後使用localStorage中的信息
+  const role = (info && info.role) || (localUserInfo && localUserInfo.role);
+  
+  // 如果角色是admin，返回true
+  return role === 'admin';
+});
 
 // 計算顯示名稱
 const displayName = computed(() => {
@@ -162,6 +191,16 @@ const refreshUserName = async () => {
 
 const isHomepage = computed(() => route.path === "/");
 
+// Logo 圖片路徑
+const logoDefault = new URL("@/assets/images/logo.png", import.meta.url).href;
+const logoHover = new URL("@/assets/images/logoup.png", import.meta.url).href;
+
+const logoSrc = ref(logoDefault);
+
+const swapLogo = (hovering) => {
+  logoSrc.value = hovering ? logoHover : logoDefault;
+};
+
 const handleLogoClick = (event) => {
   if (isHomepage.value) {
     event.preventDefault();
@@ -187,8 +226,8 @@ const handleLogout = () => {
 
 const menus = reactive([
   {
-    label: "課程管理",
-    children: [{ label: "課程列表", hash: "#courses" }],
+    label: "課程專區",
+    children: [{ label: "課程列表", path: "/courses" }],
     open: false,
   },
   {
@@ -212,11 +251,11 @@ const menus = reactive([
   {
     label: "社群論壇",
     children: [
-      { label: '論壇首頁', path: '/social/forumhome' },
-      { label: '文章列表', path: '/social/forum' },
-      { label: '發表文章', path: '/social/forumcreate' },
-      { label: '尋找夥伴', path: '/social/partner' },
-      { label: '個人檔案', path: '/social/UserSocialProfile' },
+      { label: "論壇首頁", path: "/social/forumhome" },
+      { label: "文章列表", path: "/social/forum" },
+      { label: "發表文章", path: "/social/forumcreate" },
+      { label: "尋找夥伴", path: "/social/partner" },
+      { label: "個人檔案", path: "/social/UserSocialProfile" },
     ],
     open: false,
   },
@@ -238,6 +277,25 @@ const handleNavClick = (menuItem) => {
       router.push({ path: "/", hash: menuItem.hash });
     }
   }
+};
+
+// 處理後台管理系統跳轉
+const handleBackendNav = () => {
+  // 檢查是否有token
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    ElMessage.error("請先登入");
+    return;
+  }
+  
+  // 檢查是否有管理員權限
+  if (!isAdmin.value) {
+    ElMessage.error("您沒有管理員權限");
+    return;
+  }
+  
+  // 跳轉到後台管理系統
+  router.push("/backpage/dashboard");
 };
 </script>
 

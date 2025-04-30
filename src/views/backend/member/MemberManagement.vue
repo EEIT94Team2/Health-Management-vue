@@ -6,10 +6,20 @@
                 <div class="management-header">
                     <div class="title"></div>
                     <div class="search-and-add">
+                        <!-- 搜索類型選擇 -->
+                        <el-select v-model="searchType" placeholder="搜尋欄位" style="width: 120px;" @change="handleSearchTypeChange">
+                            <el-option label="全部" value="all" />
+                            <el-option label="ID" value="userId" />
+                            <el-option label="姓名" value="name" />
+                            <el-option label="電子郵件" value="email" />
+                            <el-option label="性別" value="gender" />
+                            <el-option label="會員點數" value="userPoints" />
+                            <el-option label="角色" value="role" />
+                        </el-select>
                         <!-- 搜索輸入框 -->
                         <el-input
                             v-model="searchText"
-                            placeholder="搜尋姓名、電子郵件或ID"
+                            :placeholder="getSearchPlaceholder()"
                             clearable
                             class="search-input"
                             @input="handleSearch"
@@ -22,18 +32,18 @@
             </template>
 
             <!-- 使用者資料表格 - :data綁定顯示的資料來源為計算屬性displayUsers而非全部users -->
-            <el-table :data="displayUsers" style="width: 100%">
+            <el-table :data="displayUsers" style="width: 100%" border>
                 <!-- 用戶ID欄位 - prop指定要顯示的資料屬性名稱 -->
-                <el-table-column prop="userId" label="ID" width="80" />
+                <el-table-column prop="userId" label="ID" width="70" />
 
                 <!-- 姓名欄位 -->
-                <el-table-column prop="name" label="姓名" min-width="120" />
+                <el-table-column prop="name" label="姓名" min-width="100" />
 
                 <!-- 電子郵件欄位 -->
-                <el-table-column prop="email" label="電子郵件" min-width="180" />
+                <el-table-column prop="email" label="電子郵件" min-width="160" />
 
                 <!-- 性別欄位 - 使用自定義模板根據值顯示對應的文字 -->
-                <el-table-column label="性別" width="80">
+                <el-table-column label="性別" width="70">
                     <template #default="{ row }">
                         <!-- 三元運算符: 條件 ? 為真執行 : 為假執行 -->
                         {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '其他' }}
@@ -41,25 +51,32 @@
                 </el-table-column>
 
                 <!-- 個人簡介欄位 - 顯示用戶的自我介紹 -->
-                <el-table-column prop="bio" label="個人簡介" min-width="180">
+                <el-table-column prop="bio" label="個人簡介" min-width="150">
                     <template #default="{ row }">
                         <!-- bio-content 樣式控制簡介顯示樣式，避免太長 -->
                         <div class="bio-content">{{ row.bio || '無' }}</div>
                     </template>
                 </el-table-column>
 
+                <!-- 會員點數欄位 -->
+                <el-table-column prop="userPoints" label="會員點數" width="100">
+                    <template #default="{ row }">
+                        <span>{{ row.userPoints || 0 }}</span>
+                    </template>
+                </el-table-column>
+
                 <!-- 角色欄位 - 使用標籤區分不同角色 -->
-                <el-table-column prop="role" label="角色" width="100">
+                <el-table-column prop="role" label="角色" width="90">
                     <template #default="{ row }">
                         <!-- 使用不同顏色標籤區分管理員和一般用戶 -->
-                        <el-tag :type="row.role === 'admin' ? 'danger' : 'info'">
-                            {{ row.role === 'admin' ? '管理員' : '一般用戶' }}
+                        <el-tag :type="row.role === 'admin' ? 'danger' : row.role === 'coach' ? 'warning' : 'info'">
+                            {{ row.role === 'admin' ? '管理員' : row.role === 'coach' ? '教練' : '一般用戶' }}
                         </el-tag>
                     </template>
                 </el-table-column>
 
                 <!-- 操作欄位 - 包含編輯和刪除按鈕 -->
-                <el-table-column label="操作" width="200">
+                <el-table-column label="操作" width="220" fixed="right">
                     <template #default="{ row }">
                         <el-button-group>
                             <!-- 編輯按鈕 - 點擊時觸發showEditDialog方法並傳入當前行數據 -->
@@ -116,6 +133,9 @@
                 <!-- 密碼輸入欄位 - type="password"使其顯示為密碼格式 -->
                 <el-form-item label="密碼" prop="passwordHash">
                     <el-input v-model="form.passwordHash" type="password" />
+                    <template v-if="isEdit">
+                        <div class="password-hint">留空表示不更改原密碼</div>
+                    </template>
                 </el-form-item>
 
                 <!-- 性別選擇 - 使用單選按鈕組 -->
@@ -136,8 +156,21 @@
                 <el-form-item label="角色" prop="role" v-if="isAdmin">
                     <el-radio-group v-model="form.role">
                         <el-radio label="user">一般用戶</el-radio>
+                        <el-radio label="coach">教練</el-radio>
                         <el-radio label="admin">管理員</el-radio>
                     </el-radio-group>
+                </el-form-item>
+
+                <!-- 會員點數 - 數字輸入框 -->
+                <el-form-item label="會員點數" prop="userPoints">
+                    <el-input-number 
+                        v-model="form.userPoints" 
+                        :min="0"
+                        :precision="0"
+                        :step="10"
+                        controls-position="right"
+                        style="width: 180px"
+                    />
                 </el-form-item>
             </el-form>
 
@@ -145,6 +178,7 @@
             <template #footer>
                 <span class="dialog-footer">
                     <el-button @click="dialogVisible = false">取消</el-button>
+                    <el-button type="info" @click="fillTestData">一鍵新增</el-button>
                     <el-button type="primary" @click="handleSubmit">確定</el-button>
                 </span>
             </template>
@@ -182,6 +216,8 @@ const formRef = ref(null);
 const isAdmin = ref(true); // 假設當前用戶是管理員
 // 搜索文本 - 用於實現搜索功能(尚未實現完整功能)
 const searchText = ref("");
+// 搜索類型 - 用於實現搜索功能(尚未實現完整功能)
+const searchType = ref("all");
 
 // 表單數據對象 - 用於新增或編輯用戶
 const form = ref({
@@ -190,7 +226,8 @@ const form = ref({
     passwordHash: "",
     gender: "M",
     bio: "",
-    role: "user"
+    role: "user",
+    userPoints: 0
 });
 
 // === 表單驗證規則 ===
@@ -203,10 +240,20 @@ const rules = {
         { required: true, message: "請輸入電子郵件", trigger: "blur" },
         { type: "email", message: "電子郵件格式不正確", trigger: "blur" }
     ],
-    // 密碼驗證規則: 必填且至少6個字符
+    // 密碼驗證規則: 編輯模式下不必填，新增模式下必填
+    // 當有輸入內容時，密碼長度至少為6個字符
     passwordHash: [
-        { required: true, message: "請輸入密碼", trigger: "blur" },
-        { min: 6, message: "密碼長度至少為6個字符", trigger: "blur" }
+        { required: () => !isEdit.value, message: "請輸入密碼", trigger: "blur" },
+        { 
+            validator: (rule, value, callback) => {
+                if (value && value.length > 0 && value.length < 6) {
+                    callback(new Error("密碼長度至少為6個字符"));
+                } else {
+                    callback();
+                }
+            }, 
+            trigger: ["blur", "change"] 
+        }
     ],
     // 性別驗證規則: 必選
     gender: [{ required: true, message: "請選擇性別", trigger: "change" }]
@@ -215,25 +262,82 @@ const rules = {
 // === 計算屬性區 ===
 
 /**
+ * 獲取搜索框的提示文字
+ * 根據當前選擇的搜索類型返回對應的提示
+ */
+const getSearchPlaceholder = () => {
+    switch (searchType.value) {
+        case 'userId':
+            return '搜尋會員ID';
+        case 'name':
+            return '搜尋會員姓名';
+        case 'email':
+            return '搜尋電子郵件';
+        case 'gender':
+            return '搜尋性別 (M/F/O)';
+        case 'userPoints':
+            return '搜尋點數 (大於或等於)';
+        case 'role':
+            return '搜尋角色 (admin/coach/user)';
+        default:
+            return '搜尋全部欄位';
+    }
+};
+
+/**
  * 計算符合搜索條件的用戶數據
- * 根據搜索文本過濾用戶數據
+ * 根據搜索文本和搜索類型過濾用戶數據
  */
 const filteredUsers = computed(() => {
     if (!searchText.value) return users.value;
     
     const search = searchText.value.toLowerCase();
+    
     return users.value.filter(user => {
-        // 檢查ID (轉為字符串進行比較)
-        const userId = String(user.userId).toLowerCase();
-        // 檢查姓名
-        const name = (user.name || '').toLowerCase();
-        // 檢查電子郵件
-        const email = (user.email || '').toLowerCase();
+        // 如果搜索類型是"全部"，則在所有字段中搜索
+        if (searchType.value === 'all') {
+            // 檢查ID (轉為字符串進行比較)
+            const userId = String(user.userId || '').toLowerCase();
+            // 檢查姓名
+            const name = (user.name || '').toLowerCase();
+            // 檢查電子郵件
+            const email = (user.email || '').toLowerCase();
+            // 檢查性別
+            const gender = (user.gender || '').toLowerCase();
+            // 檢查角色
+            const role = (user.role || '').toLowerCase();
+            // 檢查個人簡介
+            const bio = (user.bio || '').toLowerCase();
+            
+            // 如果搜索文本出現在任一字段中，則返回true
+            return userId.includes(search) || 
+                   name.includes(search) || 
+                   email.includes(search) ||
+                   gender.includes(search) ||
+                   role.includes(search) ||
+                   bio.includes(search);
+        }
         
-        // 如果搜索文本出現在任一字段中，則返回true
-        return userId.includes(search) || 
-               name.includes(search) || 
-               email.includes(search);
+        // 根據選擇的搜索類型進行特定搜索
+        switch (searchType.value) {
+            case 'userId':
+                return String(user.userId || '').toLowerCase().includes(search);
+            case 'name':
+                return (user.name || '').toLowerCase().includes(search);
+            case 'email':
+                return (user.email || '').toLowerCase().includes(search);
+            case 'gender':
+                return (user.gender || '').toLowerCase().includes(search);
+            case 'userPoints':
+                // 對於點數，嘗試將搜索文本轉換為數字並比較
+                const searchNumber = Number(search);
+                if (isNaN(searchNumber)) return false;
+                return (user.userPoints || 0) >= searchNumber;
+            case 'role':
+                return (user.role || '').toLowerCase().includes(search);
+            default:
+                return false;
+        }
     });
 });
 
@@ -349,23 +453,65 @@ const showAddDialog = () => {
         passwordHash: "",
         gender: "M",
         bio: "",
-        role: "user"
+        role: "user",
+        userPoints: 0
     };
     // 顯示對話框
     dialogVisible.value = true;
 };
 
 /**
+ * 獲取原始密碼
+ * @param {number} userId - 用戶ID
+ * @returns {Promise<string>} - 返回用戶密碼
+ */
+const fetchOriginalPassword = async (userId) => {
+    // 目前後端沒有提供獲取原始密碼的API
+    // 返回空字符串，讓用戶可以設置新密碼
+    return "";
+    
+    // 以下是原來的實現，由於後端API不存在導致404錯誤，所以註釋掉
+    /*
+    try {
+        const token = localStorage.getItem("authToken");
+        // 發送請求獲取用戶密碼（這裡假設存在一個專用於管理員獲取用戶原始密碼的API端點）
+        const response = await axios.get(`/api/users/${userId}/password`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        
+        if (response.data.success) {
+            return response.data.data.password;
+        } else {
+            ElMessage.warning("無法獲取原始密碼，請重新設置密碼");
+            return "";
+        }
+    } catch (error) {
+        console.error("獲取原始密碼失敗:", error);
+        ElMessage.warning("無法獲取原始密碼，請重新設置密碼");
+        return "";
+    }
+    */
+};
+
+/**
  * 顯示編輯用戶對話框
  * @param {Object} row - 要編輯的用戶數據行
  */
-const showEditDialog = (row) => {
+const showEditDialog = async (row) => {
     // 設置為編輯模式
     isEdit.value = true;
     // 使用展開運算符(...)創建row對象的副本賦值給form
     form.value = { ...row };
-    // 清空密碼，避免顯示加密後的密碼
+    
+    // 確保userPoints值為數字
+    form.value.userPoints = row.userPoints || 0;
+    
+    // 清空密碼字段，讓用戶可以設置新密碼
+    // 如果用戶不修改密碼，則不會更新密碼
     form.value.passwordHash = "";
+    
     // 顯示對話框
     dialogVisible.value = true;
 };
@@ -385,28 +531,44 @@ const handleDelete = async (row) => {
 
         // 用戶確認後，發送刪除請求
         const token = localStorage.getItem("authToken");
-        await axios.delete(`/api/users/${row.userId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
+        try {
+            await axios.delete(`/api/users/${row.userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            // 刪除成功提示
+            ElMessage.success("刪除成功");
+            
+            // 刷新用戶列表
+            await fetchUsers();
+            
+            // 檢查刪除後是否需要調整當前頁碼
+            // 例如: 如果刪除後當前頁已經沒有數據了，應該返回前一頁
+            const maxPage = Math.ceil(total.value / pageSize.value);
+            if (currentPage.value > maxPage && maxPage > 0) {
+                currentPage.value = maxPage;
             }
-        });
-        // 刪除成功提示
-        ElMessage.success("刪除成功");
-        
-        // 刷新用戶列表
-        await fetchUsers();
-        
-        // 檢查刪除後是否需要調整當前頁碼
-        // 例如: 如果刪除後當前頁已經沒有數據了，應該返回前一頁
-        const maxPage = Math.ceil(total.value / pageSize.value);
-        if (currentPage.value > maxPage && maxPage > 0) {
-            currentPage.value = maxPage;
+        } catch (error) {
+            console.error("刪除失敗:", error);
+            
+            // 檢查是否是外鍵約束錯誤
+            if (error.response && error.response.status === 500) {
+                // 提供更友好的錯誤訊息
+                ElMessageBox.alert(
+                    "無法刪除此會員，因為他/她仍有相關的積分記錄或其他關聯數據。請先刪除相關數據後再嘗試刪除會員。",
+                    "刪除失敗",
+                    { confirmButtonText: "我知道了", type: "error" }
+                );
+            } else {
+                // 其他錯誤
+                ElMessage.error("刪除失敗");
+            }
         }
     } catch (error) {
         // 處理錯誤，但忽略用戶取消操作
         if (error !== "cancel") {
-            console.error("刪除失敗:", error);
-            ElMessage.error("刪除失敗");
+            console.error("刪除操作被取消:", error);
         }
     }
 };
@@ -428,21 +590,33 @@ const handleSubmit = async () => {
 
                 // 根據是否是編輯模式選擇不同的API請求
                 if (isEdit.value) {
-                    // 編輯現有用戶
-                    // 複製表單數據
-                    const userData = { ...form.value };
-                    // 如果密碼為空，則不更新密碼
-                    if (!userData.passwordHash) {
-                        delete userData.passwordHash;
+                    // 編輯現有用戶 - 使用新的管理員API端點
+                    // 構建管理員更新DTO數據
+                    const adminUpdateData = {
+                        name: form.value.name,
+                        email: form.value.email,
+                        gender: form.value.gender,
+                        bio: form.value.bio,
+                        role: form.value.role,
+                        userPoints: form.value.userPoints || 0
+                    };
+                    
+                    // 只有當用戶輸入了新密碼時，才將密碼加入更新數據
+                    if (form.value.passwordHash && form.value.passwordHash.trim() !== '') {
+                        adminUpdateData.password = form.value.passwordHash;
                     }
                     
                     // 發送PUT請求更新用戶數據
-                    response = await axios.put(`/api/users/${form.value.userId}`, userData, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            'Content-Type': 'application/json'
+                    response = await axios.put(
+                        `/api/users/admin/${form.value.userId}`, 
+                        adminUpdateData, 
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
                         }
-                    });
+                    );
                 } else {
                     // 新增用戶
                     // 發送POST請求創建新用戶
@@ -489,11 +663,43 @@ const handleSubmit = async () => {
 
 /**
  * 處理搜索
- * 當用戶輸入搜索文本時重置頁碼
+ * 當用戶輸入搜索文本或更改搜索類型時重置頁碼
  */
 const handleSearch = () => {
     // 重置為第一頁，確保用戶看到搜索結果的第一頁
     currentPage.value = 1;
+};
+
+/**
+ * 處理搜索類型變化
+ * 當用戶更改搜索類型時重置頁碼並清空搜索文本
+ */
+const handleSearchTypeChange = () => {
+    // 清空搜索文本
+    searchText.value = '';
+    // 重置為第一頁
+    currentPage.value = 1;
+};
+
+/**
+ * 自動填入測試資料
+ * 為新增會員表單填入預設的測試資料
+ */
+const fillTestData = () => {
+    // 只在非編輯模式下使用此功能
+    if (isEdit.value) {
+        ElMessage.warning("編輯模式下無法使用一鍵新增功能");
+        return;
+    }
+    
+    // 自動填入測試資料
+    form.value.name = "黃小明";
+    form.value.email = "min@yahoo.com.tw";
+    form.value.passwordHash = "AAabcd+1234";
+    form.value.userPoints = 500;
+    
+    // 提示用戶已自動填入資料
+    ElMessage.success("已自動填入測試資料");
 };
 
 // 生命週期鉤子: 組件掛載時執行
@@ -510,10 +716,18 @@ onMounted(fetchUsers);
     padding: 20px;
 }
 
+/* 密碼提示樣式 */
+.password-hint {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 5px;
+}
+
 /* 管理容器卡片樣式 */
 .management-container {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
+    overflow-x: auto; /* 添加水平滾動支持 */
 }
 
 /* 管理頁面頂部區域樣式，使用flexbox進行對齊 */
@@ -521,6 +735,7 @@ onMounted(fetchUsers);
     display: flex;
     justify-content: space-between; /* 兩端對齊 */
     align-items: center; /* 垂直居中 */
+    margin-bottom: 20px;
 }
 
 /* 標題樣式 */
@@ -534,11 +749,18 @@ onMounted(fetchUsers);
     display: flex;
     align-items: center;
     gap: 10px; /* 元素之間的間距 */
+    flex-wrap: nowrap; /* 防止在中等屏幕尺寸下換行 */
 }
 
 /* 搜索輸入框樣式 */
 .search-input {
-    width: 200px;
+    width: 220px;
+    margin-right: 5px;
+}
+
+/* 搜索類型選擇框樣式 */
+:deep(.el-select) {
+    margin-right: 5px;
 }
 
 /* 個人簡介內容樣式，限制高度和處理溢出 */
@@ -556,5 +778,37 @@ onMounted(fetchUsers);
     margin-top: 20px;
     display: flex;
     justify-content: flex-end; /* 右對齊 */
+}
+
+/* 表格內容過長時的樣式 */
+:deep(.el-table) {
+    width: 100% !important;
+    table-layout: fixed;
+}
+
+:deep(.el-table__header-wrapper),
+:deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+    .management-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .search-and-add {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+    
+    .search-input,
+    :deep(.el-select) {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
 }
 </style> 

@@ -34,10 +34,7 @@
       </el-table-column>
       <el-table-column label="操作" width="120">
         <template #default="scope">
-          <el-button
-            size="small"
-            type="danger"
-            @click="openDeleteConfirm(scope.row)"
+          <el-button type="danger" @click="openDeleteConfirm(scope.row)"
             >刪除</el-button
           >
         </template>
@@ -104,6 +101,7 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
+import { Delete } from "@element-plus/icons-vue";
 
 export default {
   setup() {
@@ -247,6 +245,7 @@ export default {
       openDeleteConfirm,
       closeDeleteConfirm,
       confirmDeleteAchievement,
+      Delete,
     };
   },
 };
@@ -268,10 +267,6 @@ export default {
 .title {
   font-size: 1.5rem;
   font-weight: bold;
-}
-
-.el-button {
-  margin-left: 5px;
 }
 
 .dialog-footer button {

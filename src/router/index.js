@@ -14,6 +14,12 @@ import GymPage from "@/views/frontend/GymPage.vue";
 // 課程管理
 import CourseList from "@/views/backend/course/CourseList.vue";
 import CourseForm from "@/views/backend/course/CourseForm.vue";
+import EnrollmentList from "@/views/backend/course/EnrollmentList.vue";
+import TrailBooking from "@/views/backend/course/TrailBooking.vue";
+import Courses from "@/views/frontend/course/CoursePage.vue";
+import EnrollmentStatusPage from "@/views/frontend/course/EnrollmentStatusPage.vue"; // 修改後的查看狀態頁
+import RegularEnrollmentPage from "@/views/frontend/course/RegularEnrollmentPage.vue"; // 報名常規課程頁
+import TrialBookingPage from "@/views/frontend/course/TrialBookingPage.vue"; // 預約體驗課程頁
 
 // 會員中心
 import MemberLoginView from "@/views/backend/member/MemberLoginView.vue";
@@ -47,7 +53,6 @@ import AdminAchievement from "@/views/backend/fitness/Achievement.vue";
 // 錯誤頁面
 import Forbidden403 from "@/views/403.vue";
 
-import Courses from "@/views/frontend/course/CourseList.vue";
 const routes = [
     {
         path: "/",
@@ -60,11 +65,29 @@ const routes = [
                 meta: { title: "首頁" },
             },
             {
-                path: "courses",
-                name: "Courses",
+                path: '/courses',
+                name: 'Courses',
                 component: Courses,
-                meta: { title: "課程" },
-            },
+                meta: { title: '課程' }
+              },
+              {
+                path: '/my-enrollment-status', // 查看所有課程與我的狀態頁面路徑
+                name: 'my-enrollment-status',
+                component: EnrollmentStatusPage,
+                meta: { title: '我的課程狀態' } // 通常需要登入才能看自己的狀態
+              },
+              {
+                path: '/courses/regular-enrollment', // 報名常規課程頁面路徑
+                name: 'regular-enrollment',
+                component: RegularEnrollmentPage,
+                meta: { title: '報名常規課程' } // 需要登入才能報名
+              },
+               {
+                path: '/courses/trial-booking', // 預約體驗課程頁面路徑
+                name: 'trial-booking',
+                component: TrialBookingPage,
+                meta: { title: '預約體驗課' } // 需要登入才能預約
+              },
             // 前台商城路由
             {
                 path: "shop/products",
@@ -160,7 +183,7 @@ const routes = [
                 path: "social/partner",
                 name: "Partner",
                 component: () => import("@/views/frontend/social/FindWorkoutPartner.vue"),
-                meta: { title: "發表文章" },
+                meta: { title: "尋找夥伴" },
             },
             {
                 path: "user/fitness",
@@ -254,6 +277,18 @@ const routes = [
                 name: "CourseEdit",
                 component: CourseForm,
                 meta: { title: "編輯課程", hidden: true, requiresAuth: true },
+            },
+            {
+                path: "enrollments",
+                name: "EnrollmentList",
+                component: EnrollmentList,
+                meta: { title: "報名紀錄", icon: "Document", requiresAuth: true }
+            },
+            {
+                path: "trailBooking",
+                name: "TrailBooking",
+                component: TrailBooking,
+                meta: { title: "預約紀錄", icon: "Document", requiresAuth: true }
             },
 
             // 會員中心
@@ -401,13 +436,6 @@ const routes = [
                     requiresAuth: true,
                     isAdmin: true,
                 },
-            },
-            // 前台社群 - 尋找夥伴
-            {
-                path: "social/partner",
-                name: "Partner",
-                component: () => import("@/views/frontend/social/FindWorkoutPartner.vue"),
-                meta: { title: "尋找夥伴" },
             },
             // 後台獎章管理
             {
