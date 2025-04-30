@@ -345,8 +345,8 @@ export default {
                     }
                 }
 
-                // 如果購物車有項目，獲取推薦商品
-                if (cartItems.value.length > 0) {
+                // 如果購物車有項目，獲取推薦商品（只有成功獲取購物車數據後才執行一次）
+                if (cartItems.value.length > 0 && !recommendedProducts.value.length) {
                     fetchRecommendedProducts();
                 }
             } catch (error) {
