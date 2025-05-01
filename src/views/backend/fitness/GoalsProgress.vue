@@ -336,8 +336,10 @@ const openEditDialog = (row) => {
     editForm.targetValue = null;
     editForm.unit = "";
     editForm.currentProgress = null;
-    editForm.startDate = null;
-    editForm.endDate = null;
+    editForm.startDate = new Date().toISOString().slice(0, 10);
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+    editForm.endDate = endDate.toISOString().slice(0, 10);
     editForm.status = "進行中";
     editForm.useLatestData = true;
     editForm.startWeight = null;

@@ -1,7 +1,5 @@
 <template>
   <div class="overview-section-modular-carousel">
-    <h2 class="overview-title">運動概覽</h2>
-
     <div v-if="loadingOverviewChart" class="loading">
       <el-icon class="is-loading"><Loading /></el-icon>
       載入概覽數據中...
@@ -9,11 +7,24 @@
 
     <div v-else-if="overviewData.length > 0" class="overview-container">
       <div class="time-range-selector">
-        <el-radio-group v-model="selectedTimeRange" @change="fetchOverviewData">
-          <el-radio-button value="week">本週</el-radio-button>
-          <el-radio-button value="month">本月</el-radio-button>
-          <el-radio-button value="quarter">本季</el-radio-button>
-        </el-radio-group>
+        <button
+          @click="handleButtonClick('week')"
+          :class="{ active: selectedTimeRange === 'week' }"
+        >
+          本週
+        </button>
+        <button
+          @click="handleButtonClick('month')"
+          :class="{ active: selectedTimeRange === 'month' }"
+        >
+          本月
+        </button>
+        <button
+          @click="handleButtonClick('quarter')"
+          :class="{ active: selectedTimeRange === 'quarter' }"
+        >
+          本季
+        </button>
       </div>
 
       <div class="overview-modules">
@@ -72,10 +83,16 @@ const authStore = useAuthStore();
 const overviewData = ref([]);
 const loadingOverviewChart = ref(false);
 const selectedTimeRange = ref("week");
+const activeWorkoutGoals = ref([]); // 用於儲存進行中的運動目標
 
 const fetchOverviewData = async () => {
   if (!authStore.userInfo?.id) return;
   loadingOverviewChart.value = true;
+
+  const timeRange = selectedTimeRange.value || "week";
+
+  console.log("即將發送請求，時間範圍:", timeRange);
+
   try {
     const token = authStore.getToken;
     const response = await axios.get(
@@ -85,11 +102,12 @@ const fetchOverviewData = async () => {
           Authorization: `Bearer ${token}`,
         },
         params: {
-          timeRange: selectedTimeRange.value,
+          timeRange: timeRange,
         },
       }
     );
-    console.log("Response Data:", response.data);
+    console.log("運動概覽數據:", response.data);
+    console.log("實際請求 URL:", response.request.responseURL);
     overviewData.value = response.data ? [response.data] : [];
   } catch (error) {
     console.error("獲取概覽數據失敗", error);
@@ -97,6 +115,33 @@ const fetchOverviewData = async () => {
   } finally {
     loadingOverviewChart.value = false;
   }
+};
+
+const fetchActiveWorkoutGoals = async () => {
+  if (!authStore.userInfo?.id) return;
+  try {
+    const token = authStore.getToken;
+    const response = await axios.get(
+      `/api/tracking/fitnessgoals/user/${authStore.userInfo.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log("進行中的運動目標:", response.data);
+    activeWorkoutGoals.value = response.data?.content || [];
+  } catch (error) {
+    console.error("獲取進行中的運動目標失敗", error);
+    ElMessage.error("無法獲取運動目標");
+  }
+};
+
+// 添加一個新的處理函數
+const handleButtonClick = (value) => {
+  console.log("按鈕點擊，選擇:", value);
+  selectedTimeRange.value = value;
+  fetchOverviewData();
 };
 
 const overviewModules = computed(() => {
@@ -136,10 +181,21 @@ const overviewModules = computed(() => {
 });
 
 const calculateProgressPercentage = () => {
-  // 假設目標是每週運動 3 小時（180分鐘）
   const data = overviewData.value[0] || {};
-  const percentage = Math.min((data.totalWorkoutTime / 180) * 100, 100);
-  return Math.round(percentage);
+  const workoutDurationGoal = activeWorkoutGoals.value.find(
+    (goal) => goal.目標類別 === "每週運動時長" && goal.狀態 === "進行中"
+  );
+
+  if (workoutDurationGoal && workoutDurationGoal.目標值) {
+    const goalMinutes = workoutDurationGoal.目標值;
+    const percentage = Math.min(
+      (data.totalWorkoutTime / goalMinutes) * 100,
+      100
+    );
+    return Math.round(percentage);
+  } else {
+    return 0;
+  }
 };
 
 const progressColor = [
@@ -152,6 +208,7 @@ const progressColor = [
 
 onMounted(() => {
   fetchOverviewData();
+  fetchActiveWorkoutGoals();
 });
 </script>
 
@@ -165,8 +222,27 @@ onMounted(() => {
 
 .time-range-selector {
   display: flex;
-  justify-content: center;
+  gap: 10px;
   margin-bottom: 20px;
+  justify-content: center;
+}
+.time-range-selector button {
+  padding: 8px 15px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.time-range-selector button:hover {
+  background-color: #e0e0e0;
+}
+
+.time-range-selector button.active {
+  background-color: #8caae7;
+  color: white;
+  border-color: #8caae7;
 }
 
 .overview-modules {
