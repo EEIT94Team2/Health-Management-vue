@@ -37,13 +37,10 @@
             <div class="section-container">
                 <!-- 功能欄 -->
                 <div class="function-bar">
-                    <div class="filter-group">
-                        <el-radio-group v-model="activeStatus" @change="handleStatusChange">
-                            <el-radio-button value="all">全部訂單</el-radio-button>
-                            <el-radio-button value="PENDING">待付款</el-radio-button>
-                            <el-radio-button value="PROCESSING">處理中</el-radio-button>
-                            <el-radio-button value="COMPLETED">已完成</el-radio-button>
-                        </el-radio-group>
+                    <div class="action-group">
+                        <el-button type="primary" plain :loading="loading" @click="refreshOrders">
+                            <el-icon><Refresh /></el-icon> 刷新
+                        </el-button>
                     </div>
                 </div>
 
@@ -155,15 +152,18 @@
 import { ref, computed, onMounted, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { Refresh } from "@element-plus/icons-vue";
 import { getOrdersByUserId, getOrders } from "@/api/shop";
 
 export default {
     name: "OrderList",
+    components: {
+        Refresh,
+    },
     setup() {
         const router = useRouter();
         const orders = ref([]);
         const loading = ref(true);
-        const activeStatus = ref("all");
         const filteredOrders = ref([]);
         const currentPage = ref(1);
         const pageSize = ref(5);
@@ -171,7 +171,13 @@ export default {
         const skeletonRows = ref(4);
 
         // 獲取用戶訂單
-        const fetchOrders = async () => {
+        const fetchOrders = async (force = false) => {
+            // 如果已經有訂單數據且不是強制刷新，則直接使用現有數據
+            if (orders.value.length > 0 && !force) {
+                console.log("使用現有訂單數據，無需重新獲取");
+                return;
+            }
+            
             loading.value = true;
 
             try {
@@ -278,20 +284,23 @@ export default {
                     if (orderData.length > 0) {
                         orderData = processOrdersData(orderData);
                         orders.value = orderData;
-                        filterOrders();
+                        filteredOrders.value = [...orders.value];
                     } else {
                         console.warn("獲取的訂單數據為空");
                         orders.value = [];
+                        filteredOrders.value = [];
                     }
                 } else {
                     console.error("獲取訂單列表失敗：無效響應");
                     ElMessage.error("獲取訂單列表失敗：無效響應");
                     orders.value = [];
+                    filteredOrders.value = [];
                 }
             } catch (error) {
                 console.error("獲取訂單列表失敗:", error);
                 ElMessage.error("獲取訂單列表失敗: " + (error.message || "未知錯誤"));
                 orders.value = [];
+                filteredOrders.value = [];
             } finally {
                 loading.value = false;
             }
@@ -332,39 +341,6 @@ export default {
 
                 return order;
             });
-        };
-
-        // 過濾訂單
-        const filterOrders = () => {
-            if (!orders.value || !Array.isArray(orders.value)) {
-                filteredOrders.value = [];
-                return;
-            }
-
-            if (activeStatus.value === "all") {
-                filteredOrders.value = [...orders.value];
-            } else {
-                filteredOrders.value = orders.value.filter((order) => {
-                    if (!order.status) return false;
-
-                    const status = order.status.toLowerCase();
-                    if (activeStatus.value === "PENDING") {
-                        return status.includes("pending") || status === "pending_payment";
-                    } else if (activeStatus.value === "PROCESSING") {
-                        return status.includes("process") || status === "processing";
-                    } else if (activeStatus.value === "COMPLETED") {
-                        return (
-                            status.includes("complet") ||
-                            status === "completed" ||
-                            status.includes("paid")
-                        );
-                    }
-                    return false;
-                });
-            }
-
-            // 重置分頁
-            currentPage.value = 1;
         };
 
         // 計算當前頁面的訂單
@@ -516,20 +492,19 @@ export default {
             });
         };
 
-        // 處理狀態過濾器變化
-        const handleStatusChange = () => {
-            filterOrders();
+        // 添加刷新方法
+        const refreshOrders = () => {
+            fetchOrders(true);
         };
 
         onMounted(() => {
-            fetchOrders();
+            fetchOrders(true); // 強制初始化時獲取訂單數據
         });
 
         return {
             loading,
             orders,
             filteredOrders,
-            activeStatus,
             currentPage,
             pageSize,
             total,
@@ -544,9 +519,8 @@ export default {
             handlePageChange,
             goToOrderDetail,
             goToPayment,
-            filterOrders,
             formatDate,
-            handleStatusChange,
+            refreshOrders, // 暴露刷新方法
         };
     },
 };
@@ -628,9 +602,9 @@ span {
     align-items: center;
     margin-bottom: 1.5rem;
 
-    .filter-group {
+    .action-group {
         display: flex;
-        gap: 1rem;
+        gap: 0.5rem;
     }
 }
 
@@ -865,7 +839,7 @@ span {
         align-items: flex-start;
         gap: 1rem;
 
-        .filter-group {
+        .action-group {
             width: 100%;
             overflow-x: auto;
             padding-bottom: 0.5rem;

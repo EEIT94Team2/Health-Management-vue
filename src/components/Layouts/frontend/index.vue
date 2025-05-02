@@ -1,22 +1,19 @@
 <template>
   <div class="frontend-layout">
     <NavBar :key="authState" />
-    <router-view v-if="isReady" />
+    <router-view />
     <Footer />
     <BackToTop />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
 import NavBar from '@/components/Layouts/frontend/Navbar.vue'
 import Footer from '@/components/Layouts/frontend/Footer.vue'
 import BackToTop from '@/components/Layouts/frontend/BackToTop.vue'
-
-// 用於確保組件已完全準備好
-const isReady = ref(true)
 
 // 使用authStore和route
 const authStore = useAuthStore()
@@ -36,18 +33,6 @@ watch(() => route.path, async () => {
     console.log('檢測到認證不同步，正在同步狀態')
     authStore.autoLogin()
   }
-  
-  // 刷新組件以確保正確顯示
-  isReady.value = false
-  await nextTick()
-  isReady.value = true
-  // 添加第二次延遲更新，確保組件完全刷新
-  setTimeout(() => {
-    isReady.value = false
-    nextTick(() => {
-      isReady.value = true
-    })
-  }, 100)
 })
 
 // 初始化和事件監聽
@@ -60,24 +45,8 @@ onMounted(() => {
   // 監聽localStorage的變更
   window.addEventListener('storage', checkAuthChanges)
   
-  // 添加定期檢查，以防localStorage和authStore狀態不同步
-  const checkInterval = setInterval(() => {
-    const hasTokenInStorage = !!localStorage.getItem('authToken')
-    const isAuthInStore = authStore.isAuthenticated
-    
-    if (hasTokenInStorage !== isAuthInStore) {
-      console.log('檢測到認證狀態不同步，正在重新同步')
-      if (hasTokenInStorage) {
-        authStore.autoLogin()
-      } else {
-        authStore.resetAuthState()
-      }
-    }
-  }, 5000) // 每5秒檢查一次
-  
-  // 組件卸載時清除定時器
+  // 組件卸載時清除監聽器
   return () => {
-    clearInterval(checkInterval)
     window.removeEventListener('storage', checkAuthChanges)
   }
 })
