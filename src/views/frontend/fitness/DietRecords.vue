@@ -61,10 +61,6 @@
       </div>
     </div>
 
-    <div class="chart-actions">
-      <button @click="downloadChart">匯出圖片</button>
-    </div>
-
     <div class="list-toggle">
       <button @click="toggleListVisible">
         {{ isListVisible ? "收起數據列表" : "查看數據列表" }}
@@ -73,7 +69,10 @@
 
     <div v-if="isListVisible && dietData.length > 0" class="diet-list">
       <h3>飲食記錄列表</h3>
-      <el-table :data="dietData" @selection-change="handleSelectionChange">
+      <el-table
+        :data="sortedDietData"
+        @selection-change="handleSelectionChange"
+      >
         <el-table-column prop="mealtime" label="餐別" />
         <el-table-column
           prop="foodName"
@@ -110,7 +109,7 @@
 
     <el-dialog v-model="dialogVisible" title="編輯飲食記錄">
       <el-form :model="dietForm" label-width="120px">
-        <el-form-item label="食物名稱">
+        <el-form-item label="食物名稱" placeholder="填寫食物名稱">
           <el-input v-model="dietForm.foodName"></el-input>
         </el-form-item>
         <el-form-item label="餐別">
@@ -214,7 +213,7 @@ import {
   endOfYear,
   parseISO,
 } from "date-fns";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, onUnmounted, computed } from "vue";
 import axios from "axios";
 import { use } from "echarts/core";
 import VChart from "vue-echarts";
@@ -225,6 +224,7 @@ import {
   TitleComponent,
   TooltipComponent,
   LegendComponent,
+  ToolboxComponent, // 添加工具箱組件，包含導出圖片功能
 } from "echarts/components";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -242,6 +242,7 @@ import {
   ElOption,
 } from "element-plus";
 import { useRouter } from "vue-router";
+import { bottom, left } from "@popperjs/core";
 
 use([
   CanvasRenderer,
@@ -250,6 +251,7 @@ use([
   TitleComponent,
   TooltipComponent,
   LegendComponent,
+  ToolboxComponent, // 添加工具箱組件
 ]);
 
 const router = useRouter();
@@ -290,6 +292,19 @@ const selectedRecord = ref(null); // 用於編輯和刪除單個選中的記錄
 const customDateRangeDialogVisible = ref(false);
 const customStartDate = ref(null);
 const customEndDate = ref(null);
+
+// 數據排序 - 按日期排列
+const sortedDietData = computed(() => {
+  if (!dietData.value || dietData.value.length === 0) return [];
+
+  const sortedData = [...dietData.value];
+
+  return sortedData.sort((a, b) => {
+    const dateA = new Date(a.startTime || a.exerciseDate);
+    const dateB = new Date(b.startTime || b.exerciseDate);
+    return dateB - dateA;
+  });
+});
 
 const fetchDietData = async (
   unit = currentTimeUnit.value,
@@ -346,22 +361,21 @@ const fetchDietData = async (
         apiUrl += `?startDate=${format(
           startDate,
           "yyyy-MM-dd"
-        )}T00:00:00&endDate=${format(endDate, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+        )}T00:00:00&endDate=${format(endDate, "yyyy-MM-dd")}T23:59:59`;
       }
       break;
-    default: // 默認為週視圖
+    default:
       start = startOfWeek(new Date(), { weekStartsOn: 1 });
       end = endOfWeek(new Date(), { weekStartsOn: 1 });
       apiUrl += `?startDate=${format(
         start,
         "yyyy-MM-dd"
-      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`; // 包含時間
+      )}T00:00:00&endDate=${format(end, "yyyy-MM-dd")}T23:59:59`;
       break;
   }
 
   try {
     const response = await axios.get(apiUrl, { headers });
-    console.log(`API 原始回應 (date-range):`, response);
 
     // 更健壯的數據處理
     let data = [];
@@ -374,8 +388,6 @@ const fetchDietData = async (
     ) {
       data = response.data.content;
     }
-
-    console.log("處理後的數據 (date-range):", data);
 
     dietData.value = data;
     generateCharts(unit, start, end);
@@ -408,14 +420,133 @@ const generateCharts = (
   startDate = null,
   endDate = null
 ) => {
-  console.log("開始生成圖表，數據項數:", dietData.value.length);
   if (dietData.value.length === 0) {
+    // 空數據時，設置統一風格的空數據提示
+    const noDataOption = {
+      backgroundColor: "rgba(0,0,0,0.1)",
+      title: {
+        text: `營養素分佈 (${getTimeUnitLabel(timeUnit)})`,
+        textStyle: { color: "white" },
+        left: "center",
+      },
+      // 添加工具箱配置，即使沒有數據也保留
+      toolbox: {
+        show: true,
+        feature: {
+          saveAsImage: {
+            show: true,
+            title: "保存為圖片",
+            name: `營養素分佈_${getTimeUnitLabel(timeUnit)}_${format(
+              new Date(),
+              "yyyyMMdd_HHmmss"
+            )}`,
+            pixelRatio: 2,
+          },
+        },
+        iconStyle: {
+          color: "#fff",
+          borderColor: "#fff",
+        },
+        emphasis: {
+          iconStyle: {
+            color: "#5470c6",
+          },
+        },
+      },
+      // 使用 graphic 元素顯示「暫無飲食數據」
+      graphic: [
+        {
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: "暫無飲食數據",
+            fontSize: 20,
+            fontWeight: "bold",
+            fill: "rgba(255, 255, 255, 0.7)", // 白色半透明文字
+            textAlign: "center",
+          },
+        },
+        {
+          type: "image",
+          z: -1,
+          style: {
+            image:
+              "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LCAyNTUsIDI1NSwgMC4zKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMSAxNXY0YTIgMiAwIDAgMS0yIDJINWEyIDIgMCAwIDEtMi0ydi00Ij48L3BhdGg+PHBvbHlsaW5lIHBvaW50cz0iMTcgOCAxMiAzIDcgOCI+PC9wb2x5bGluZT48bGluZSB4MT0iMTIiIHkxPSIzIiB4Mj0iMTIiIHkyPSIxNSI+PC9saW5lPjwvc3ZnPg==",
+            width: 48,
+            height: 48,
+            x: "center",
+            y: "center",
+            opacity: 0.3, // 半透明圖標
+          },
+          position: [0, -60], // 將圖標上移相對於文字的位置
+        },
+      ],
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        containLabel: true,
+      },
+      // 保留坐標軸但隱藏標籤
+      xAxis: {
+        type: "category",
+        data: [],
+        axisLabel: { show: false },
+        axisLine: { lineStyle: { color: "rgba(255, 255, 255, 0.2)" } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        axisLabel: { show: false },
+        axisLine: { lineStyle: { color: "rgba(255, 255, 255, 0.2)" } },
+        axisTick: { show: false },
+        splitLine: { show: false },
+      },
+      series: [], // 空系列
+    };
+
+    // 設置兩個圖表的選項
     nutritionPieChartOptions.value = {
-      title: { text: "暫無營養數據", textStyle: { color: "white" } },
+      ...noDataOption,
+      title: {
+        ...noDataOption.title,
+        text: `營養素分佈 (${getTimeUnitLabel(timeUnit)})`,
+      },
+      toolbox: {
+        ...noDataOption.toolbox,
+        feature: {
+          saveAsImage: {
+            ...noDataOption.toolbox.feature.saveAsImage,
+            name: `營養素分佈_${getTimeUnitLabel(timeUnit)}_${format(
+              new Date(),
+              "yyyyMMdd_HHmmss"
+            )}`,
+          },
+        },
+      },
     };
+
     mealTimePieChartOptions.value = {
-      title: { text: "暫無餐別數據", textStyle: { color: "white" } },
+      ...noDataOption,
+      title: {
+        ...noDataOption.title,
+        text: `餐別熱量分佈 (${getTimeUnitLabel(timeUnit)})`,
+      },
+      toolbox: {
+        ...noDataOption.toolbox,
+        feature: {
+          saveAsImage: {
+            ...noDataOption.toolbox.feature.saveAsImage,
+            name: `餐別熱量分佈_${getTimeUnitLabel(timeUnit)}_${format(
+              new Date(),
+              "yyyyMMdd_HHmmss"
+            )}`,
+          },
+        },
+      },
     };
+
     nutritionPieChartKey.value++;
     mealTimePieChartKey.value++;
     return;
@@ -453,6 +584,15 @@ const generateCharts = (
     }
   });
 
+  // 獲取當前時間戳，用於設置導出文件名
+  const timestamp = format(new Date(), "yyyyMMdd_HHmmss");
+  const nutritionExportFilename = `營養素分佈_${getTimeUnitLabel(
+    timeUnit
+  )}_${timestamp}`;
+  const mealTimeExportFilename = `餐別熱量分佈_${getTimeUnitLabel(
+    timeUnit
+  )}_${timestamp}`;
+
   // 配置營養素分佈圓餅圖
   nutritionPieChartOptions.value = {
     backgroundColor: "rgba(0,0,0,0.1)",
@@ -460,6 +600,27 @@ const generateCharts = (
       text: `營養素分佈 (${getTimeUnitLabel(timeUnit)})`,
       textStyle: { color: "white" },
       left: "center",
+    },
+    // 添加工具箱配置，包含導出圖片功能
+    toolbox: {
+      show: true,
+      feature: {
+        saveAsImage: {
+          show: true,
+          title: "保存為圖片",
+          name: nutritionExportFilename,
+          pixelRatio: 2,
+        },
+      },
+      iconStyle: {
+        color: "#fff",
+        borderColor: "#fff",
+      },
+      emphasis: {
+        iconStyle: {
+          color: "#5470c6",
+        },
+      },
     },
     tooltip: {
       trigger: "item",
@@ -522,13 +683,36 @@ const generateCharts = (
       textStyle: { color: "white" },
       left: "center",
     },
+    // 添加工具箱配置，包含導出圖片功能
+    toolbox: {
+      show: true,
+      feature: {
+        saveAsImage: {
+          show: true,
+          title: "保存為圖片",
+          name: mealTimeExportFilename,
+          pixelRatio: 2,
+        },
+      },
+      iconStyle: {
+        color: "#fff",
+        borderColor: "#fff",
+      },
+      emphasis: {
+        iconStyle: {
+          color: "#5470c6",
+        },
+      },
+    },
     tooltip: {
       trigger: "item",
       formatter: "{a} <br/>{b}: {c}大卡 ({d}%)",
+      enterable: false,
+      confine: true,
     },
     legend: {
+      left: "left",
       orient: "vertical",
-      right: "right",
       data: ["早餐", "午餐", "晚餐", "點心"],
       textStyle: { color: "white" },
     },
@@ -578,7 +762,6 @@ const generateCharts = (
 
   nutritionPieChartKey.value++;
   mealTimePieChartKey.value++;
-  console.log("圖表生成完成");
 };
 
 const formatDate = (dateTimeString) => {
@@ -649,7 +832,6 @@ const openEditModal = () => {
       recordDate: new Date(recordToEdit.recordDate),
     };
     dialogVisible.value = true;
-    console.log("打開編輯飲食記錄對話框");
   } else if (selectedRecords.value.length > 1) {
     ElMessage.warning("請選擇一條記錄進行編輯");
   } else {
@@ -709,36 +891,6 @@ const deleteDietRecordConfirmed = async () => {
   }
 };
 
-const downloadChart = () => {
-  setTimeout(() => {
-    // 下載營養素圓餅圖
-    if (
-      nutritionPieChartRef.value &&
-      nutritionPieChartRef.value.echartsInstance
-    ) {
-      const nutritionChartInstance = nutritionPieChartRef.value.echartsInstance;
-      nutritionChartInstance.downloadAsImage({
-        name: `營養素分佈圖_${getTimeUnitLabel(currentTimeUnit.value)}`,
-        type: "png",
-        background: "white",
-      });
-    }
-
-    // 下載餐別圓餅圖
-    if (
-      mealTimePieChartRef.value &&
-      mealTimePieChartRef.value.echartsInstance
-    ) {
-      const mealTimeChartInstance = mealTimePieChartRef.value.echartsInstance;
-      mealTimeChartInstance.downloadAsImage({
-        name: `餐別熱量分佈圖_${getTimeUnitLabel(currentTimeUnit.value)}`,
-        type: "png",
-        background: "white",
-      });
-    }
-  }, 500);
-};
-
 const openCustomDateRangeDialog = () => {
   customDateRangeDialogVisible.value = true;
 };
@@ -760,12 +912,39 @@ watch(currentTimeUnit, (newUnit) => {
 });
 
 onMounted(() => {
-  console.log("組件掛載，開始獲取飲食數據");
   if (authStore.userInfo?.id) {
     fetchDietData();
   } else {
-    console.error("用戶ID不存在，無法獲取數據");
     ElMessage.warning("請先登入");
+  }
+
+  // 添加視窗尺寸變化監聽，確保圖表正確調整大小
+  const handleResize = () => {
+    if (
+      nutritionPieChartRef.value &&
+      nutritionPieChartRef.value.echartsInstance
+    ) {
+      nutritionPieChartRef.value.echartsInstance.resize();
+    }
+    if (
+      mealTimePieChartRef.value &&
+      mealTimePieChartRef.value.echartsInstance
+    ) {
+      mealTimePieChartRef.value.echartsInstance.resize();
+    }
+  };
+
+  window.addEventListener("resize", handleResize);
+
+  // 保存函數引用以便卸載時使用
+  window._chartResizeHandler = handleResize;
+});
+
+// 在組件卸載時清除監聽器
+onUnmounted(() => {
+  if (window._chartResizeHandler) {
+    window.removeEventListener("resize", window._chartResizeHandler);
+    delete window._chartResizeHandler;
   }
 });
 </script>
@@ -773,7 +952,7 @@ onMounted(() => {
 <style scoped>
 .echarts {
   width: 100%;
-  height: 300px; /* 調整圖表高度 */
+  height: 300px;
   margin-bottom: 20px;
 }
 
@@ -840,9 +1019,9 @@ onMounted(() => {
 }
 
 .chart-controls button.active {
-  background-color: #409eff;
+  background-color: #8caae7;
   color: white;
-  border-color: #409eff;
+  border-color: #8caae7;
 }
 
 .chart-controls button:hover {

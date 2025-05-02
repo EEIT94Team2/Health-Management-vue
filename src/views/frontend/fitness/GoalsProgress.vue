@@ -40,16 +40,16 @@
       </button>
     </div>
 
-    <v-chart
-      ref="chartRef"
-      :option="chartOptions"
-      :key="chartKey"
-      autoresize
-      class="echarts"
-    />
-
-    <div class="chart-actions">
-      <button @click="downloadChart">匯出圖片</button>
+    <div class="chart-container" ref="chartContainerRef">
+      <v-chart
+        ref="chartRef"
+        :option="chartOptions"
+        :key="chartKey"
+        :autoresize="true"
+        class="echarts"
+        @rendered="onChartRendered"
+        manual-update
+      />
     </div>
 
     <div class="list-toggle">
@@ -60,7 +60,7 @@
 
     <div v-if="isListVisible && goalsProgress.length > 0" class="workout-list">
       <h3>健身目標列表</h3>
-      <el-table :data="goalsProgress" border style="width: 100%">
+      <el-table :data="sortedGoalsProgress" border style="width: 100%">
         <el-table-column prop="goalType" label="目標類型"></el-table-column>
         <el-table-column prop="targetValue" label="目標值"></el-table-column>
         <el-table-column prop="unit" label="單位"></el-table-column>
@@ -137,10 +137,10 @@
           ></el-date-picker>
         </el-form-item>
         <el-form-item label="狀態">
-          <el-select v-model="editForm.status">
+          <el-select v-model="editForm.status" :disabled="isStatusDisabled">
             <el-option label="進行中" value="進行中"></el-option>
             <el-option label="已完成" value="已完成"></el-option>
-            <el-option label="已取消" value="已取消"></el-option>
+            <el-option label="未達成" value="未達成"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="使用最近數據">
@@ -240,7 +240,15 @@ import {
   parseISO,
   addDays,
 } from "date-fns";
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  onUnmounted,
+  computed,
+  watch,
+  nextTick,
+} from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
@@ -254,6 +262,7 @@ import {
   TitleComponent,
   TooltipComponent,
   LegendComponent,
+  ToolboxComponent,
 } from "echarts/components";
 
 use([
@@ -263,18 +272,33 @@ use([
   TitleComponent,
   TooltipComponent,
   LegendComponent,
+  ToolboxComponent, // 保留工具箱組件
 ]);
 
 const authStore = useAuthStore();
 const chartKey = ref(0);
 const chartRef = ref(null);
 const chartOptions = ref({});
+const isChartReady = ref(false);
 
 // 列表顯示控制
 const isListVisible = ref(false);
 const toggleListVisible = () => {
   isListVisible.value = !isListVisible.value;
 };
+
+// 數據排序 - 按日期排列
+const sortedGoalsProgress = computed(() => {
+  if (!goalsProgress.value || goalsProgress.value.length === 0) return [];
+
+  const sortedData = [...goalsProgress.value];
+
+  return sortedData.sort((a, b) => {
+    const dateA = new Date(a.startTime || a.exerciseDate);
+    const dateB = new Date(b.startTime || b.exerciseDate);
+    return dateB - dateA;
+  });
+});
 
 // 健身目標數據
 const goalsProgress = ref([]);
@@ -459,6 +483,12 @@ const openEditDialog = (row) => {
       row.startMuscleMass !== null &&
       row.startMuscleMass !== undefined
     );
+    // 如果目標的狀態已經是 "已完成"，則禁用狀態的編輯
+    if (editForm.status === "已完成") {
+      isStatusDisabled.value = true;
+    } else {
+      isStatusDisabled.value = false;
+    }
   } else {
     Object.assign(editForm, {
       goalId: null,
@@ -467,17 +497,23 @@ const openEditDialog = (row) => {
       targetValue: null,
       unit: "",
       currentProgress: null,
-      startDate: null,
-      endDate: null,
+      startDate: new Date().toISOString().slice(0, 10),
+      endDate: (() => {
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 1);
+        return endDate.toISOString().slice(0, 10);
+      })(),
       status: "進行中",
       useLatestData: true,
       startWeight: null,
       startBodyFat: null,
       startMuscleMass: null,
     });
+    isStatusDisabled.value = false;
   }
   editDialogVisible.value = true;
 };
+const isStatusDisabled = ref(false);
 
 // 保存編輯
 const saveEdit = async () => {
@@ -565,11 +601,99 @@ const handleCurrentChange = (page) => {
 
 // 生成圖表
 const generateChart = () => {
+  isChartReady.value = false;
+
   if (goalsProgress.value.length === 0) {
+    // 空數據時使用統一風格的提示
     chartOptions.value = {
-      title: { text: "暫無目標數據", textStyle: { color: "white" } },
+      backgroundColor: "rgba(0,0,0,0.1)",
+      title: {
+        text: "健身目標進度",
+        textStyle: { color: "white" },
+      },
+      // 添加工具箱配置，即使沒有數據也保留
+      toolbox: {
+        show: true,
+        feature: {
+          saveAsImage: {
+            show: true,
+            title: "保存為圖片",
+            name: `健身目標圖表_${currentTimeUnit.value}_${format(
+              new Date(),
+              "yyyyMMdd_HHmmss"
+            )}`,
+            pixelRatio: 2,
+          },
+        },
+        iconStyle: {
+          color: "#fff",
+          borderColor: "#fff",
+        },
+        emphasis: {
+          iconStyle: {
+            color: "#5470c6",
+          },
+        },
+      },
+      // 使用 graphic 元素顯示「暫無目標數據」
+      graphic: [
+        {
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: "暫無目標數據",
+            fontSize: 20,
+            fontWeight: "bold",
+            fill: "rgba(255, 255, 255, 0.7)", // 白色半透明文字
+            textAlign: "center",
+          },
+        },
+        {
+          type: "image",
+          z: -1,
+          style: {
+            image:
+              "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LCAyNTUsIDI1NSwgMC4zKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMSAxNXY0YTIgMiAwIDAgMS0yIDJINWEyIDIgMCAwIDEtMi0ydi00Ij48L3BhdGg+PHBvbHlsaW5lIHBvaW50cz0iMTcgOCAxMiAzIDcgOCI+PC9wb2x5bGluZT48bGluZSB4MT0iMTIiIHkxPSIzIiB4Mj0iMTIiIHkyPSIxNSI+PC9saW5lPjwvc3ZnPg==",
+            width: 48,
+            height: 48,
+            x: "center",
+            y: "center",
+            opacity: 0.3, // 半透明圖標
+          },
+          position: [0, -60], // 將圖標上移相對於文字的位置
+        },
+      ],
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        containLabel: true,
+      },
+      // 保留坐標軸但隱藏標籤
+      xAxis: {
+        show: false,
+        type: "value",
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+      },
+      yAxis: {
+        show: false,
+        type: "category",
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+      },
+      series: [], // 空系列
     };
+
     chartKey.value++;
+    nextTick(() => {
+      if (chartRef.value && chartRef.value.echartsInstance) {
+        chartRef.value.echartsInstance.resize();
+      }
+    });
     return;
   }
 
@@ -595,25 +719,42 @@ const generateChart = () => {
 
   displayGoals.forEach((goal) => {
     goalTypes.push(goal.goalType + (goal.unit ? `(${goal.unit})` : ""));
-
-    // 計算目標值
     targetValues.push(goal.targetValue);
-
-    // 計算當前值 (根據目標進度和目標值計算)
     const currentValue = goal.currentProgress
       ? (goal.targetValue * goal.currentProgress) / 100
       : 0;
     currentValues.push(parseFloat(currentValue.toFixed(1)));
-
-    // 進度百分比
     progressPercentages.push(goal.currentProgress || 0);
   });
+
+  const timestamp = format(new Date(), "yyyyMMdd_HHmmss");
+  const exportFilename = `健身目標圖表_${currentTimeUnit.value}_${timestamp}`;
 
   chartOptions.value = {
     backgroundColor: "rgba(0,0,0,0.1)",
     title: {
       text: "健身目標進度",
       textStyle: { color: "white" },
+    },
+    toolbox: {
+      show: true,
+      feature: {
+        saveAsImage: {
+          show: true,
+          title: "保存為圖片",
+          name: exportFilename,
+          pixelRatio: 2,
+        },
+      },
+      iconStyle: {
+        color: "#fff",
+        borderColor: "#fff",
+      },
+      emphasis: {
+        iconStyle: {
+          color: "#5470c6",
+        },
+      },
     },
     tooltip: {
       trigger: "axis",
@@ -718,9 +859,23 @@ const generateChart = () => {
   };
 
   chartKey.value++;
+
+  // 在圖表更新後，確保重新檢查圖表是否準備就緒
+  nextTick(() => {
+    if (chartRef.value && chartRef.value.echartsInstance) {
+      console.log("圖表DOM已更新，手動調整大小和刷新");
+      const instance = chartRef.value.echartsInstance;
+      instance.resize();
+      instance.setOption(chartOptions.value, true);
+    }
+  });
 };
 
-// 變更時間單位
+// 圖表渲染完成事件
+const onChartRendered = () => {
+  isChartReady.value = true;
+};
+
 const changeTimeUnit = (unit) => {
   currentTimeUnit.value = unit;
   if (unit !== "custom") {
@@ -744,27 +899,46 @@ const applyCustomDateRange = () => {
   }
 };
 
-// 下載圖表為圖片
-const downloadChart = () => {
-  setTimeout(() => {
-    if (chartRef.value && chartRef.value.echartsInstance) {
-      const chartInstance = chartRef.value.echartsInstance;
-      chartInstance.downloadAsImage({
-        name: `健身目標圖表_${currentTimeUnit.value}`,
-        type: "png",
-        background: "white",
-      });
-    } else {
-      ElMessage.warning("圖表尚未準備好，請稍後再試。");
-    }
-  }, 500);
-};
-
-// 組件掛載時加載數據
+// 組件掛載時加載數據並添加視窗調整大小監聽
 onMounted(() => {
   if (authStore.userInfo?.id) {
     fetchGoalsProgress();
   }
+
+  // 使用函數引用而非匿名函數，以便於卸載時正確移除
+  const handleResize = () => {
+    if (chartRef.value && chartRef.value.echartsInstance) {
+      chartRef.value.echartsInstance.resize();
+    }
+  };
+
+  // 保存引用以便卸載時使用
+  window._chartResizeHandler = handleResize;
+
+  window.addEventListener("resize", handleResize);
+
+  // 添加頁面可見性變化監聽，解決切換標籤頁後圖表問題
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      setTimeout(() => {
+        if (chartRef.value && chartRef.value.echartsInstance) {
+          chartRef.value.echartsInstance.resize();
+        }
+      }, 300);
+    }
+  });
+});
+
+// 組件卸載時正確清除監聽器
+onUnmounted(() => {
+  // 使用之前保存的引用來移除事件監聽
+  if (window._chartResizeHandler) {
+    window.removeEventListener("resize", window._chartResizeHandler);
+    delete window._chartResizeHandler;
+  }
+
+  // 清理其他事件監聽
+  document.removeEventListener("visibilitychange", () => {});
 });
 </script>
 
@@ -810,9 +984,9 @@ onMounted(() => {
 }
 
 .chart-controls button.active {
-  background-color: #409eff;
+  background-color: #8caae7;
   color: white;
-  border-color: #409eff;
+  border-color: #8caae7;
 }
 
 .chart-controls button:hover {
@@ -882,5 +1056,86 @@ onMounted(() => {
   color: white;
   text-align: center;
   padding: 20px;
+}
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  margin-bottom: 20px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.echarts {
+  width: 100%;
+  height: 400px;
+}
+
+.chart-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.chart-actions button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #3376b8;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.chart-actions button:hover:not(:disabled) {
+  background-color: #67c23a;
+}
+
+.chart-actions button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.chart-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #e6a23c;
+  margin-left: 10px;
+}
+
+.chart-status.success {
+  color: #67c23a;
+}
+
+.loading-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(230, 162, 60, 0.3);
+  border-radius: 50%;
+  border-top-color: #e6a23c;
+  animation: spin 1s linear infinite;
+}
+
+.ready-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-color: #67c23a;
+  border-radius: 50%;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

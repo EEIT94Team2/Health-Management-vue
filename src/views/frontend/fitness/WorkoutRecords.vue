@@ -46,10 +46,6 @@
       class="echarts"
     />
 
-    <div class="chart-actions">
-      <button @click="downloadChart">匯出圖片</button>
-    </div>
-
     <div class="list-toggle">
       <button @click="toggleListVisible">
         {{ isListVisible ? "收起數據列表" : "查看數據列表" }}
@@ -58,7 +54,10 @@
 
     <div v-if="isListVisible && workouts.length > 0" class="workout-list">
       <h3>運動記錄列表</h3>
-      <el-table :data="workouts" @selection-change="handleSelectionChange">
+      <el-table
+        :data="sortedWorkouts"
+        @selection-change="handleSelectionChange"
+      >
         <el-table-column prop="exerciseType" label="運動類型" />
         <el-table-column prop="startTime" label="開始時間" />
         <el-table-column prop="exerciseDuration" label="持續時間 (分鐘)" />
@@ -191,7 +190,7 @@ import {
   isSameYear,
   parseISO,
 } from "date-fns";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import axios from "axios";
 import { use } from "echarts/core";
 import VChart from "vue-echarts";
@@ -202,6 +201,7 @@ import {
   TitleComponent,
   TooltipComponent,
   LegendComponent,
+  ToolboxComponent,
 } from "echarts/components";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -228,6 +228,7 @@ use([
   TitleComponent,
   TooltipComponent,
   LegendComponent,
+  ToolboxComponent, // 添加工具箱組件
 ]);
 
 const router = useRouter();
@@ -282,6 +283,19 @@ const selectedWorkout = ref(null); // 用於編輯和刪除單個選中的記錄
 const customDateRangeDialogVisible = ref(false);
 const customStartDate = ref(null);
 const customEndDate = ref(null);
+
+// 數據排序 - 按日期排列
+const sortedWorkouts = computed(() => {
+  if (!workouts.value || workouts.value.length === 0) return [];
+
+  const sortedData = [...workouts.value];
+
+  return sortedData.sort((a, b) => {
+    const dateA = new Date(a.startTime || a.exerciseDate);
+    const dateB = new Date(b.startTime || b.exerciseDate);
+    return dateB - dateA;
+  });
+});
 
 const checkBodyMetrics = async () => {
   try {
@@ -368,7 +382,6 @@ const fetchWorkouts = async (
 
   try {
     const response = await axios.get(apiUrl, { headers });
-    console.log(`API 原始回應:`, response);
 
     // 更健壯的數據處理
     let data = [];
@@ -378,19 +391,12 @@ const fetchWorkouts = async (
       data = response.data;
     }
 
-    console.log("處理後的數據:", data);
-
     workouts.value = data.map((item) => ({
       ...item,
       caloriesBurned: item.caloriesBurned ? Math.floor(item.caloriesBurned) : 0,
       startTime: item.exerciseDate,
     }));
 
-    console.log("最終處理後的數據:", workouts.value);
-    console.log(
-      "fetchWorkouts 完成，準備生成圖表。chartRef.value:",
-      chartRef.value
-    );
     generateChart(unit, start, end);
   } catch (error) {
     console.error("取得運動紀錄失敗", error);
@@ -413,16 +419,76 @@ const deleteWorkout = (workout) => {
 };
 
 const generateChart = (timeUnit = "week", startDate = null, endDate = null) => {
-  console.log("開始生成圖表，數據項數:", workouts.value.length);
   if (workouts.value.length === 0) {
     chartOptions.value = {
-      title: { text: "暫無運動數據", textStyle: { color: "white" } },
+      backgroundColor: "rgba(0,0,0,0.1)",
+      title: {
+        text: `卡路里消耗 (${getTimeUnitLabel(timeUnit)})`,
+        textStyle: { color: "white" },
+      },
+      // 添加工具箱配置，即使沒有數據也保留
+      toolbox: {
+        show: true,
+        feature: {
+          saveAsImage: {
+            show: true,
+            title: "保存為圖片",
+            name: `運動記錄圖表_${getTimeUnitLabel(timeUnit)}_${format(
+              new Date(),
+              "yyyyMMdd_HHmmss"
+            )}`,
+            pixelRatio: 2,
+          },
+        },
+        iconStyle: {
+          color: "#fff",
+          borderColor: "#fff",
+        },
+        emphasis: {
+          iconStyle: {
+            color: "#5470c6",
+          },
+        },
+      },
+      // 使用 graphic 元素顯示「暫無運動數據」
+      graphic: [
+        {
+          type: "text",
+          left: "center",
+          top: "middle",
+          style: {
+            text: "暫無運動數據",
+            fontSize: 20,
+            fontWeight: "bold",
+            fill: "rgba(255, 255, 255, 0.7)",
+            textAlign: "center",
+          },
+        },
+      ],
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        containLabel: true,
+      },
+      // 保留坐標軸但隱藏標籤
+      xAxis: {
+        type: "category",
+        data: [],
+        axisLabel: { show: false },
+        axisLine: { lineStyle: { color: "rgba(255, 255, 255, 0.2)" } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        axisLabel: { show: false },
+        axisLine: { lineStyle: { color: "rgba(255, 255, 255, 0.2)" } },
+        axisTick: { show: false },
+        splitLine: { show: false },
+      },
+      series: [],
     };
     chartKey.value++;
-    console.log(
-      "generateChart 完成，chartOptions 已更新。chartRef.value:",
-      chartRef.value
-    );
     return;
   }
 
@@ -584,12 +650,39 @@ const generateChart = (timeUnit = "week", startDate = null, endDate = null) => {
       break;
   }
 
+  // 獲取當前時間戳，用於設置導出文件名
+  const timestamp = format(new Date(), "yyyyMMdd_HHmmss");
+  const exportFilename = `運動記錄圖表_${getTimeUnitLabel(
+    timeUnit
+  )}_${timestamp}`;
+
   // 創建圖表配置
   chartOptions.value = {
     backgroundColor: "rgba(0,0,0,0.1)",
     title: {
       text: `卡路里消耗 (${getTimeUnitLabel(timeUnit)})`,
       textStyle: { color: "white" },
+    },
+    // 添加工具箱配置，包含導出圖片功能
+    toolbox: {
+      show: true,
+      feature: {
+        saveAsImage: {
+          show: true,
+          title: "保存為圖片",
+          name: exportFilename,
+          pixelRatio: 2,
+        },
+      },
+      iconStyle: {
+        color: "#fff",
+        borderColor: "#fff",
+      },
+      emphasis: {
+        iconStyle: {
+          color: "#5470c6",
+        },
+      },
     },
     tooltip: {
       trigger: "axis",
@@ -667,7 +760,6 @@ const generateChart = (timeUnit = "week", startDate = null, endDate = null) => {
   };
 
   chartKey.value++;
-  console.log("已更新chartOptions:", chartOptions.value);
 };
 
 const formatDateForChart = (dateTimeStr, unit) => {
@@ -734,7 +826,7 @@ const openAddModal = () => {
     dialogVisible.value = true;
   } else {
     ElMessage.warning("請先填寫您的身體數據才能新增運動記錄。");
-    router.push("/body-metrics"); // 導向到填寫身體數據的頁面
+    router.push("/user/fitness?tab=body-data");
   }
 };
 
@@ -742,18 +834,36 @@ const openEditModal = () => {
   if (selectedWorkouts.value.length === 1) {
     isEditing.value = true;
     const workoutToEdit = selectedWorkouts.value[0];
-    editingWorkoutId.value = workoutToEdit.recordId; // 使用 recordId 進行編輯
+    editingWorkoutId.value = workoutToEdit.recordId;
+
+    let exerciseDate;
+    try {
+      // 嘗試解析日期，如果是ISO字符串格式
+      if (workoutToEdit.exerciseDate) {
+        exerciseDate = parseISO(workoutToEdit.exerciseDate);
+        if (isNaN(exerciseDate.getTime())) {
+          exerciseDate = new Date(workoutToEdit.exerciseDate);
+        }
+      } else {
+        // 如果沒有數據, 使用當前日期
+        exerciseDate = new Date();
+      }
+    } catch (e) {
+      console.error("日期解析錯誤:", e);
+      exerciseDate = new Date();
+    }
+
     workoutForm.value = {
       exerciseType: workoutToEdit.exerciseType,
-      exerciseDate: new Date(workoutToEdit.exerciseDate), // 將日期字串轉換為 Date 物件
+      exerciseDate: exerciseDate,
       exerciseDuration: workoutToEdit.exerciseDuration,
     };
-    dialogVisible.value = true;
-    console.log("打開編輯運動記錄對話框");
-  } else if (selectedWorkouts.value.length > 1) {
-    ElMessage.warning("請選擇一條記錄進行編輯");
+
+    nextTick(() => {
+      dialogVisible.value = true;
+    });
   } else {
-    ElMessage.warning("請選擇一條記錄");
+    ElMessage.warning("請選擇一條紀錄");
   }
 };
 
@@ -818,21 +928,6 @@ const deleteWorkoutRecord = async () => {
   }
 };
 
-const downloadChart = () => {
-  setTimeout(() => {
-    if (chartRef.value && chartRef.value.echartsInstance) {
-      const chartInstance = chartRef.value.echartsInstance;
-      chartInstance.downloadAsImage({
-        name: `運動記錄圖表_${getTimeUnitLabel(currentTimeUnit.value)}`,
-        type: "png",
-        background: "white",
-      });
-    } else {
-      ElMessage.warning("圖表尚未準備好，請稍後再試。");
-    }
-  }, 500);
-};
-
 const openCustomDateRangeDialog = () => {
   customDateRangeDialogVisible.value = true;
 };
@@ -847,6 +942,10 @@ const applyCustomDateRange = () => {
   }
 };
 
+const handleSelectionChange = (selection) => {
+  selectedWorkouts.value = selection;
+};
+
 watch(currentTimeUnit, (newUnit) => {
   if (newUnit !== "custom") {
     fetchWorkouts(newUnit);
@@ -854,17 +953,34 @@ watch(currentTimeUnit, (newUnit) => {
 });
 
 onMounted(() => {
-  console.log("組件掛載，開始獲取運動數據");
   if (authStore.userInfo?.id) {
     fetchWorkouts();
     checkBodyMetrics();
   } else {
-    console.error("用戶ID不存在，無法獲取數據");
     ElMessage.warning("請先登入");
+  }
+
+  // 添加視窗尺寸變化監聽，確保圖表正確調整大小
+  const handleResize = () => {
+    if (chartRef.value && chartRef.value.echartsInstance) {
+      chartRef.value.echartsInstance.resize();
+    }
+  };
+
+  window.addEventListener("resize", handleResize);
+
+  // 保存函數引用以便卸載時使用
+  window._chartResizeHandler = handleResize;
+});
+
+// 在組件卸載時清除監聽器
+onUnmounted(() => {
+  if (window._chartResizeHandler) {
+    window.removeEventListener("resize", window._chartResizeHandler);
+    delete window._chartResizeHandler;
   }
 });
 </script>
-
 <style scoped>
 .echarts {
   width: 100%;
@@ -906,9 +1022,9 @@ onMounted(() => {
 }
 
 .chart-controls button.active {
-  background-color: #409eff;
+  background-color: #8caae7;
   color: white;
-  border-color: #409eff;
+  border-color: #8caae7;
 }
 
 .chart-controls button:hover {
@@ -979,59 +1095,226 @@ onMounted(() => {
   text-align: center;
   padding: 20px;
 }
-.el-select {
-  width: 100%; /* 讓選擇框佔滿容器寬度，如果需要的話 */
+
+/* 對話框和表單樣式 */
+:deep(.el-dialog) {
+  background-color: #2c3e50 !important;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.el-select .el-input.is-focus .el-input__inner,
-.el-select .el-input__inner:focus {
+:deep(.el-dialog__header) {
+  color: #fff !important;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:deep(.el-dialog__title) {
+  color: #fff !important;
+  font-size: 1.5em !important;
+}
+
+:deep(.el-dialog__body) {
+  background-color: #34495e !important;
+  padding: 25px;
+  color: #ecf0f1 !important;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 15px 20px;
+  border-top: none !important;
+  background-color: #34495e !important;
+  text-align: center;
+}
+
+:deep(.el-dialog__footer .el-button) {
+  font-size: 1.1rem;
+  padding: 12px 25px;
+  margin: 0 10px;
+}
+
+:deep(.el-form-item__label) {
+  color: #ecf0f1 !important;
+  font-weight: bold;
+}
+
+/* 輸入框樣式 */
+:deep(.el-input__wrapper),
+:deep(.el-textarea__wrapper),
+:deep(.el-select .el-input__wrapper),
+:deep(.el-input-number .el-input__wrapper),
+:deep(.el-date-editor .el-input__wrapper) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+  border-radius: 8px;
+  border: none !important;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select .el-input__inner),
+:deep(.el-input-number .el-input__inner),
+:deep(.el-date-editor .el-input__inner) {
+  color: #fff !important;
+  background-color: #4a6572 !important;
+  border: none !important;
+  height: 40px;
+  line-height: 40px;
+  padding-left: 12px;
+}
+
+:deep(.el-select .el-input .el-select__caret),
+:deep(.el-date-editor .el-input .el-input__icon) {
+  color: #fff !important;
+}
+
+:deep(.el-input__inner:focus),
+:deep(.el-textarea__inner:focus),
+:deep(.el-select .el-input__inner:focus),
+:deep(.el-input-number .el-input__inner:focus),
+:deep(.el-date-editor .el-input__inner:focus) {
+  color: #00ff00 !important;
+  font-size: 1.2em !important;
+  border-color: var(--highlight-color, #10b981) !important;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+}
+
+:deep(.el-input__inner:focus::placeholder),
+:deep(.el-textarea__inner:focus::placeholder) {
+  color: #00ff00;
+  font-size: 1.2em;
+}
+
+/* 選擇器樣式 */
+.el-select {
+  width: 100%;
+}
+
+:deep(.el-select .el-input.is-focus .el-input__inner),
+:deep(.el-select .el-input__inner:focus) {
   border-color: #409eff;
 }
 
-.el-select .el-input__inner {
-  border: 2px solid #555 !important;
-  background-color: #333 !important;
+:deep(.el-select .el-input__inner) {
+  border: none !important;
+  background-color: #4a6572 !important;
   color: #eee !important;
-  border-radius: 5px !important;
+  border-radius: 8px !important;
   padding: 0 10px !important;
-  height: 38px !important;
-  line-height: 38px !important;
+  height: 40px !important;
+  line-height: 40px !important;
   cursor: pointer !important;
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
 }
 
-.el-select:hover .el-input__inner {
+:deep(.el-select:hover .el-input__inner) {
   background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: #555 !important;
 }
 
-.el-select .el-input__suffix {
+:deep(.el-select .el-input__suffix) {
   color: #eee;
 }
 
-.el-select .el-input.is-active .el-input__suffix {
+:deep(.el-select .el-input.is-active .el-input__suffix) {
   color: #409eff;
 }
 
-.el-select-dropdown {
+/* 下拉選單樣式 */
+:deep(.el-select-dropdown) {
   border: 1px solid #555;
   border-radius: 5px;
   background-color: #444;
   color: #eee;
 }
 
-.el-select-dropdown__item {
+:deep(.el-select-dropdown__item) {
   padding: 8px 15px;
   cursor: pointer;
   color: #eee;
 }
 
-.el-select-dropdown__item:hover {
+:deep(.el-select-dropdown__item:hover) {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.el-select-dropdown__item.is-selected {
+:deep(.el-select-dropdown__item.selected) {
   background-color: #409eff;
   color: white;
+}
+
+/* 數字輸入框樣式 */
+:deep(.el-input-number__decrease),
+:deep(.el-input-number__increase) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+  border: 1px solid #607d8b;
+}
+
+/* 自訂日期範圍選擇器樣式 */
+:deep(.el-date-editor.el-input .el-input__inner),
+:deep(.el-date-editor.el-input .el-input__wrapper) {
+  background-color: #4a6572 !important;
+  color: #fff !important;
+}
+
+:deep(.el-date-table td.is-selected div span) {
+  color: #000 !important;
+  background-color: #00ff00 !important;
+  font-size: 1.2em !important;
+}
+
+/* 表格樣式 */
+:deep(.el-table) {
+  background-color: transparent;
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: linear-gradient(135deg, #10202b, #234567);
+  color: #fff !important;
+}
+
+:deep(.el-table td.el-table__cell) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:deep(.el-table__body tr td.el-table__cell > div) {
+  color: #fff !important;
+}
+
+:deep(
+    .el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell
+  ) {
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 按鈕樣式 */
+:deep(.el-button) {
+  transition: all 0.3s ease;
+}
+
+:deep(.el-button--primary) {
+  background-color: #409eff;
+  border-color: #409eff;
+}
+
+:deep(.el-button--primary:hover) {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+}
+
+:deep(.el-button--danger) {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+:deep(.el-button--danger:hover) {
+  background-color: #f78989;
+  border-color: #f78989;
+}
+
+/* 圖表相關 */
+.echarts-datazoom-slider text {
+  display: none !important;
 }
 </style>

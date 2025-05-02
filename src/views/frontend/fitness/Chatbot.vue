@@ -28,7 +28,7 @@
       <button @click="sendMessage('給我建議')">給我建議</button>
       <button @click="sendMessage('什麼是 體脂率')">什麼是 體脂率</button>
       <button @click="sendMessage('你能給我客製化的健身菜單嗎?')">
-        ChatGPT 菜單
+        AI 菜單
       </button>
     </div>
 
@@ -134,20 +134,24 @@ const isPredefinedMessage = (message) => {
 
 const sendMessageToGemini = async (message) => {
   try {
+    // 確保 message 不為 null
+    const userPrompt = message || "";
+
     const { data } = await axios.post(
       `http://localhost:8080/api/users/${userId.value}/recommendations/chat`,
       {
-        model: "Gemini 1.5 Pro",
-        messages: [{ role: "user", content: message }],
+        prompt: userPrompt,
       },
       {
         headers: {
           Authorization: `Bearer ${token.value}`,
+          "Content-Type": "application/json",
         },
       }
     );
     return data;
-  } catch {
+  } catch (error) {
+    console.error("Gemini API 錯誤:", error);
     return "系統錯誤，請稍後再試。";
   }
 };
@@ -203,7 +207,14 @@ const getProgressSummary = async () => {
 };
 
 const getWeightChange = async () => {
-  const data = await apiCall(`/api/tracking/body-metrics/user/${userId.value}`);
+  const data = await apiCall(
+    `/api/tracking/body-metrics/user/${userId.value}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token.value}`,
+      },
+    }
+  );
   if (!data?.length) return "你沒有體重記錄。";
 
   data.sort((a, b) => new Date(a.dateRecorded) - new Date(b.dateRecorded));
@@ -235,12 +246,34 @@ const getGoals = async () => {
   if (!goals.length) return "你目前沒有進行中的目標。";
   return (
     "你目前進行中的目標有：\n" +
-    goals.map((g) => `- ${g.goalType}：目標 ${g.targetWeight || ""}`).join("\n")
+    goals
+      .map(
+        (g) => `- ${g.goalType}：目標 ${g.targetValue || ""} ${g.unit || ""}`
+      )
+      .join("\n")
   );
 };
 
 const getRecommendations = async () => {
-  return "請確保你有設定健身目標與近期紀錄，我會根據資料提供建議。";
+  try {
+    const { data } = await axios.get(
+      `/api/users/${userId.value}/recommendations`,
+      {
+        headers: {
+          Authorization: `Bearer ${token.value}`,
+        },
+      }
+    );
+
+    if (!data || data.length === 0) {
+      return "請確保你有設定健身目標與近期紀錄，我會根據資料提供建議。";
+    }
+
+    return data.map((rec) => `${rec.type}: ${rec.content}`).join("\n\n");
+  } catch (error) {
+    console.error("取得建議失敗:", error);
+    return "請確保你有設定健身目標與近期紀錄，我會根據資料提供建議。";
+  }
 };
 
 const defineTerm = async (message) => {
