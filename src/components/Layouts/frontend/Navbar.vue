@@ -77,12 +77,8 @@
             <li><router-link to="/shop/orders">我的訂單</router-link></li>
             <li><router-link to="/shop/cart">購物車</router-link></li>
             <li><router-link to="/user/fitness">健身成效</router-link></li>
-            <li><router-link to="/user/profile">我的檔案</router-link></li>
-            <li>
-              <a href="#" @click.prevent="handleBackendNav" v-if="isAdmin"
-                >後台管理系統</a
-              >
-            </li>
+            <li><router-link to="/social/UserSocialProfile">我的檔案</router-link></li>
+            <li><a href="#" @click.prevent="handleBackendNav" v-if="isAdmin">後台管理系統</a></li>
             <li><a href="#" @click.prevent="handleLogout">登出</a></li>
           </ul>
         </div>
