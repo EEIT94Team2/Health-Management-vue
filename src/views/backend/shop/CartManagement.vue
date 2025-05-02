@@ -629,45 +629,91 @@ const checkout = async () => {
 
         // 創建訂單
         const userId = authStore.userInfo?.id;
+        if (!userId) {
+            ElMessage.error("無法獲取用戶ID，請重新登入");
+            return;
+        }
+
         console.log(`創建訂單，用戶ID: ${userId}`);
+        ElMessage.info("正在處理訂單...");
 
-        const response = await createOrderFromCart(userId);
+        try {
+            // 嘗試創建訂單
+            const response = await createOrderFromCart(userId);
 
-        if (response && response.data) {
-            let orderId = null;
+            // 成功處理
+            if (response && response.data) {
+                let orderId = null;
 
-            // 處理不同格式的響應
-            if (response.data.success && response.data.data && response.data.data.id) {
-                orderId = response.data.data.id;
-            } else if (response.data.id) {
-                orderId = response.data.id;
-            }
-
-            if (orderId) {
-                // 訂單創建成功
-                ElMessage.success("訂單創建成功，即將跳轉到結算頁面");
-
-                // 訂單創建成功後清空購物車 (這裡不再顯示確認對話框)
-                try {
-                    const userId = authStore.userInfo?.id;
-                    await apiClearCart(userId);
-                    cartItems.value = [];
-                } catch (clearError) {
-                    console.error("清空購物車時出錯:", clearError);
-                    // 不影響結算流程，僅記錄錯誤
+                // 處理不同格式的響應
+                if (response.data.success && response.data.data && response.data.data.id) {
+                    orderId = response.data.data.id;
+                } else if (response.data.id) {
+                    orderId = response.data.id;
+                } else if (response.data.orderId) {
+                    orderId = response.data.orderId;
+                } else if (typeof response.data === "object") {
+                    // 嘗試從返回對象中查找id字段
+                    for (const key in response.data) {
+                        if (key === "id" || key === "orderId") {
+                            orderId = response.data[key];
+                            break;
+                        }
+                    }
                 }
 
-                // 延遲一下再跳轉，讓用戶看到成功提示
-                setTimeout(() => {
-                    router.push(`/backpage/shop/orders/${orderId}`);
-                }, 1500);
+                if (orderId) {
+                    // 訂單創建成功
+                    ElMessage.success("訂單創建成功，即將跳轉到訂單詳情頁面");
+
+                    // 訂單創建成功後清空購物車
+                    try {
+                        await apiClearCart(userId);
+                        cartItems.value = [];
+                        console.log("購物車已清空");
+                    } catch (clearError) {
+                        console.error("清空購物車時出錯:", clearError);
+                        // 不影響結算流程，僅記錄錯誤
+                    }
+
+                    // 延遲一下再跳轉，讓用戶看到成功提示
+                    setTimeout(() => {
+                        router.push(`/backpage/shop/orders/${orderId}`);
+                    }, 1500);
+                } else {
+                    // 雖然API返回成功，但沒有orderId
+                    console.log("返回數據中未找到訂單ID，但API返回成功，嘗試重新獲取訂單列表...");
+                    ElMessage.success("訂單創建成功，但獲取訂單ID失敗");
+
+                    // 清空購物車，跳轉到訂單列表頁面
+                    try {
+                        await apiClearCart(userId);
+                        cartItems.value = [];
+                    } catch (e) {
+                        console.error("清空購物車失敗:", e);
+                    }
+
+                    setTimeout(() => {
+                        router.push("/backpage/shop/orders");
+                    }, 1500);
+                }
             } else {
-                ElMessage.error("訂單創建失敗，請稍後重試");
-                console.error("訂單創建失敗:", response);
+                // API返回成功但沒有數據
+                ElMessage.warning("訂單創建結果不明，請檢查訂單列表");
+                console.warn("訂單API返回成功但無數據:", response);
+                router.push("/backpage/shop/orders");
             }
-        } else {
-            ElMessage.error("訂單創建失敗，請稍後重試");
-            console.error("訂單創建失敗:", response);
+        } catch (apiError) {
+            // API調用錯誤
+            console.error("訂單創建API錯誤:", apiError);
+
+            if (apiError.message && apiError.message.includes("購物車是空的")) {
+                ElMessage.warning("購物車數據不完整或已清空，請重新添加商品");
+            } else if (apiError.response && apiError.response.status === 500) {
+                ElMessage.error("服務器內部錯誤，請聯繫管理員");
+            } else {
+                ElMessage.error(`訂單創建失敗: ${apiError.message || "未知錯誤"}`);
+            }
         }
     } catch (error) {
         if (error === "cancel") {
@@ -675,7 +721,7 @@ const checkout = async () => {
             return;
         }
 
-        console.error("結算時出錯:", error);
+        console.error("結算流程出錯:", error);
         ElMessage.error(`結算失敗: ${error.message || "未知錯誤"}`);
     } finally {
         loading.value = false;
