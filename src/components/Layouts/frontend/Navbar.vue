@@ -77,7 +77,7 @@
             <li><router-link to="/shop/orders">我的訂單</router-link></li>
             <li><router-link to="/shop/cart">購物車</router-link></li>
             <li><router-link to="/user/fitness">健身成效</router-link></li>
-            <li><router-link to="/user/profile">我的檔案</router-link></li>
+            <li><router-link to="/social/UserSocialProfile">我的檔案</router-link></li>
             <li><a href="#" @click.prevent="handleBackendNav" v-if="isAdmin">後台管理系統</a></li>
             <li><a href="#" @click.prevent="handleLogout">登出</a></li>
           </ul>
@@ -86,7 +86,7 @@
     </div>
   </header>
 </template>
-    
+
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -110,7 +110,7 @@ const userMenuOpen = ref(false);
 const isAdmin = computed(() => {
   // 從userInfo獲取角色
   const info = userInfo.value;
-  
+
   // 嘗試從localStorage獲取用戶信息
   let localUserInfo;
   try {
@@ -121,12 +121,12 @@ const isAdmin = computed(() => {
   } catch (error) {
     console.error("解析localStorage中的userInfo失敗:", error);
   }
-  
+
   // 檢查角色 - 優先使用userInfo，然後使用localStorage中的信息
   const role = (info && info.role) || (localUserInfo && localUserInfo.role);
-  
+
   // 如果角色是admin，返回true
-  return role === 'admin';
+  return role === "admin";
 });
 
 // 計算顯示名稱
@@ -242,9 +242,31 @@ const menus = reactive([
   {
     label: "追蹤成效",
     children: [
-      { label: "運動紀錄管理", hash: "#workout-tracking" },
-      { label: "身體數據管理", hash: "#body-data" },
-      { label: "報告與數據分析", hash: "#report" },
+      {
+        label: "身體數據",
+        hash: "/user/fitness?tab=body-data",
+        selector: "a[href='/user/fitness?tab=body-data']",
+      },
+      {
+        label: "運動紀錄",
+        hash: "/user/fitness?tab=workout-records",
+        selector: "a[href='/user/fitness?tab=workout-records']",
+      },
+      {
+        label: "飲食追蹤",
+        hash: "/user/fitness?tab=diet-records",
+        selector: "a[href='/user/fitness?tab=diet-records']",
+      },
+      {
+        label: "目標設定",
+        hash: "/user/fitness?tab=goals-progress",
+        selector: "a[href='/user/fitness?tab=goals-progress']",
+      },
+      {
+        label: "概覽",
+        hash: "/user/fitness?tab=overview",
+        selector: "a[href='/user/fitness?tab=overview']",
+      },
     ],
     open: false,
   },
@@ -269,12 +291,28 @@ const handleNavClick = (menuItem) => {
     router.push(menuItem.path);
   } else if (menuItem.hash) {
     if (isHomepage.value) {
-      const element = document.querySelector(menuItem.hash);
+      const selector =
+        menuItem.selector ||
+        (menuItem.hash.startsWith("#")
+          ? menuItem.hash
+          : `[href="${menuItem.hash}"]`);
+
+      const element = document.querySelector(selector);
       if (element) {
         element.scrollIntoView({ behavior: "smooth" });
       }
     } else {
-      router.push({ path: "/", hash: menuItem.hash });
+      const path = menuItem.hash.includes("?")
+        ? menuItem.hash.split("?")[0]
+        : "/";
+      const query = menuItem.hash.includes("?")
+        ? Object.fromEntries(new URLSearchParams(menuItem.hash.split("?")[1]))
+        : {};
+
+      router.push({
+        path: path,
+        query: query,
+      });
     }
   }
 };
@@ -287,13 +325,13 @@ const handleBackendNav = () => {
     ElMessage.error("請先登入");
     return;
   }
-  
+
   // 檢查是否有管理員權限
   if (!isAdmin.value) {
     ElMessage.error("您沒有管理員權限");
     return;
   }
-  
+
   // 跳轉到後台管理系統
   router.push("/backpage/dashboard");
 };

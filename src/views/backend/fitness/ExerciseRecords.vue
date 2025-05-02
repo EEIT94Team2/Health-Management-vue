@@ -108,11 +108,22 @@
       :title="editForm.recordId ? '編輯運動紀錄' : '新增運動紀錄'"
     >
       <el-form :model="editForm" label-width="120px">
-        <el-form-item label="用戶 ID">
+        <el-form-item label="用戶 ID" required>
           <el-input
             v-model="editForm.userId"
             :disabled="!!editForm.recordId"
+            placeholder="請輸入用戶 ID"
           ></el-input>
+          <!-- 顯示用戶身體資料狀態 -->
+          <div
+            v-if="editForm.userId && !editForm.recordId"
+            style="margin-top: 5px"
+          >
+            <el-tag v-if="bodyMetricsExists" type="success"
+              >用戶已有身體資料</el-tag
+            >
+            <el-tag v-else type="danger">用戶尚未建立身體資料</el-tag>
+          </div>
         </el-form-item>
         <el-form-item label="運動類型">
           <el-select
@@ -153,11 +164,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import axios from "axios";
-import { ElMessage, ElSelect, ElOption } from "element-plus";
+import { ElMessage } from "element-plus";
 import { Edit, Delete, Search } from "@element-plus/icons-vue";
+import { useAuthStore } from "@/stores/auth";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
+const authStore = useAuthStore();
+
+const bodyMetricsExists = ref(false);
 const workoutRecords = ref([]);
 const total = ref(0);
 const currentPage = ref(1);
@@ -172,12 +189,25 @@ const searchForm = reactive({
 const editDialogVisible = ref(false);
 const editForm = reactive({
   recordId: null,
-  userId: null,
+  userId: "", // 不自動填充 ID
   exerciseType: "",
   exerciseDuration: null,
   caloriesBurned: null,
   exerciseDate: null,
 });
+
+// 當用戶ID變化時，檢查該用戶是否有身體數據
+watch(
+  () => editForm.userId,
+  async (newVal) => {
+    if (newVal) {
+      await checkSpecificUserBodyMetricsExists(newVal);
+    } else {
+      bodyMetricsExists.value = false;
+    }
+  },
+  { immediate: false }
+);
 
 const exerciseTypes = ref([
   "跑步",
@@ -267,29 +297,90 @@ const resetSearchForm = () => {
   fetchWorkoutRecords();
 };
 
-const openEditDialog = (row) => {
+// 檢查指定用戶ID是否有身體數據
+const checkSpecificUserBodyMetricsExists = async (userId) => {
+  if (!userId) {
+    bodyMetricsExists.value = false;
+    return false;
+  }
+
+  try {
+    const response = await axios.get(
+      `/api/tracking/body-metrics/user/${userId}/exists`,
+      getAuthHeaders()
+    );
+    bodyMetricsExists.value = response.data;
+    return response.data;
+  } catch (error) {
+    console.error(`檢查用戶 ${userId} 身體資料是否存在失敗`, error);
+    ElMessage.error(`檢查用戶身體資料是否存在失敗`);
+    bodyMetricsExists.value = false;
+    return false;
+  }
+};
+
+const navigateToBodyMetrics = () => {
+  router.push("/user/body-data"); // 正確的用戶身體數據頁面路由
+};
+
+const openEditDialog = async (row) => {
   if (row) {
+    // 編輯現有記錄
     editForm.recordId = row.recordId;
     editForm.userId = row.userId;
     editForm.exerciseType = row.exerciseType;
     editForm.exerciseDuration = row.exerciseDuration;
     editForm.caloriesBurned = row.caloriesBurned;
     editForm.exerciseDate = row.exerciseDate;
+
+    // 檢查此用戶是否有身體數據（僅供參考，編輯時不阻止）
+    await checkSpecificUserBodyMetricsExists(row.userId);
   } else {
+    // 新增記錄，重置表單
     editForm.recordId = null;
-    editForm.userId = null;
+    editForm.userId = ""; // 不預設用戶ID
     editForm.exerciseType = "";
     editForm.exerciseDuration = null;
     editForm.caloriesBurned = null;
-    editForm.exerciseDate = null;
+    editForm.exerciseDate = new Date().toISOString().split("T")[0];
+    bodyMetricsExists.value = false; // 重置身體數據檢查狀態
   }
+
   editDialogVisible.value = true;
-  setTimeout(() => {
-    console.log("Edit dialog is now visible");
-  }, 50);
 };
 
 const saveEdit = async () => {
+  // 檢查必填字段
+  if (!editForm.userId) {
+    ElMessage.warning("請輸入用戶 ID");
+    return;
+  }
+  if (!editForm.exerciseType) {
+    ElMessage.warning("請選擇運動類型");
+    return;
+  }
+  if (!editForm.exerciseDuration || editForm.exerciseDuration < 1) {
+    ElMessage.warning("請輸入有效的運動時間");
+    return;
+  }
+  if (!editForm.exerciseDate) {
+    ElMessage.warning("請選擇運動日期");
+    return;
+  }
+
+  // 新增時，檢查用戶是否有身體數據
+  if (!editForm.recordId) {
+    const hasBodyMetrics = await checkSpecificUserBodyMetricsExists(
+      editForm.userId
+    );
+    if (!hasBodyMetrics) {
+      ElMessage.error(
+        `用戶 ${editForm.userId} 尚未建立身體資料，請先為該用戶新增身體資料`
+      );
+      return;
+    }
+  }
+
   try {
     if (editForm.recordId) {
       await axios.put(
@@ -313,9 +404,26 @@ const saveEdit = async () => {
       editForm.recordId ? "更新健身紀錄失敗" : "新增健身紀錄失敗",
       error
     );
-    ElMessage.error(
-      editForm.recordId ? "更新健身紀錄失敗" : "新增健身紀錄失敗"
-    );
+
+    // 檢查錯誤信息
+    const errorMsg =
+      error.response?.data?.message ||
+      error.response?.data ||
+      error.message ||
+      "";
+
+    if (
+      typeof errorMsg === "string" &&
+      errorMsg.includes("找不到用戶的身體數據")
+    ) {
+      ElMessage.error(
+        `新增失敗：用戶 ${editForm.userId} 尚未建立身體資料，請先為該用戶新增身體資料`
+      );
+    } else {
+      ElMessage.error(
+        editForm.recordId ? "更新健身紀錄失敗" : "新增健身紀錄失敗"
+      );
+    }
   }
 };
 
@@ -333,7 +441,7 @@ const handleDelete = async (id) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   fetchWorkoutRecords();
 });
 </script>

@@ -12,125 +12,16 @@
       >
         <el-tab-pane label="身體指標" name="body-data">
           <el-card class="content-card">
-            <template #header>
-              <div class="card-header"></div>
-            </template>
+            <template #header> <div class="card-header"></div> </template>
             <BodyDataManager
               :body-data="bodyData"
               :loading-body-data="loadingBodyData"
               @open-add-body-data="openAddBodyDataDialog"
               @open-edit-body-data="openEditBodyDataDialog"
-              @delete-body-data="handleDeleteBodyData"
-              @open-view-body-data="openViewBodyDataDialog"
+              @delete-body-data="openDeleteConfirmation"
+              @change-time-unit="handleTimeGranularityChange"
+              @apply-custom-date-range="fetchBodyDataByDateRange"
             />
-            <div
-              style="
-                margin-top: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-              "
-            >
-              <div>
-                <span>觀察週期：</span>
-                <el-radio-group
-                  v-model="selectedTimeGranularity"
-                  @change="handleTimeGranularityChange"
-                >
-                  <el-radio-button label="week">週</el-radio-button>
-                  <el-radio-button label="month">月</el-radio-button>
-                  <el-radio-button label="quarter">季</el-radio-button>
-                  <el-radio-button label="year">年</el-radio-button>
-                  <el-radio-button label="custom">自訂</el-radio-button>
-                </el-radio-group>
-              </div>
-              <div v-if="selectedTimeGranularity === 'custom'">
-                <el-date-picker
-                  v-model="customDateRange"
-                  type="daterange"
-                  range-separator="至"
-                  start-placeholder="開始日期"
-                  end-placeholder="結束日期"
-                  value-format="YYYY-MM-DD"
-                  @change="handleCustomDateRangeChange"
-                />
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click="fetchCustomDateRangeData"
-                  style="margin-left: 10px"
-                  >查詢</el-button
-                >
-              </div>
-            </div>
-            <div id="body-data-chart" class="chart-container"></div>
-            <div style="margin-top: 20px; text-align: right">
-              <el-button
-                style="margin-top: 20px"
-                @click="showDataTable = !showDataTable"
-              >
-                {{ showDataTable ? "隱藏數據列表" : "查看數據列表" }}
-              </el-button>
-            </div>
-            <el-table
-              v-if="showDataTable"
-              :data="bodyData"
-              border
-              style="width: 100%; margin-top: 15px"
-              sort-by="dateRecorded"
-              sort-order="descending"
-            >
-              <el-table-column
-                prop="weight"
-                label="體重 (公斤)"
-              ></el-table-column>
-              <el-table-column
-                prop="bodyFat"
-                label="體脂率 (%)"
-              ></el-table-column>
-              <el-table-column
-                prop="height"
-                label="身高 (公分)"
-              ></el-table-column>
-              <el-table-column
-                prop="waistCircumference"
-                label="腰圍 (公分)"
-              ></el-table-column>
-              <el-table-column
-                prop="hipCircumference"
-                label="臀圍 (公分)"
-              ></el-table-column>
-              <el-table-column
-                prop="muscleMass"
-                label="肌肉量 (公斤)"
-              ></el-table-column>
-              <el-table-column
-                prop="dateRecorded"
-                label="測量日期"
-              ></el-table-column>
-              <el-table-column label="操作" width="205">
-                <template #default="scope">
-                  <el-button
-                    @click="openEditBodyDataDialog(scope.row)"
-                    :icon="'edit'"
-                    >編輯</el-button
-                  >
-                  <el-button
-                    :icon="'delete'"
-                    type="danger"
-                    @click="openDeleteConfirmation(scope.row.id)"
-                    >刪除</el-button
-                  >
-                </template>
-              </el-table-column>
-            </el-table>
-            <div
-              class="no-data"
-              v-if="!loadingBodyData && bodyData.length === 0 && !showDataTable"
-            >
-              <el-empty description="暫無身體數據，請新增"></el-empty>
-            </div>
-            <div v-if="loadingBodyData" class="loading">載入身體數據中...</div>
           </el-card>
         </el-tab-pane>
 
@@ -212,7 +103,7 @@
         <el-form :model="bodyDataForm" label-width="120px">
           <el-form-item label="日期">
             <el-date-picker
-              v-model="bodyDataForm.date"
+              v-model="bodyDataForm.dateRecorded"
               type="date"
               value-format="YYYY-MM-DD"
             />
@@ -546,7 +437,7 @@ const openAddBodyDataDialog = () => {
   bodyDataDialogTitle.value = "新增身體數據";
   bodyDataForm.value = {
     id: null,
-    date: new Date().toISOString().slice(0, 10),
+    dateRecorded: new Date().toISOString().slice(0, 10),
     weight: null,
     bodyFat: null,
     height: null,
@@ -568,11 +459,7 @@ const saveBodyData = async () => {
   try {
     const payload = {
       ...bodyDataForm.value,
-      dateRecorded: bodyDataForm.value.date,
     };
-    delete payload.date;
-
-    let response;
     if (bodyDataForm.value.id) {
       await axios.put(
         `/api/tracking/body-metrics/${bodyDataForm.value.id}`,
@@ -628,11 +515,59 @@ const customDateRange = ref(null);
 const handleTimeGranularityChange = (granularity) => {
   selectedTimeGranularity.value = granularity;
   if (granularity !== "custom") {
-    fetchBodyDataByDateRange(granularity);
+    const expandedRange = calculateExpandedDateRange(granularity);
+    fetchBodyDataByDateRange(
+      granularity,
+      expandedRange.startDate,
+      expandedRange.endDate
+    );
     customDateRange.value = null; // 清空自訂日期範圍
-  } else {
-    // 當選擇自訂時，顯示日期選擇器
   }
+};
+
+// 修復 calculateExpandedDateRange 函數缺少閉合括號的問題
+const calculateExpandedDateRange = (granularity) => {
+  const now = new Date();
+  let startDate, endDate;
+
+  switch (granularity) {
+    case "week":
+      // 獲取包含本週的整個月
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      break;
+    case "month":
+      // 獲取包含本月的整個季度
+      const quarter = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), quarter * 3, 1);
+      endDate = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+      break;
+    case "quarter":
+      // 獲取包含本季度的前後各一個月
+      const currentQuarter = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), currentQuarter * 3 - 1, 1);
+      endDate = new Date(now.getFullYear(), (currentQuarter + 1) * 3 + 1, 0);
+      break;
+    case "year":
+      // 獲取整個年度的數據
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31);
+      break;
+    default:
+      // 默認獲取最近三個月的數據
+      startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+
+  // 格式化為YYYY-MM-DD
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  return { startDate: formatDate(startDate), endDate: formatDate(endDate) };
 };
 
 const handleCustomDateRangeChange = (value) => {
@@ -687,10 +622,8 @@ const fetchBodyDataByDateRange = async (
         size: 1000,
       },
     });
-    chartData.value = response.data.content;
-    console.log("fetchBodyDataByDateRange 成功:", chartData.value); // 追蹤圖表資料
-    renderBodyDataChart(chartData.value, granularity);
-    console.log("fetchBodyDataByDateRange try -> renderBodyDataChart called"); // 追蹤渲染呼叫
+    bodyData.value = response.data.content;
+    console.log("獲取到的原始身體數據:", bodyData.value.length, "筆");
   } catch (error) {
     console.error("依日期範圍獲取身體數據失敗", error);
     ElMessage.error("依日期範圍獲取身體數據失敗");
@@ -1384,7 +1317,6 @@ watch(customDateRange, (newRange) => {
   margin-top: 15px;
 }
 
-/* 表格標頭文字顏色改為白色 */
 :deep(.el-table th.el-table__cell) {
   background: linear-gradient(135deg, #10202b, #234567);
   color: #fff !important;
@@ -1404,7 +1336,6 @@ watch(customDateRange, (newRange) => {
   overflow: hidden;
 }
 
-/* 更進一步確保表格數據文字顏色 */
 :deep(.el-table__body tr td.el-table__cell > div) {
   color: #333 !important;
   font-weight: bold !important;
@@ -1429,15 +1360,14 @@ watch(customDateRange, (newRange) => {
     margin-bottom: 20px;
   }
 
-  /* 修改標籤文字顏色為白色 */
   :deep(.el-form-item__label) {
     color: #ecf0f1 !important;
     font-size: 1rem;
     margin-bottom: 5px;
-    font-weight: bold; /* 標籤文字加粗 */
+    font-weight: bold;
   }
 
-  /* 統一修改所有輸入框（包括 input, textarea, select, input-number, date-editor）的樣式 */
+  /* 統一修改所有輸入框樣式 */
   :deep(.el-input__wrapper),
   :deep(.el-textarea__wrapper),
   :deep(.el-select .el-input__wrapper),
@@ -1456,7 +1386,7 @@ watch(customDateRange, (newRange) => {
   :deep(.el-date-editor .el-input__inner) {
     color: #fff !important;
     background-color: #4a6572 !important;
-    border: none !important; /* 移除可能有的邊框 */
+    border: none !important;
     height: 40px;
     line-height: 40px;
     padding-left: 12px;
@@ -1469,7 +1399,7 @@ watch(customDateRange, (newRange) => {
 
   :deep(.el-select .el-input .el-select__caret),
   :deep(.el-date-editor .el-input .el-input__icon) {
-    color: #fff !important; /* 同樣修改箭頭和圖示顏色為白色 */
+    color: #fff !important;
   }
 
   :deep(.el-input__inner:focus),
@@ -1477,12 +1407,9 @@ watch(customDateRange, (newRange) => {
   :deep(.el-select .el-input__inner:focus),
   :deep(.el-input-number .el-input__inner:focus),
   :deep(.el-date-editor .el-input__inner:focus) {
-    color: #00ff00 !important; /* 螢光綠 */
-    font-size: 1.2em !important; /* 放大 1.2 倍 */
-    border-color: var(
-      --highlight-color,
-      #10b981
-    ) !important; /* 保留之前的焦點高亮 */
+    color: #00ff00 !important;
+    font-size: 1.2em !important;
+    border-color: var(--highlight-color, #10b981) !important;
     box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
   }
 
@@ -1499,8 +1426,8 @@ watch(customDateRange, (newRange) => {
 
   .el-button {
     margin-left: 10px;
-    font-size: 1.1rem; /* 放大按鈕文字 */
-    padding: 12px 25px; /* 放大按鈕內邊距 */
+    font-size: 1.1rem;
+    padding: 12px 25px;
   }
 }
 
@@ -1511,7 +1438,6 @@ watch(customDateRange, (newRange) => {
   color: #fff !important;
 }
 
-/* 修改分頁組件的數字顏色為白色 */
 :deep(.el-pagination__total),
 :deep(.el-pagination__jump),
 :deep(.el-pagination__pager li),
@@ -1573,16 +1499,13 @@ watch(customDateRange, (newRange) => {
 :deep(.el-dialog__body) {
   background-color: #34495e !important;
   padding: 25px;
-  color: #ecf0f1 !important; /* 修改對話框內主要文字顏色為淺色 */
+  color: #ecf0f1 !important;
 }
 
-/* 修改 el-form-item 的 label 文字顏色 */
 :deep(.el-form-item__label) {
   color: #ecf0f1 !important;
   font-weight: bold;
 }
-
-/* 統一修改所有輸入框（再次強調） */
 :deep(.el-input__wrapper),
 :deep(.el-textarea__wrapper),
 :deep(.el-select .el-input__wrapper),
@@ -1607,14 +1530,12 @@ watch(customDateRange, (newRange) => {
   padding-left: 12px;
 }
 
-/* 修改 el-date-picker 的輸入框樣式 */
 :deep(.el-date-editor.el-input .el-input__inner),
 :deep(.el-date-editor.el-input .el-input__wrapper) {
   background-color: #4a6572 !important;
   color: #fff !important;
 }
 
-/* 修改 el-select 的背景色和文字顏色 */
 :deep(.el-select .el-input .el-input__wrapper) {
   background-color: #4a6572 !important;
   color: #fff !important;
@@ -1634,39 +1555,25 @@ watch(customDateRange, (newRange) => {
   border: 1px solid #607d8b;
 }
 
-/* 修改 el-dialog 的底部按鈕樣式 */
 :deep(.el-dialog__footer) {
   padding: 15px 20px;
-  border-top: none !important; /* 移除頂部格線 */
+  border-top: none !important;
   background-color: #34495e !important;
   text-align: center;
 
   .el-button {
-    font-size: 1.3rem; /* 放大按鈕文字 */
-    padding: 12px 25px; /* 放大按鈕內邊距 */
+    font-size: 1.3rem;
+    padding: 12px 25px;
   }
 }
 
-/* 嘗試實現日期五字平均分佈 - 效果有限，可能需要 JavaScript 輔助 */
-:deep(.el-date-editor .el-input__inner) {
-  font-family: monospace; /* 使用等寬字體 */
-  text-align: justify;
-  text-justify: distribute-all-lines;
-  letter-spacing: 0.5em; /* 你可以調整這個值 */
-}
-
-/* 修改輸入框和數字輸入框聚焦時的文字顏色和大小 */
-:deep(.el-input__inner:focus),
 :deep(.el-input-number .el-input__inner:focus),
 :deep(.el-textarea__inner:focus),
 :deep(.el-select .el-input__inner:focus),
 :deep(.el-date-editor .el-input__inner:focus) {
-  color: #00ff00 !important; /* 螢光綠 */
-  font-size: 1.2em !important; /* 放大 1.2 倍 */
-  border-color: var(
-    --highlight-color,
-    #10b981
-  ) !important; /* 保留之前的焦點高亮 */
+  color: #00ff00 !important;
+  font-size: 1.2em !important;
+  border-color: var(--highlight-color, #10b981) !important;
   box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
 }
 
@@ -1676,18 +1583,16 @@ watch(customDateRange, (newRange) => {
   font-size: 1.2em;
 }
 
-/* 修改 el-select 下拉選單被選中項目的樣式（可選） */
 :deep(.el-select-dropdown__item.selected) {
   color: #00ff00 !important;
   font-size: 1.2em !important;
-  font-weight: bold; /* 可以選擇加粗 */
-  background-color: rgba(0, 255, 0, 0.1); /* 可以添加一個淺綠色背景 */
+  font-weight: bold;
+  background-color: rgba(0, 255, 0, 0.1);
 }
 
-/* 修改 el-date-picker 日曆中被選中日期的樣式（可選） */
 :deep(.el-date-table td.is-selected div span) {
-  color: #000 !important; /* 選中日期文字顏色 */
-  background-color: #00ff00 !important; /* 選中日期背景色 */
+  color: #000 !important;
+  background-color: #00ff00 !important;
   font-size: 1.2em !important;
 }
 
