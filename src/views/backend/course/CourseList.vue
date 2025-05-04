@@ -965,7 +965,7 @@
 import { ref, computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useCourseStore } from "@/stores/courseStore";
-import { ElMessage, ElMessageBox, ElDialog } from "element-plus";
+import { ElMessage, ElMessageBox, ElDialog, ElImageViewer } from "element-plus";
 // import axios from "axios"; // axios 從 Store 中引入並使用
 import CourseForm from "./CourseForm.vue";
 
@@ -1257,6 +1257,7 @@ const formatDayOfWeek = (dayOfWeek) => {
   ];
   return dayOfWeek >= 0 && dayOfWeek <= 6 ? simpleDays[dayOfWeek] : "無";
 };
+
 // 處理刪除課程
 const handleDelete = async (id) => {
   ElMessageBox.confirm("確定要刪除此課程嗎？刪除後將無法恢復！", "刪除確認", {
@@ -1265,14 +1266,11 @@ const handleDelete = async (id) => {
     type: "warning",
   })
     .then(async () => {
-      isLoading.value = true; // 刪除前設置載入狀態
+      isLoading.value = true;
       try {
-        // 使用 Store 中的 deleteCourse Action
-        await courseStore.deleteCourse(id);
+        await courseStore.deleteCourse(id); // Use the imported deleteCourse action
         ElMessage.success("課程刪除成功");
 
-        // 刪除成功後，根據當前模式重新獲取數據，並保持當前的分頁和篩選狀態
-        // 直接呼叫對應的 Action，Action 會使用 Store 中當前的 currentPage 和 pageSize
         if (activeSearch.value === null) {
           fetchCourses();
         } else if (activeSearch.value === "byName") {
@@ -1282,21 +1280,32 @@ const handleDelete = async (id) => {
         } else if (activeSearch.value === "byCoachName") {
           searchCourseByCoachName();
         } else if (activeSearch.value === "byId") {
-          // 如果在依 ID 查詢結果中刪除了唯一課程，需要清空依 ID 的搜尋狀態並重置到全部課程
-          resetSearchStates(); // 清空依 ID 的搜尋狀態和其他搜尋狀態
-          activeSearch.value = null; // 切換回全部課程模式
-          // currentPage.value = 1; // resetSearchStates 已經重置了 currentPage
-          fetchCourses(); // 重新載入全部課程列表 (Action 會使用 Store 的狀態)
+          resetSearchStates();
+          activeSearch.value = null;
+          fetchCourses();
         }
-        // TODO: 如果有其他支援分頁的搜尋模式，也要在這裡添加處理邏輯
       } catch (error) {
-        // 錯誤處理交給 Store 中的 handleApiError 或在這裡處理特定錯誤
-        // Store Action 已經會顯示錯誤訊息，這裡可以只做額外的處理或 logging
         console.error("Error during delete:", error);
-        // 例如，針對特定的 HTTP 狀態碼顯示更友善的訊息
-        // 如果 Store 的 handleApiError 已經足夠，這裡可以不用再寫 ElMessage.error
+
+        // Modified error handling for 409 status code
+        if (error.response && error.response.status === 409) {
+          // Always show the specific warning message for 409 errors
+          ElMessage.warning("無法刪除課程：有已報名或已預約的紀錄存在");
+        } else if (error.request) {
+          console.error(
+            "Error during delete: No response received",
+            error.request
+          );
+          ElMessage.error("刪除課程失敗：無法連接到伺服器或網絡問題。");
+        } else {
+          console.error(
+            "Error during delete: Request setup error",
+            error.message
+          );
+          ElMessage.error(`刪除課程失敗：發生意外錯誤 - ${error.message}`);
+        }
       } finally {
-        isLoading.value = false; // 刪除操作結束後設置載入狀態
+        isLoading.value = false;
       }
     })
     .catch(() => {
@@ -1357,16 +1366,27 @@ const handleCloseFormDialog = () => {
 };
 
 const handleFormSubmit = async () => {
+  console.log("CourseList: handleFormSubmit executed"); // <<<< 添加這一行 >>>>
   // 呼叫 CourseForm 內部的提交方法
   if (courseFormRef.value && courseFormRef.value.submitForm) {
     // 您可能需要在提交前再次驗證
     const isValid = await courseFormRef.value.validateForm();
     if (isValid) {
+      console.log(
+        "CourseList: Validation successful, calling child submitForm..."
+      ); // <<<< 可選，添加這行以確認驗證通過 >>>>
       courseFormRef.value.submitForm(); // CourseForm 提交成功後應該會觸發 @submit-success 事件
+    } else {
+      console.log("CourseList: Validation failed."); // <<<< 可選，添加這行以確認驗證失敗 >>>>
     }
+  } else {
+    console.warn(
+      "CourseList: courseFormRef is not available to call submitForm."
+    ); // <<<< 可選，添加這行以偵測 ref 問題 >>>>
   }
 };
 const handleFormSubmitSuccess = () => {
+  console.log("CourseList: handleFormSubmitSuccess executed"); // <<<< 添加這一行 >>>>
   showCreateForm.value = false;
   editingCourseId.value = null;
   // 提交成功後，回到主列表模式，並重置到第一頁並重新獲取列表
@@ -1394,26 +1414,6 @@ onMounted(() => {
   // Action 會使用 Store 中預設或已有的 currentPage 和 pageSize
   fetchCourses();
 });
-
-// 輔助：API錯誤處理 (保持不變，在 Store 或元件中定義都可以，只要確保錯誤有被處理)
-// const handleApiError = (error, defaultMessage) => {
-//   console.error(defaultMessage, error);
-//   const errorMessage =
-//     error.response?.data?.message ||
-//     error.message ||
-//     defaultMessage + "，請檢查網絡連接或服務器。";
-//   ElMessage.error(errorMessage);
-//   if (error.response && error.response.status === 401) {
-//     console.warn("未授權操作，可能需要重新登入。");
-//   }
-// };
-
-// 移除不必要的 computed 屬性
-// const isPaginatedSearchActive = computed(() => { ... });
-// const backendPageSize = ref(10);
-// const frontendPageSize = ref(10);
-// const fetchCoursesList = () => { ... };
-// const paginatedDisplayedCourses = computed(() => { ... });
 </script>
 
 <style scoped>
