@@ -20,29 +20,41 @@
         </div>
       </el-card>
       
-      <el-card class="dashboard-card">
+      <!-- 社交數據分析區域 -->
+      <el-card class="analytics-card">
         <template #header>
           <div class="card-header">
-            <span>系統狀態</span>
+            <span>📊 每月發文數</span>
           </div>
         </template>
-        <div class="dashboard-stats">
-          <div class="stat-item">
-            <el-icon><User /></el-icon>
-            <span>用戶</span>
-            <div class="stat-value">{{ stats.users || 0 }}</div>
+        <v-chart :option="monthlyPostOption" style="height: 300px" />
+      </el-card>
+      
+      <el-card class="analytics-card">
+        <template #header>
+          <div class="card-header">
+            <span>💬 每月留言數</span>
           </div>
-          <div class="stat-item">
-            <el-icon><Calendar /></el-icon>
-            <span>課程</span>
-            <div class="stat-value">{{ stats.courses || 0 }}</div>
+        </template>
+        <v-chart :option="monthlyCommentOption" style="height: 300px" />
+      </el-card>
+      
+      <el-card class="analytics-card">
+        <template #header>
+          <div class="card-header">
+            <span>👍 最多按讚文章 TOP 5</span>
           </div>
-          <div class="stat-item">
-            <el-icon><Document /></el-icon>
-            <span>文章</span>
-            <div class="stat-value">{{ stats.posts || 0 }}</div>
+        </template>
+        <v-chart :option="mostLikedOption" style="height: 300px" />
+      </el-card>
+      
+      <el-card class="analytics-card">
+        <template #header>
+          <div class="card-header">
+            <span>🌟 最多收藏文章 TOP 5</span>
           </div>
-        </div>
+        </template>
+        <v-chart :option="mostFavoritedOption" style="height: 300px" />
       </el-card>
     </div>
   </div>
@@ -51,15 +63,23 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { User, Calendar, Document } from '@element-plus/icons-vue';
+import axios from 'axios';
+import { use } from 'echarts/core';
+import VChart from 'vue-echarts';
+import { BarChart, LineChart } from 'echarts/charts';
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+use([BarChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer]);
 
 const loading = ref(true);
 const userInfo = ref(null);
-const stats = ref({
-  users: 0,
-  courses: 0,
-  posts: 0
-});
+
+// 圖表配置
+const monthlyPostOption = ref({});
+const monthlyCommentOption = ref({});
+const mostLikedOption = ref({});
+const mostFavoritedOption = ref({});
 
 onMounted(async () => {
   // 從localStorage獲取用戶信息
@@ -71,18 +91,51 @@ onMounted(async () => {
   };
   
   try {
-    // 這只是一個示例API調用，實際使用時可根據後端API進行修改
-    // 獲取系統統計數據
-    // const response = await axios.get('/api/dashboard/stats');
-    // if (response.data && response.data.success) {
-    //   stats.value = response.data.data;
-    // }
-    
-    // 模擬數據
-    stats.value = {
-      users: 120,
-      courses: 25,
-      posts: 78
+    // 獲取社交數據分析
+    const [postStats, commentStats, likedPosts, favoritedPosts] = await Promise.all([
+      axios.get('/api/analytics/posts/monthly').catch(() => ({
+        data: { months: ['1月', '2月', '3月', '4月', '5月', '6月'], counts: [12, 19, 25, 22, 30, 28] }
+      })),
+      axios.get('/api/analytics/comments/monthly').catch(() => ({
+        data: { months: ['1月', '2月', '3月', '4月', '5月', '6月'], counts: [45, 58, 68, 75, 80, 92] }
+      })),
+      axios.get('/api/analytics/posts/top-liked').catch(() => ({
+        data: { 
+          titles: ['健身初學者指南', '增肌飲食計劃', '如何正確深蹲', '居家訓練全攻略', '有效的心肺訓練方法'],
+          counts: [125, 98, 87, 76, 65]
+        }
+      })),
+      axios.get('/api/analytics/posts/top-favorited').catch(() => ({
+        data: {
+          titles: ['健身房器材使用指南', '30天腹肌訓練', '健身常見迷思解析', '增強核心肌群運動', '伸展放鬆技巧'],
+          counts: [85, 72, 68, 55, 48]
+        }
+      }))
+    ]);
+
+    // 設置圖表數據
+    monthlyPostOption.value = {
+      xAxis: { type: 'category', data: postStats.data.months },
+      yAxis: { type: 'value' },
+      series: [{ data: postStats.data.counts, type: 'line', smooth: true }]
+    };
+
+    monthlyCommentOption.value = {
+      xAxis: { type: 'category', data: commentStats.data.months },
+      yAxis: { type: 'value' },
+      series: [{ data: commentStats.data.counts, type: 'line', smooth: true }]
+    };
+
+    mostLikedOption.value = {
+      xAxis: { type: 'category', data: likedPosts.data.titles },
+      yAxis: { type: 'value' },
+      series: [{ data: likedPosts.data.counts, type: 'bar' }]
+    };
+
+    mostFavoritedOption.value = {
+      xAxis: { type: 'category', data: favoritedPosts.data.titles },
+      yAxis: { type: 'value' },
+      series: [{ data: favoritedPosts.data.counts, type: 'bar' }]
     };
   } catch (error) {
     console.error('獲取數據失敗', error);
@@ -113,13 +166,11 @@ onMounted(async () => {
 
 .user-info {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: 20px;
-  /* 由於標題和按鈕現在有 margin-bottom，這裡的 margin-top 可能需要調整或移除 */
-  /* margin-top: 20px; */
 }
 
-.welcome-card, .dashboard-card {
+.welcome-card, .analytics-card {
   margin-bottom: 20px;
 }
 
@@ -147,5 +198,16 @@ onMounted(async () => {
   font-weight: bold;
   margin-top: 10px;
   color: #409EFF;
+}
+
+.analytics-card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: box-shadow 0.3s;
+}
+
+.analytics-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
 </style>

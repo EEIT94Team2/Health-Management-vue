@@ -52,11 +52,19 @@ export const useAuthStore = defineStore("auth", {
                     localStorage.setItem("userRole", role);
 
                     if (user) {
+                        localStorage.setItem("userName", user.name);
                         localStorage.setItem("userInfo", JSON.stringify(user));
                     }
 
                     // 設置axios默認頭部帶上token
                     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+                    
+                    // 登錄成功後，主動獲取最新的用戶信息
+                    try {
+                        await this.refreshUserInfo();
+                    } catch (refreshError) {
+                        console.error("登錄後刷新用戶信息失敗:", refreshError);
+                    }
 
                     return { success: true };
                 }

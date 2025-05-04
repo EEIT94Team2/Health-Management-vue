@@ -49,6 +49,7 @@ import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
+import axios from 'axios';
 
 const router = useRouter();
 const route = useRoute();
@@ -94,6 +95,27 @@ const handleLogin = async () => {
       // 如果 userId 有從後端回傳，儲存起來
       if (result.data?.userId) {
         localStorage.setItem('userId', result.data.userId.toString());
+      }
+
+      // 登入成功後立即刷新用戶信息
+      try {
+        // 獲取最新的用戶信息
+        const response = await axios.get('/api/users/userinfo');
+        if (response.data && response.data.data) {
+          const apiUser = response.data.data;
+          // 更新 localStorage 和 authStore
+          localStorage.setItem('userName', apiUser.name);
+          const updatedInfo = {
+            id: apiUser.id,
+            email: apiUser.email,
+            name: apiUser.name,
+            role: apiUser.role
+          };
+          localStorage.setItem("userInfo", JSON.stringify(updatedInfo));
+          authStore.setUserInfo(updatedInfo);
+        }
+      } catch (refreshError) {
+        console.error('刷新用戶信息失敗:', refreshError);
       }
 
       // 登入成功後導向首頁或指定頁面

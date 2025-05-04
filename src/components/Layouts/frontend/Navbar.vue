@@ -157,6 +157,18 @@ onMounted(async () => {
       console.error("刷新用戶名稱失敗:", error);
     }
   }
+
+  // 添加路由變化監聽器
+  router.afterEach(async (to, from) => {
+    // 在路由變化後，如果用户已經登錄，則刷新用戶名稱
+    if (isAuthenticated.value) {
+      try {
+        await refreshUserName();
+      } catch (error) {
+        console.error("路由變化後刷新用戶名稱失敗:", error);
+      }
+    }
+  });
 });
 
 // 刷新用戶名稱
@@ -175,12 +187,17 @@ const refreshUserName = async () => {
       // 更新 localStorage
       localStorage.setItem("userName", apiUser.name);
 
-      // 更新 userInfo
-      if (userInfo.value) {
-        const updatedInfo = { ...userInfo.value, name: apiUser.name };
-        localStorage.setItem("userInfo", JSON.stringify(updatedInfo));
-        authStore.setUserInfo(updatedInfo);
-      }
+      // 強制更新 authStore 中的用戶信息
+      const updatedInfo = { 
+        ...(userInfo.value || {}), 
+        name: apiUser.name,
+        id: apiUser.id,
+        email: apiUser.email,
+        role: apiUser.role
+      };
+      
+      localStorage.setItem("userInfo", JSON.stringify(updatedInfo));
+      authStore.setUserInfo(updatedInfo);
 
       console.log("成功刷新用戶名稱:", apiUser.name);
     }

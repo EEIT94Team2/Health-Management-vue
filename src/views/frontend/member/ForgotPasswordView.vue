@@ -31,6 +31,17 @@
               </el-button>
             </el-form-item>
             
+            <!-- 一鍵輸入按鈕 -->
+            <el-form-item>
+              <el-button 
+                type="warning" 
+                class="auto-fill-button" 
+                @click="autoFillEmail"
+              >
+                一鍵輸入
+              </el-button>
+            </el-form-item>
+            
             <!-- 返回登入的連結 -->
             <div class="links">
               <router-link to="/user/login" class="login-link">
@@ -77,6 +88,13 @@ const rules = {
     { required: true, message: '請輸入電子郵件', trigger: 'blur' },
     { type: 'email', message: '請輸入有效的電子郵件格式', trigger: 'blur' }
   ]
+};
+
+/**
+ * 自動填入預設電子郵件
+ */
+const autoFillEmail = () => {
+  forgotPasswordForm.value.email = 'yunda85112@gmail.com';
 };
 
 /**
@@ -243,5 +261,21 @@ const handleSubmit = async () => {
 .login-link:hover {
   color: var(--highlight-hover);
   text-decoration: underline;
+}
+
+/* 自動填入按鈕樣式 */
+.auto-fill-button {
+  width: 100%;
+  height: 50px;
+  flex-shrink: 0;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.auto-fill-button:hover {
+  background-color: var(--highlight-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 </style> 
