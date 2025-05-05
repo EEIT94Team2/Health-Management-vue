@@ -44,6 +44,9 @@
           <router-link to="/user/fitness">健身成效</router-link>
         </li>
         <li @click="userMenuOpen = false">
+          <router-link to="/backpage/dashboard">後台管理</router-link>
+        </li>
+        <li @click="userMenuOpen = false">
           <router-link to="/social/UserSocialProfile">我的檔案</router-link>
         </li>
         <li @click="userMenuOpen = false">
