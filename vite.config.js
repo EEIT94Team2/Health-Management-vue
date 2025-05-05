@@ -24,6 +24,13 @@ export default defineConfig({
     server: {
         port: 5173,
         host: "localhost",
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
+        }
+        // ====== 加入 proxy 配置在這裡 END ======
     },
     publicDir: 'public',
     assetsInclude: ['**/*.jpg', '**/*.png', '**/*.svg', '**/*.gif'],
