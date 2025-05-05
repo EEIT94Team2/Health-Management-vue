@@ -8,8 +8,6 @@ import BackPage from "@/views/backend/BackPage.vue";
 // 前端
 import FrontendLayout from "@/components/Layouts/frontend/index.vue";
 import HomePage from "@/views/frontend/HomePage.vue";
-import GymHomePage from "@/views/frontend/GymHomePage.vue";
-import GymPage from "@/views/frontend/GymPage.vue";
 
 // 課程管理
 import CourseList from "@/views/backend/course/CourseList.vue";
@@ -20,6 +18,8 @@ import Courses from "@/views/frontend/course/CoursePage.vue";
 import EnrollmentStatusPage from "@/views/frontend/course/EnrollmentStatusPage.vue"; // 修改後的查看狀態頁
 import RegularEnrollmentPage from "@/views/frontend/course/RegularEnrollmentPage.vue"; // 報名常規課程頁
 import TrialBookingPage from "@/views/frontend/course/TrialBookingPage.vue"; // 預約體驗課程頁
+import MyCoursesPage from "@/views/frontend/course/MyCourse.vue";
+import CourseDetailsPage from '@/views/frontend/course/CourseDetailsPage.vue';
 
 // 會員中心
 import MemberLoginView from "@/views/backend/member/MemberLoginView.vue";
@@ -71,6 +71,12 @@ const routes = [
                 meta: { title: '課程' }
               },
               {
+                path: '/courses/:courseId', // 注意這裡的 :courseId 會作為路由參數
+                name: 'course-details', // 給這個路由一個名稱，方便在代碼中使用 router.push({ name: 'course-details', params: { courseId: id } })
+                component: CourseDetailsPage, // 指向您新創建的詳情頁面元件
+                props: true, // 如果您想將路由參數 courseId 作為 props 傳遞給組件，可以添加這一行
+              },
+              {
                 path: '/my-enrollment-status', // 查看所有課程與我的狀態頁面路徑
                 name: 'my-enrollment-status',
                 component: EnrollmentStatusPage,
@@ -87,6 +93,12 @@ const routes = [
                 name: 'trial-booking',
                 component: TrialBookingPage,
                 meta: { title: '預約體驗課' } // 需要登入才能預約
+              },
+              {
+                path: '/user/courses',
+                name: 'MyCourses',
+                component: MyCoursesPage,
+                meta: { title: '我的課程', requiresAuth: true },
               },
             // 前台商城路由
             {
@@ -236,18 +248,6 @@ const routes = [
         name: "OAuthCallback",
         component: () => import("@/views/oauth/OAuthCallback.vue"),
         meta: { title: "OAuth登入處理" },
-    },
-    {
-        path: "/gym",
-        name: "GymHomePage",
-        component: GymHomePage,
-        meta: { title: "健身房" },
-    },
-    {
-        path: "/home",
-        name: "GymPage",
-        component: GymPage,
-        meta: { title: "健身房" },
     },
     {
         path: "/backpage",
@@ -492,9 +492,17 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes,
-});
+    // 添加這個 scrollBehavior 函式來控制滾動行為
+    scrollBehavior (to, from, savedPosition) {
+        if (savedPosition) {
+          return savedPosition // 如果有儲存的位置，就返回到那個位置
+        } else {
+          return { top: 0 } // 否則滾動到頁面頂部
+        }
+      }
+  });
 
 router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth) {
